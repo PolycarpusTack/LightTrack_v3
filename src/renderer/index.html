@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="LightTrack - Lightweight time tracking with automatic project detection">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; object-src 'none'; connect-src 'self'; base-uri 'self'; form-action 'self'">
+    <title>LightTrack</title>
+    <link rel="icon" type="image/png" href="../../assets/icon.png">
+    <link rel="stylesheet" href="styles/app.css">
+</head>
+<body>
+    <!-- Splash Screen -->
+    <div id="splash-screen" role="presentation" aria-hidden="true">
+        <div class="splash-card">
+            <img src="../../assets/splash-logo.png" alt="LightTrack logo" class="splash-logo">
+            <div class="splash-text">LightTrack</div>
+            <div class="splash-subtext">Smart time tracking</div>
+        </div>
+    </div>
+
+    <!-- Left Rail Navigation -->
+    <nav class="rail" role="navigation" aria-label="Main navigation">
+        <div class="logo" aria-label="LightTrack home">
+            <img src="../../assets/icon.png" alt="LightTrack icon">
+        </div>
+        <button class="nav-btn active" data-view="timer" title="Timer" aria-label="Timer view">
+            <span class="icon">⏱️</span>
+        </button>
+        <button class="nav-btn" data-view="timeline" title="Timeline" aria-label="Timeline view">
+            <span class="icon">🗺️</span>
+        </button>
+        <button class="nav-btn" data-view="analytics" title="Analytics" aria-label="Analytics view">
+            <span class="icon">📊</span>
+        </button>
+        <button class="nav-btn" data-view="projects" title="Projects" aria-label="Projects view">
+            <span class="icon">📁</span>
+        </button>
+        <button class="nav-btn" data-view="sap-export" title="SAP Export" aria-label="SAP Export view">
+            <img class="nav-icon" src="../../assets/nav-icons/analytics.png" alt="">
+        </button>
+        <button class="nav-btn" data-view="settings" title="Settings" aria-label="Settings view">
+            <span class="icon">⚙️</span>
+        </button>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="content" role="main">
+        <div class="glow"></div>
+
+        <!-- Topbar -->
+        <div class="topbar">
+            <div>
+                <div class="title" id="topbar-title">Dashboard</div>
+                <div class="sub" id="topbar-subtitle">Trusted partner. Clear tracking.</div>
+            </div>
+            <div class="topbar-actions">
+                <button class="ghost" id="btn-floating-timer" title="Toggle Floating Timer (Ctrl+Shift+F)">⏱</button>
+                <button class="ghost" id="btn-export" title="Export Data">↓</button>
+                <button class="ghost" id="btn-snake" title="Take a Break - Play Snake">🐍</button>
+                <button class="ghost" id="btn-help" title="Help">?</button>
+            </div>
+        </div>
+
+        <div class="view active" data-view="timer">
+            <!-- Hero Section (Timer) -->
+            <section class="hero">
+                <div class="hero-left">
+                    <div class="timer" id="timer">00:00:00</div>
+                    <div class="timer-start-time" id="timer-start-time"></div>
+                    <div class="meta" id="activity-meta">
+                        <span class="badge clickable" id="current-project-badge" title="Click to switch project">Project: General</span>
+                        <span class="badge" id="current-app-badge">App: --</span>
+                        <span class="badge" id="sampling-badge">Sampling: 5s</span>
+                        <!-- Quick Project Switcher Dropdown -->
+                        <div class="project-switcher" id="project-switcher">
+                            <div class="project-switcher-header">Switch Project</div>
+                            <div class="project-switcher-list" id="project-switcher-list"></div>
+                        </div>
+                    </div>
+                    <div class="actions">
+                        <button class="solid primary" id="toggle-tracking">
+                            <span id="toggle-tracking-text">Start</span>
+                        </button>
+                        <button class="solid primary" id="add-manual-entry">Add manual</button>
+                        <button class="ghost" id="mark-break">Mark break</button>
+                    </div>
+                </div>
+                <div class="hero-right">
+                    <div class="label">Focus score</div>
+                    <div class="value" id="focus-score">--</div>
+                    <div class="meta-line" id="focus-summary">Start tracking to measure focus</div>
+                    <div class="label mt-12">Goals</div>
+                    <div class="meta" id="goals-meta">
+                        <span class="badge" id="deep-work-badge">0h / 4h Deep work</span>
+                        <span class="badge" id="breaks-badge">0 / 4 Breaks</span>
+                    </div>
+                    <div class="goal-progress" id="goal-progress">
+                        <div class="goal-progress-bar" id="goal-progress-bar"></div>
+                    </div>
+                    <div class="meta-line" id="goal-progress-text">0% of daily goal</div>
+                    <div class="label mt-12">Today's Timeline</div>
+                    <div class="mini-timeline" id="mini-timeline">
+                        <div class="mini-timeline-bar" id="mini-timeline-bar"></div>
+                        <div class="mini-timeline-labels">
+                            <span class="mini-timeline-start">9am</span>
+                            <span class="mini-timeline-end">6pm</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- KPI Grid -->
+            <section class="kpi-grid">
+                <div class="card spark">
+                    <div class="label">Today</div>
+                    <div class="value" id="today-total">0h 0m</div>
+                    <div class="meta-line" id="today-compare">Start tracking</div>
+                </div>
+                <div class="card">
+                    <div class="label">Billable</div>
+                    <div class="value" id="billable-percent">--%</div>
+                    <div class="meta-line" id="billable-time">0h billed</div>
+                </div>
+                <div class="card">
+                    <div class="label">Context switches</div>
+                    <div class="value" id="context-switches">0</div>
+                    <div class="meta-line">App changes today</div>
+                </div>
+                <div class="card">
+                    <div class="label">Projects</div>
+                    <div class="value" id="project-count">0</div>
+                    <div class="meta-line">Active today</div>
+                </div>
+            </section>
+
+            <!-- Split: Activity Feed + Insights -->
+            <section class="split">
+                <div class="list">
+                    <div class="section-title">Activity feed</div>
+                    <div id="activity-list">
+                        <div class="empty-state">
+                            <div class="icon">📋</div>
+                            <div>No activities yet today</div>
+                            <div class="meta-line">Start tracking to see your activity feed</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="insights">
+                    <div class="section-title">Insights</div>
+                    <div class="insight-card" id="upcoming-meetings-card" style="display: none;">
+                        <div class="label">Upcoming meetings</div>
+                        <div id="upcoming-meetings-list">
+                            <!-- Meetings populated dynamically -->
+                        </div>
+                        <div class="meta-line" id="calendar-sync-info" style="margin-top: 8px; font-size: 11px;"></div>
+                    </div>
+                    <div class="insight-card">
+                        <div class="label">Top projects</div>
+                        <div id="top-projects">
+                            <div class="bar-row">
+                                <span class="badge">General</span>
+                                <div class="bar"><span class="bar-empty"></span></div>
+                                <div class="duration">0m</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="insight-card">
+                        <div class="label">Focus score (7d)</div>
+                        <div class="value" id="weekly-focus-score">--</div>
+                        <div class="meta-line" id="weekly-focus-summary">Track more to see insights</div>
+                    </div>
+                    <div class="insight-card">
+                        <div class="label">Tracking streak</div>
+                        <div class="streak-display">
+                            <span class="streak-value" id="streak-count">0</span>
+                            <span class="streak-unit">days</span>
+                        </div>
+                        <div class="meta-line" id="streak-summary">Start tracking to build your streak</div>
+                    </div>
+                    <!-- Daily Summary Card -->
+                    <div class="insight-card daily-summary-card" id="daily-summary-card">
+                        <div class="daily-summary-header">
+                            <div class="label">Daily Summary</div>
+                            <button class="ghost btn-small" id="toggle-daily-summary" title="Toggle summary">▼</button>
+                        </div>
+                        <div class="daily-summary-content" id="daily-summary-content">
+                            <div class="summary-stat">
+                                <span class="summary-label">Total time</span>
+                                <span class="summary-value" id="summary-total-time">0h 0m</span>
+                            </div>
+                            <div class="summary-stat">
+                                <span class="summary-label">Billable</span>
+                                <span class="summary-value" id="summary-billable">0h (0%)</span>
+                            </div>
+                            <div class="summary-stat">
+                                <span class="summary-label">Goal progress</span>
+                                <span class="summary-value" id="summary-goal">0%</span>
+                            </div>
+                            <div class="summary-divider"></div>
+                            <div class="summary-section-title">Time by Project</div>
+                            <div class="summary-projects" id="summary-projects">
+                                <div class="meta-line">No activities yet</div>
+                            </div>
+                            <div class="summary-divider"></div>
+                            <div class="summary-footer">
+                                <span class="meta-line" id="summary-time-range">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <div class="view" data-view="timeline">
+            <!-- Date Navigation -->
+            <section class="card timeline-header">
+                <div class="date-nav">
+                    <button class="ghost" id="timeline-prev" title="Previous day">&larr;</button>
+                    <div class="date-display">
+                        <div class="label">Timeline for <span id="timeline-date">today</span></div>
+                        <div class="meta-line" id="timeline-summary">Loading...</div>
+                    </div>
+                    <button class="ghost" id="timeline-next" title="Next day">&rarr;</button>
+                    <button class="ghost" id="timeline-today" title="Go to today">Today</button>
+                </div>
+            </section>
+
+            <!-- Day Stats -->
+            <section class="kpi-grid timeline-stats">
+                <div class="card">
+                    <div class="label">Tracked</div>
+                    <div class="value" id="timeline-tracked">0h 0m</div>
+                </div>
+                <div class="card">
+                    <div class="label">Gaps</div>
+                    <div class="value" id="timeline-gaps">0h 0m</div>
+                </div>
+                <div class="card">
+                    <div class="label">Billable</div>
+                    <div class="value" id="timeline-billable">0%</div>
+                </div>
+                <div class="card">
+                    <div class="label">Projects</div>
+                    <div class="value" id="timeline-projects">0</div>
+                </div>
+            </section>
+
+            <!-- Visual Timeline Bar -->
+            <section class="card">
+                <div class="label" id="timeline-bar-label">Day overview</div>
+                <div class="timeline-bar" id="timeline-bar">
+                    <div class="timeline-bar-empty">No activities</div>
+                </div>
+            </section>
+
+            <!-- Activity List -->
+            <section class="list">
+                <div class="section-title-row">
+                    <div class="section-title">Activities</div>
+                    <div class="timeline-filters">
+                        <label class="filter-checkbox" title="Select all activities">
+                            <input type="checkbox" id="timeline-select-all">
+                            <span>Select</span>
+                        </label>
+                        <button class="ghost btn-small" id="timeline-merge-selected" disabled title="Merge selected activities">Merge</button>
+                        <span class="filter-divider">|</span>
+                        <select id="timeline-project-filter" class="filter-select" title="Filter by project">
+                            <option value="">All Projects</option>
+                        </select>
+                        <label class="filter-checkbox" title="Show billable only">
+                            <input type="checkbox" id="timeline-billable-filter">
+                            <span>Billable</span>
+                        </label>
+                        <label class="filter-checkbox" title="Group activities by project">
+                            <input type="checkbox" id="timeline-group-toggle">
+                            <span>Group</span>
+                        </label>
+                    </div>
+                    <button class="ghost" id="timeline-add-entry">+ Add entry</button>
+                </div>
+                <div id="timeline-list">
+                    <div class="empty-state">
+                        <div class="icon">📋</div>
+                        <div>No activities for this date</div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <div class="view" data-view="analytics">
+            <!-- Analytics Controls -->
+            <section class="analytics-controls">
+                <div class="date-range-selector">
+                    <button class="range-btn active" data-range="week">This Week</button>
+                    <button class="range-btn" data-range="month">This Month</button>
+                    <button class="range-btn" data-range="year">This Year</button>
+                    <button class="range-btn" data-range="all">All Time</button>
+                    <button class="range-btn" data-range="custom" id="custom-range-btn">Custom</button>
+                </div>
+                <div class="custom-range-picker" id="custom-range-picker" style="display: none;">
+                    <div class="date-inputs">
+                        <label>
+                            <span>From:</span>
+                            <input type="date" id="analytics-date-from">
+                        </label>
+                        <label>
+                            <span>To:</span>
+                            <input type="date" id="analytics-date-to">
+                        </label>
+                        <button class="btn btn-sm" id="apply-custom-range">Apply</button>
+                    </div>
+                </div>
+                <div class="pill-row analytics-filter-row">
+                    <div class="pill active" data-analytics-filter="all">All</div>
+                    <div class="pill" data-analytics-filter="billable">Billable</div>
+                    <div class="pill" data-analytics-filter="non-billable">Non-billable</div>
+                    <div class="pill" data-analytics-filter="meetings">Meetings</div>
+                </div>
+                <div class="analytics-actions">
+                    <button class="btn btn-sm ghost" id="toggle-comparison" title="Compare with previous period">Compare</button>
+                    <button class="btn btn-sm ghost" id="export-analytics-csv" title="Export to CSV">Export CSV</button>
+                </div>
+            </section>
+
+            <!-- Period Comparison (hidden by default) -->
+            <section class="card comparison-card" id="comparison-section" style="display: none;">
+                <div class="label">Period Comparison</div>
+                <div class="comparison-grid">
+                    <div class="comparison-col">
+                        <div class="comparison-header" id="comparison-current-label">This Week</div>
+                        <div class="comparison-stats">
+                            <div class="comparison-stat">
+                                <span class="stat-label">Total Time</span>
+                                <span class="stat-value" id="comparison-current-total">0h</span>
+                            </div>
+                            <div class="comparison-stat">
+                                <span class="stat-label">Billable</span>
+                                <span class="stat-value" id="comparison-current-billable">0h</span>
+                            </div>
+                            <div class="comparison-stat">
+                                <span class="stat-label">Focus Time</span>
+                                <span class="stat-value" id="comparison-current-focus">0h</span>
+                            </div>
+                            <div class="comparison-stat">
+                                <span class="stat-label">Projects</span>
+                                <span class="stat-value" id="comparison-current-projects">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="comparison-divider"></div>
+                    <div class="comparison-col">
+                        <div class="comparison-header" id="comparison-prev-label">Last Week</div>
+                        <div class="comparison-stats">
+                            <div class="comparison-stat">
+                                <span class="stat-label">Total Time</span>
+                                <span class="stat-value" id="comparison-prev-total">0h</span>
+                            </div>
+                            <div class="comparison-stat">
+                                <span class="stat-label">Billable</span>
+                                <span class="stat-value" id="comparison-prev-billable">0h</span>
+                            </div>
+                            <div class="comparison-stat">
+                                <span class="stat-label">Focus Time</span>
+                                <span class="stat-value" id="comparison-prev-focus">0h</span>
+                            </div>
+                            <div class="comparison-stat">
+                                <span class="stat-label">Projects</span>
+                                <span class="stat-value" id="comparison-prev-projects">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="comparison-col change-col">
+                        <div class="comparison-header">Change</div>
+                        <div class="comparison-stats">
+                            <div class="comparison-stat">
+                                <span class="stat-label">Total</span>
+                                <span class="stat-value change" id="comparison-change-total">--</span>
+                            </div>
+                            <div class="comparison-stat">
+                                <span class="stat-label">Billable</span>
+                                <span class="stat-value change" id="comparison-change-billable">--</span>
+                            </div>
+                            <div class="comparison-stat">
+                                <span class="stat-label">Focus</span>
+                                <span class="stat-value change" id="comparison-change-focus">--</span>
+                            </div>
+                            <div class="comparison-stat">
+                                <span class="stat-label">Projects</span>
+                                <span class="stat-value change" id="comparison-change-projects">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- KPI Cards -->
+            <section class="kpi-grid">
+                <div class="card">
+                    <div class="label">Total Time</div>
+                    <div class="value" id="analytics-week-total">0h 0m</div>
+                    <div class="meta-line" id="analytics-week-days">0 days tracked</div>
+                </div>
+                <div class="card">
+                    <div class="label">Avg per Day</div>
+                    <div class="value" id="analytics-avg-day">0h 0m</div>
+                    <div class="meta-line">When active</div>
+                </div>
+                <div class="card">
+                    <div class="label">Top Project</div>
+                    <div class="value" id="analytics-top-project">--</div>
+                    <div class="meta-line" id="analytics-top-time">0h</div>
+                </div>
+                <div class="card">
+                    <div class="label">Focus Time</div>
+                    <div class="value" id="analytics-focus-time">0h 0m</div>
+                    <div class="meta-line" id="analytics-focus-percent">Sessions 25+ min</div>
+                </div>
+                <div class="card">
+                    <div class="label">Billable Hours</div>
+                    <div class="value" id="analytics-billable-time">0h 0m</div>
+                    <div class="billable-breakdown" id="analytics-billable-breakdown">
+                        <div class="billable-bar">
+                            <div class="billable-fill" id="analytics-billable-fill" style="width: 0%"></div>
+                        </div>
+                        <div class="billable-labels">
+                            <span id="analytics-billable-percent">0%</span>
+                            <span id="analytics-nonbillable">0h non-billable</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="label">Daily Goals</div>
+                    <div id="goals-progress" class="goals-progress">
+                        <div class="goal-item">
+                            <div class="goal-header">
+                                <span class="goal-name">Deep Work</span>
+                                <span class="goal-value" id="goal-deepwork-value">0h / 4h</span>
+                            </div>
+                            <div class="goal-bar">
+                                <div class="goal-fill" id="goal-deepwork-fill" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="goal-item">
+                            <div class="goal-header">
+                                <span class="goal-name">Focus Sessions</span>
+                                <span class="goal-value" id="goal-focus-value">0 / 4</span>
+                            </div>
+                            <div class="goal-bar">
+                                <div class="goal-fill focus" id="goal-focus-fill" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Daily Activity Chart -->
+            <section class="card chart-card">
+                <div class="label">Daily Activity</div>
+                <div class="chart-container">
+                    <canvas id="daily-chart" width="600" height="200"></canvas>
+                </div>
+            </section>
+
+            <!-- Project Breakdown -->
+            <section class="card">
+                <div class="label">Project Breakdown</div>
+                <div class="chart-breakdown-grid">
+                    <div class="chart-container chart-container-small">
+                        <canvas id="project-pie-chart" width="200" height="200"></canvas>
+                    </div>
+                    <div id="analytics-project-breakdown" class="project-bars">
+                        <div class="empty-state">
+                            <div>No data yet</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Time of Day Heatmap -->
+            <section class="card">
+                <div class="label">Productivity by Hour</div>
+                <div class="meta-line">When you're most active</div>
+                <div id="hourly-heatmap" class="hourly-heatmap">
+                    <div class="heatmap-row" id="heatmap-weekday">
+                        <span class="heatmap-label">Weekdays</span>
+                        <div class="heatmap-cells" id="heatmap-weekday-cells"></div>
+                    </div>
+                    <div class="heatmap-row" id="heatmap-weekend">
+                        <span class="heatmap-label">Weekends</span>
+                        <div class="heatmap-cells" id="heatmap-weekend-cells"></div>
+                    </div>
+                    <div class="heatmap-hours">
+                        <span>6am</span><span>9am</span><span>12pm</span><span>3pm</span><span>6pm</span><span>9pm</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Productivity Insights -->
+            <section class="card">
+                <div class="label">Insights</div>
+                <div id="analytics-insights" class="insights-list">
+                    <div class="empty-state">
+                        <div>Track more time to see insights</div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <div class="view" data-view="projects">
+            <!-- App/Window Mapping Rules -->
+            <section class="card">
+                <div class="label">App Rules</div>
+                <div class="meta-line">Auto-assign based on app name or window title</div>
+                <div class="mapping-form">
+                    <input type="text" id="mapping-pattern" placeholder="Pattern (e.g., VS Code)">
+                    <button type="button" class="ghost btn-small btn-test-pattern" data-pattern-input="mapping-pattern" title="Test pattern">Test</button>
+                    <input type="text" id="mapping-project" placeholder="Project name">
+                    <input type="text" id="mapping-activity" placeholder="Activity (optional)">
+                    <input type="text" id="mapping-sap-code" placeholder="SAP Code (optional)">
+                    <input type="text" id="mapping-cost-center" placeholder="Cost Center (optional)">
+                    <input type="text" id="mapping-wbs" placeholder="WBS Element (optional)">
+                    <button class="solid primary" id="add-mapping-btn">Add</button>
+                    <button class="ghost" id="update-mapping-btn" disabled>Update</button>
+                    <button class="ghost danger" id="cancel-mapping-btn" style="display: none;">Cancel</button>
+                </div>
+                <div id="mappings-list" class="mappings-list"></div>
+            </section>
+
+            <!-- URL Mapping Rules -->
+            <section class="card">
+                <div class="label">URL Rules</div>
+                <div class="meta-line">Auto-assign based on browser URL</div>
+                <div class="mapping-form">
+                    <input type="text" id="url-mapping-pattern" placeholder="URL pattern (e.g., github.com)">
+                    <button type="button" class="ghost btn-small btn-test-pattern" data-pattern-input="url-mapping-pattern" title="Test pattern">Test</button>
+                    <input type="text" id="url-mapping-project" placeholder="Project name">
+                    <input type="text" id="url-mapping-activity" placeholder="Activity (optional)">
+                    <input type="text" id="url-mapping-sap-code" placeholder="SAP Code (optional)">
+                    <input type="text" id="url-mapping-cost-center" placeholder="Cost Center (optional)">
+                    <input type="text" id="url-mapping-wbs" placeholder="WBS Element (optional)">
+                    <button class="solid primary" id="add-url-mapping-btn">Add</button>
+                    <button class="ghost" id="update-url-mapping-btn" disabled>Update</button>
+                    <button class="ghost danger" id="cancel-url-mapping-btn" style="display: none;">Cancel</button>
+                </div>
+                <div id="url-mappings-list" class="mappings-list"></div>
+            </section>
+
+            <!-- JIRA Project Key Mapping -->
+            <section class="card">
+                <div class="label">JIRA Rules</div>
+                <div class="meta-line">Auto-assign based on JIRA ticket project key (e.g., PROJ-123 → "My Project")</div>
+                <div class="mapping-form">
+                    <input type="text" id="jira-mapping-key" placeholder="Project key (e.g., PROJ)">
+                    <input type="text" id="jira-mapping-project" placeholder="Project name">
+                    <input type="text" id="jira-mapping-activity" placeholder="Activity (optional)">
+                    <input type="text" id="jira-mapping-sap-code" placeholder="SAP Code (optional)">
+                    <input type="text" id="jira-mapping-cost-center" placeholder="Cost Center (optional)">
+                    <input type="text" id="jira-mapping-wbs" placeholder="WBS Element (optional)">
+                    <button class="solid primary" id="add-jira-mapping-btn">Add</button>
+                    <button class="ghost" id="update-jira-mapping-btn" disabled>Update</button>
+                    <button class="ghost danger" id="cancel-jira-mapping-btn" style="display: none;">Cancel</button>
+                </div>
+                <div id="jira-mappings-list" class="mappings-list"></div>
+            </section>
+
+            <!-- Meeting Subject Mapping Rules -->
+            <section class="card">
+                <div class="label">Meeting Rules</div>
+                <div class="meta-line">Auto-assign based on Outlook/Teams meeting subject</div>
+                <div class="mapping-form">
+                    <input type="text" id="meeting-mapping-pattern" placeholder="Subject pattern (e.g., Sprint Planning)">
+                    <button type="button" class="ghost btn-small btn-test-pattern" data-pattern-input="meeting-mapping-pattern" title="Test pattern">Test</button>
+                    <input type="text" id="meeting-mapping-project" placeholder="Project name">
+                    <input type="text" id="meeting-mapping-activity" placeholder="Activity (optional)">
+                    <input type="text" id="meeting-mapping-sap-code" placeholder="SAP Code (optional)">
+                    <input type="text" id="meeting-mapping-cost-center" placeholder="Cost Center (optional)">
+                    <input type="text" id="meeting-mapping-wbs" placeholder="WBS Element (optional)">
+                    <button class="solid primary" id="add-meeting-mapping-btn">Add</button>
+                    <button class="ghost" id="update-meeting-mapping-btn" disabled>Update</button>
+                    <button class="ghost danger" id="cancel-meeting-mapping-btn" style="display: none;">Cancel</button>
+                </div>
+                <div id="meeting-mappings-list" class="mappings-list"></div>
+            </section>
+
+            <!-- All Projects -->
+            <section class="card">
+                <div class="section-title-row">
+                    <div>
+                        <div class="label">All Projects</div>
+                        <div class="meta-line">Total time tracked per project</div>
+                    </div>
+                    <button class="ghost" id="create-project-btn">+ New Project</button>
+                </div>
+            </section>
+            <section class="list">
+                <div id="projects-list">
+                    <div class="empty-state">
+                        <div class="icon">📁</div>
+                        <div>No projects yet</div>
+                        <div class="meta-line">Projects appear as you track time</div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- SAP Export View -->
+        <div class="view" data-view="sap-export">
+            <section class="card">
+                <div class="label">Employee Settings</div>
+                <div class="meta-line">Your employee ID for SAP ByDesign export</div>
+                <div class="settings-row">
+                    <div class="form-group" style="flex: 1;">
+                        <label for="sap-employee-id">Employee ID</label>
+                        <input type="text" id="sap-employee-id" placeholder="Enter your employee ID">
+                    </div>
+                    <button class="solid" id="sap-save-employee-id" style="align-self: flex-end;">Save</button>
+                </div>
+            </section>
+
+            <section class="card">
+                <div class="label">Select Period</div>
+                <div class="meta-line">Choose a date range for your timesheet export</div>
+                <div class="sap-period-buttons" style="display: flex; gap: 8px; margin-top: 12px;">
+                    <button class="ghost" id="sap-this-week">This Week</button>
+                    <button class="ghost" id="sap-last-week">Last Week</button>
+                    <button class="ghost" id="sap-this-month">This Month</button>
+                    <button class="ghost" id="sap-last-month">Last Month</button>
+                </div>
+                <div id="sap-selected-period" class="meta-line" style="margin-top: 12px; color: var(--neon);">
+                    No period selected
+                </div>
+            </section>
+
+            <section class="card">
+                <div class="label">Preview</div>
+                <div id="sap-preview-summary" class="meta-line">Select a period to preview data</div>
+                <div id="sap-preview-table" style="margin-top: 12px; overflow-x: auto;">
+                    <table class="sap-preview" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <th style="text-align: left; padding: 8px; color: var(--ink-muted);">Date</th>
+                                <th style="text-align: left; padding: 8px; color: var(--ink-muted);">Project</th>
+                                <th style="text-align: left; padding: 8px; color: var(--ink-muted);">Activity Type</th>
+                                <th style="text-align: right; padding: 8px; color: var(--ink-muted);">Hours</th>
+                                <th style="text-align: left; padding: 8px; color: var(--ink-muted);">SAP Code</th>
+                                <th style="text-align: left; padding: 8px; color: var(--ink-muted);">Cost Center</th>
+                                <th style="text-align: left; padding: 8px; color: var(--ink-muted);">WBS</th>
+                                <th style="text-align: left; padding: 8px; color: var(--ink-muted);">Description</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sap-preview-body">
+                            <tr>
+                                <td colspan="8" style="padding: 20px; text-align: center; color: var(--ink-muted);">
+                                    Select a period to see preview
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="card">
+                <div class="actions" style="display: flex; gap: 12px; align-items: center;">
+                    <button class="solid primary" id="sap-export-btn" disabled>Export to CSV</button>
+                    <span id="sap-export-status" class="meta-line"></span>
+                </div>
+            </section>
+
+            <!-- Export History -->
+            <section class="card">
+                <div class="label">Export History</div>
+                <div class="meta-line">Recent exports (last 20)</div>
+                <div id="export-history-list" style="margin-top: 12px;">
+                    <div class="meta-line">No exports yet</div>
+                </div>
+            </section>
+        </div>
+
+        <div class="view" data-view="settings">
+            <!-- Tracking Group -->
+            <details class="settings-group" data-group="tracking" open>
+                <summary>
+                    <span class="chevron">▶</span>
+                    <span class="group-title">Tracking</span>
+                    <span class="group-count">3 settings</span>
+                </summary>
+                <div class="settings-group-content">
+                    <section class="card">
+                        <div class="label">Startup & Window Behavior</div>
+                        <div class="meta-line">Configure how LightTrack behaves when you start your computer and close the window</div>
+                        <div class="settings-row">
+                            <div class="form-group checkbox-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="settings-launch-startup">
+                                    <span>Launch at system startup</span>
+                                </label>
+                            </div>
+                            <div class="form-group checkbox-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="settings-auto-track">
+                                    <span>Start tracking automatically</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="settings-row" style="margin-top: 12px;">
+                            <div class="form-group">
+                                <label for="settings-close-behavior">When I close the window</label>
+                                <select id="settings-close-behavior">
+                                    <option value="minimize">Minimize to system tray</option>
+                                    <option value="close">Close the application</option>
+                                </select>
+                            </div>
+                            <div class="form-group checkbox-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="settings-minimize-to-tray" checked>
+                                    <span>Minimize to tray instead of taskbar</span>
+                                </label>
+                            </div>
+                        </div>
+                    </section>
+                    <section class="card">
+                        <div class="label">Activity Consolidation</div>
+                        <div class="meta-line">Control how similar activities are merged together</div>
+                        <div class="settings-row">
+                            <div class="form-group checkbox-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="settings-consolidate-activities" checked>
+                                    <span>Consolidate similar activities</span>
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label for="settings-consolidation-mode">Consolidation mode</label>
+                                <select id="settings-consolidation-mode">
+                                    <option value="smart">Smart (default)</option>
+                                    <option value="strict">Strict (exact title match)</option>
+                                    <option value="relaxed">Relaxed (same project only)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="meta-line" style="margin-top: 8px; font-size: 11px;">
+                            <strong>Smart:</strong> Merge activities with same JIRA ticket, common tags, or similar titles<br>
+                            <strong>Strict:</strong> Only merge if titles match exactly<br>
+                            <strong>Relaxed:</strong> Merge all activities in the same project
+                        </div>
+                    </section>
+                </div>
+            </details>
+
+            <!-- Schedule Group -->
+            <details class="settings-group" data-group="schedule">
+                <summary>
+                    <span class="chevron">▶</span>
+                    <span class="group-title">Schedule</span>
+                    <span class="group-count">3 settings</span>
+                </summary>
+                <div class="settings-group-content">
+                    <section class="card">
+                        <div class="label">Work Day</div>
+                        <div class="meta-line">Define your typical work hours for timeline display</div>
+                        <div class="settings-row">
+                            <div class="form-group">
+                                <label for="settings-day-start">Start time</label>
+                                <input type="time" id="settings-day-start" value="09:00">
+                            </div>
+                            <div class="form-group">
+                                <label for="settings-day-end">End time</label>
+                                <input type="time" id="settings-day-end" value="18:00">
+                            </div>
+                            <div class="form-group">
+                                <label for="settings-week-start">Week starts on</label>
+                                <select id="settings-week-start">
+                                    <option value="0">Sunday</option>
+                                    <option value="1" selected>Monday</option>
+                                    <option value="6">Saturday</option>
+                                </select>
+                            </div>
+                        </div>
+                    </section>
+                    <section class="card">
+                        <div class="label">Daily Goals</div>
+                        <div class="meta-line">Set your daily targets</div>
+                        <div class="settings-row">
+                            <div class="form-group">
+                                <label for="settings-deep-work">Deep work target (hours)</label>
+                                <input type="number" id="settings-deep-work" min="1" max="12" value="4">
+                            </div>
+                            <div class="form-group">
+                                <label for="settings-breaks">Breaks target (count)</label>
+                                <input type="number" id="settings-breaks" min="1" max="10" value="4">
+                            </div>
+                        </div>
+                    </section>
+                    <section class="card">
+                        <div class="label">Defaults</div>
+                        <div class="meta-line">Default values for new entries</div>
+                        <div class="settings-row">
+                            <div class="form-group">
+                                <label for="settings-default-project">Default project</label>
+                                <input type="text" id="settings-default-project" value="General" placeholder="General">
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </details>
+
+            <!-- Notifications Group -->
+            <details class="settings-group" data-group="notifications">
+                <summary>
+                    <span class="chevron">▶</span>
+                    <span class="group-title">Notifications</span>
+                    <span class="group-count">1 setting</span>
+                </summary>
+                <div class="settings-group-content">
+                    <section class="card">
+                        <div class="label">Break Reminder</div>
+                        <div class="meta-line">Get notified to take breaks during long work sessions</div>
+                        <div class="settings-row">
+                            <div class="form-group checkbox-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="settings-break-reminder-enabled">
+                                    <span>Enable break reminders</span>
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label for="settings-break-reminder-interval">Remind every (minutes)</label>
+                                <input type="number" id="settings-break-reminder-interval" min="15" max="120" step="5" value="60">
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </details>
+
+            <!-- Calendar Group -->
+            <details class="settings-group" data-group="calendar">
+                <summary>
+                    <span class="chevron">▶</span>
+                    <span class="group-title">Calendar</span>
+                    <span class="group-count">1 setting</span>
+                </summary>
+                <div class="settings-group-content">
+                    <section class="card">
+                        <div class="label">Calendar Sync</div>
+                        <div class="meta-line">Sync meetings from Outlook/Exchange via ICS subscription</div>
+                        <div class="settings-row" style="flex-direction: column; gap: 12px;">
+                            <div class="form-group" style="width: 100%;">
+                                <label for="settings-calendar-url">Calendar ICS URL</label>
+                                <div style="display: flex; gap: 8px;">
+                                    <input type="url" id="settings-calendar-url" placeholder="https://outlook.office365.com/owa/calendar/.../calendar.ics" style="flex: 1;">
+                                    <button class="solid primary" id="calendar-sync-btn">Sync Now</button>
+                                </div>
+                                <div class="meta-line" style="margin-top: 4px; font-size: 11px; color: var(--ink-muted);">
+                                    <strong>Privacy:</strong> This URL is typically public. Do not share it.
+                                    <a href="#" id="calendar-help-link" style="margin-left: 8px;">How to get your calendar URL</a>
+                                </div>
+                            </div>
+                            <div id="calendar-sync-status" class="meta-line" style="display: none;"></div>
+                        </div>
+                    </section>
+                </div>
+            </details>
+
+            <!-- Data Group -->
+            <details class="settings-group" data-group="data">
+                <summary>
+                    <span class="chevron">▶</span>
+                    <span class="group-title">Data</span>
+                    <span class="group-count">3 settings</span>
+                </summary>
+                <div class="settings-group-content">
+                    <section class="card">
+                        <div class="label">Data Management</div>
+                        <div class="meta-line">Export and manage your time tracking data</div>
+                        <div class="actions" style="margin-top: 12px;">
+                            <button class="solid primary" id="settings-export">Export CSV</button>
+                            <button class="ghost" id="settings-clear-old">Clear old data (30+ days)</button>
+                        </div>
+                    </section>
+                    <section class="card">
+                        <div class="label">Statistics</div>
+                        <div class="meta-line" id="settings-stats">Loading...</div>
+                    </section>
+                    <section class="card">
+                        <div class="label">Backup & Restore</div>
+                        <div class="meta-line">Create a full backup or restore from a previous backup</div>
+                        <div class="actions" style="margin-top: 12px; flex-wrap: wrap; gap: 8px;">
+                            <button class="solid primary" id="backup-data-btn">Create Backup</button>
+                            <button class="ghost" id="restore-data-btn">Restore from Backup</button>
+                        </div>
+                        <input type="file" id="restore-file-input" accept=".json" style="display: none;">
+                        <div id="backup-status" class="meta-line" style="margin-top: 8px; display: none;"></div>
+                    </section>
+                </div>
+            </details>
+
+            <!-- Customization Group -->
+            <details class="settings-group" data-group="customization">
+                <summary>
+                    <span class="chevron">▶</span>
+                    <span class="group-title">Customization</span>
+                    <span class="group-count">3 settings</span>
+                </summary>
+                <div class="settings-group-content">
+                    <section class="card">
+                        <div class="label">Tag Management</div>
+                        <div class="meta-line">Manage system and custom tags for activity categorization</div>
+                        <div id="tag-manager">
+                            <!-- Tag manager content loaded dynamically -->
+                        </div>
+                    </section>
+                    <section class="card">
+                        <div class="label">Project Management</div>
+                        <div class="meta-line">Configure projects with SAP ByDesign fields for export</div>
+                        <div id="project-manager">
+                            <!-- Project manager content loaded dynamically -->
+                        </div>
+                    </section>
+                    <section class="card">
+                        <div class="label">Activity Types</div>
+                        <div class="meta-line">Define work categories for time entries</div>
+                        <div id="activity-type-manager">
+                            <!-- Activity type manager content loaded dynamically -->
+                        </div>
+                    </section>
+                </div>
+            </details>
+
+            <!-- About (not collapsible) -->
+            <section class="card">
+                <div class="label">About</div>
+                <div class="meta-line">LightTrack - Lightweight personal time tracker</div>
+                <div class="meta-line">Version 3.0.0</div>
+            </section>
+        </div>
+
+        <!-- Status Strip -->
+        <div class="status-strip">
+            <span class="dot inactive" id="tracking-dot"></span>
+            <span id="tracking-status">Ready to track</span>
+            <span>•</span>
+            <span>Auto-save on</span>
+        </div>
+    </main>
+
+    <!-- Floating Timer -->
+    <div class="floating-timer" id="floating-timer">
+        <span class="icon">⏱️</span>
+        <span class="floating-timer-display" id="floating-timer-display">00:00:00</span>
+        <span class="floating-timer-project" id="floating-project">General</span>
+    </div>
+
+    <!-- Manual Entry Modal -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal" id="manual-entry-modal">
+            <div class="modal-header">
+                <h3 id="modal-title">Add Manual Entry</h3>
+                <button class="modal-close" id="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit-activity-id">
+                <div id="matched-rule-info" class="matched-rule-info" style="display: none;">
+                    <span class="label">Matched by:</span>
+                    <span id="matched-rule-text"></span>
+                </div>
+                <div class="form-group">
+                    <label for="entry-project">Project</label>
+                    <input type="text" id="entry-project" placeholder="General" value="General">
+                </div>
+                <div class="form-group">
+                    <label for="entry-app">App / Description</label>
+                    <input type="text" id="entry-app" placeholder="e.g., VS Code, Meeting">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="entry-start">Start Time</label>
+                        <input type="time" id="entry-start">
+                    </div>
+                    <div class="form-group">
+                        <label for="entry-end">End Time</label>
+                        <input type="time" id="entry-end">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="entry-date">Date</label>
+                    <input type="date" id="entry-date">
+                </div>
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" id="entry-billable" checked>
+                    <label for="entry-billable">Billable</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="ghost" id="modal-cancel">Cancel</button>
+                <button class="solid primary" id="modal-save">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal-overlay" id="delete-modal-overlay">
+        <div class="modal modal-small">
+            <div class="modal-header">
+                <h3>Delete Entry?</h3>
+            </div>
+            <div class="modal-body">
+                <p>This action cannot be undone.</p>
+                <input type="hidden" id="delete-activity-id">
+            </div>
+            <div class="modal-footer">
+                <button class="ghost" id="delete-cancel">Cancel</button>
+                <button class="solid danger" id="delete-confirm">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clear Data Confirmation Modal -->
+    <div class="modal-overlay" id="clear-data-modal-overlay">
+        <div class="modal modal-small">
+            <div class="modal-header">
+                <h3>Clear Old Data?</h3>
+            </div>
+            <div class="modal-body">
+                <p>This will permanently delete all activities older than 30 days.</p>
+                <p id="clear-data-count" class="meta-line"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="ghost" id="clear-data-cancel">Cancel</button>
+                <button class="solid danger" id="clear-data-confirm">Clear Data</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div class="modal-overlay" id="help-modal-overlay">
+        <div class="modal modal-large" id="help-modal">
+            <div class="modal-header">
+                <h3>LightTrack Help</h3>
+                <button class="modal-close" id="help-modal-close">&times;</button>
+            </div>
+            <div class="modal-body help-content" id="help-content">
+                <!-- Help content loaded dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button class="ghost" id="help-modal-close-btn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Project Modal -->
+    <div class="modal-overlay" id="new-project-modal-overlay">
+        <div class="modal modal-small">
+            <div class="modal-header">
+                <h3>Create New Project</h3>
+                <button class="modal-close" id="new-project-modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="new-project-name">Project Name</label>
+                    <input type="text" id="new-project-name" placeholder="Enter project name">
+                </div>
+                <div class="form-group">
+                    <label for="new-project-sap-code">SAP Code (optional)</label>
+                    <input type="text" id="new-project-sap-code" placeholder="SAP Project Code">
+                </div>
+                <div class="form-group">
+                    <label for="new-project-cost-center">Cost Center (optional)</label>
+                    <input type="text" id="new-project-cost-center" placeholder="Cost Center">
+                </div>
+                <div class="form-group">
+                    <label for="new-project-wbs">WBS Element (optional)</label>
+                    <input type="text" id="new-project-wbs" placeholder="WBS Element">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="ghost" id="new-project-cancel">Cancel</button>
+                <button class="solid primary" id="new-project-save">Create Project</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LightTrack Modules (load before main app) -->
+    <script src="js/modules/utils.js"></script>
+    <script src="js/modules/charts.js"></script>
+    <script src="js/modules/notifications.js"></script>
+    <script src="js/modules/sap-export.js"></script>
+    <script src="js/modules/help.js"></script>
+    <script src="js/modules/index.js"></script>
+
+    <!-- Main Application -->
+    <script src="js/app.js"></script>
+</body>
+</html>

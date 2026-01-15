@@ -1,0 +1,161 @@
+name: Continuous Deployment
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: 'Release channel'
+        required: true
+        default: 'stable'
+        type: choice
+        options:
+          - stable
+          - beta
+          - alpha
+
+jobs:
+  deploy:
+    name: Deploy to Release Channel
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Configure release channel
+        run: |
+          CHANNEL=${{ github.event.inputs.channel || 'stable' }}
+          echo "RELEASE_CHANNEL=${CHANNEL}" >> $GITHUB_ENV
+          
+      - name: Update version for pre-release
+        if: env.RELEASE_CHANNEL != 'stable'
+        run: |
+          npm version prerelease --preid=${{ env.RELEASE_CHANNEL }}
+          
+      - name: Build release packages
+        run: |
+          npm run build
+          npm run electron:build:all
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Sign Windows binaries
+        if: env.RELEASE_CHANNEL == 'stable'
+        run: |
+          echo "Signing Windows binaries..."
+          # Add code signing commands here
+        env:
+          WINDOWS_CERT: ${{ secrets.WINDOWS_CERT }}
+          WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+          
+      - name: Notarize macOS app
+        if: env.RELEASE_CHANNEL == 'stable'
+        run: |
+          echo "Notarizing macOS app..."
+          # Add notarization commands here
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          
+      - name: Upload to update server
+        run: |
+          echo "Uploading to update server..."
+          # Upload built packages to update server
+          # This would typically upload to S3, Azure, or custom server
+          
+      - name: Update release manifest
+        run: |
+          node scripts/update-manifest.js \
+            --channel ${{ env.RELEASE_CHANNEL }} \
+            --version ${{ github.event.release.tag_name }}
+            
+      - name: Deploy website updates
+        if: env.RELEASE_CHANNEL == 'stable'
+        run: |
+          echo "Deploying website updates..."
+          # Update download links on website
+          
+      - name: Send notifications
+        run: |
+          echo "Sending release notifications..."
+          # Send notifications via Discord, Slack, etc.
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          
+  update-docs:
+    name: Update Documentation
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: github.event.inputs.channel == 'stable' || github.event.release.prerelease == false
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Generate changelog
+        run: |
+          npm run changelog
+          
+      - name: Update API docs
+        run: |
+          npm run docs:api
+          
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
+          
+  homebrew:
+    name: Update Homebrew Formula
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: github.event.inputs.channel == 'stable' || github.event.release.prerelease == false
+    
+    steps:
+      - name: Update Homebrew formula
+        uses: dawidd6/action-homebrew-bump-formula@v3
+        with:
+          token: ${{ secrets.HOMEBREW_TOKEN }}
+          formula: lighttrack
+          tag: ${{ github.event.release.tag_name }}
+          
+  docker:
+    name: Build Docker Image
+    needs: deploy
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            lighttrack/lighttrack:latest
+            lighttrack/lighttrack:${{ github.event.release.tag_name }}
+            lighttrack/lighttrack:${{ env.RELEASE_CHANNEL }}

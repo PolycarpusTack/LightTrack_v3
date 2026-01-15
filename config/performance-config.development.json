@@ -1,0 +1,18 @@
+{
+  "snapshots": {
+    "maxSnapshots": 10,
+    "retentionHours": 24
+  },
+  "errorHandling": {
+    "maxRetries": 1,
+    "baseDelay": 50
+  },
+  "memory": {
+    "maxHeapUsage": 256,
+    "cacheMaxSize": 50
+  },
+  "ui": {
+    "renderThrottleMs": 8,
+    "maxVisibleItems": 100
+  }
+}

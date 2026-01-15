@@ -1,0 +1,70 @@
+{
+  "snapshots": {
+    "maxSnapshots": 25,
+    "retentionHours": 48,
+    "compressionEnabled": true
+  },
+  "errorHandling": {
+    "maxRetries": 3,
+    "baseDelay": 100,
+    "maxDelay": 5000,
+    "backoffMultiplier": 2,
+    "circuitBreaker": {
+      "windowManager": {
+        "failureThreshold": 3,
+        "timeout": 10000,
+        "monitoringPeriod": 30000
+      },
+      "activityTracker": {
+        "failureThreshold": 5,
+        "timeout": 5000,
+        "monitoringPeriod": 20000
+      }
+    }
+  },
+  "cleanup": {
+    "oldActivitiesInterval": 86400000,
+    "mergeFragmentedInterval": 300000,
+    "tempFilesCleanup": 3600000
+  },
+  "memory": {
+    "maxHeapUsage": 512,
+    "gcThreshold": 0.85,
+    "cacheMaxSize": 100
+  },
+  "database": {
+    "batchSize": 1000,
+    "maxConnections": 10,
+    "queryTimeout": 30000
+  },
+  "ui": {
+    "renderThrottleMs": 16,
+    "lazyLoadThreshold": 100,
+    "maxVisibleItems": 500
+  },
+  "monitoring": {
+    "enabled": true,
+    "sampleInterval": 5000,
+    "maxSamples": 1000
+  },
+  "thresholds": {
+    "memory.heapUsed": 512000000,
+    "memory.rss": 1024000000,
+    "cpu.usage": 80,
+    "ui.renderTime": 100,
+    "ui.responsiveness": 50
+  },
+  "resourceOptimization": {
+    "enabled": true,
+    "cacheEnabled": true,
+    "cacheTTL": 300000,
+    "maxCacheSize": 100,
+    "lazyLoadingEnabled": true,
+    "memoryPoolEnabled": true,
+    "defaultPoolSize": 50,
+    "maxPoolSize": 200,
+    "cleanupInterval": 60000,
+    "maxObjectAge": 600000,
+    "memoryThreshold": 536870912
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "name": "lighttrack",
+  "version": "3.0.0",
+  "description": "Lightweight time tracking with automatic project detection",
+  "main": "src/main/index.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "NODE_ENV=development electron .",
+    "dev:win": "set NODE_ENV=development && electron .",
+    "build": "node scripts/build.js",
+    "build:prod": "NODE_ENV=production node scripts/build.js",
+    "electron:build": "electron-builder",
+    "electron:build:all": "electron-builder --win --mac --linux",
+    "electron:build:win": "electron-builder --win",
+    "electron:build:mac": "electron-builder --mac",
+    "electron:build:linux": "electron-builder --linux",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:ci": "jest --ci --coverage --watchAll=false",
+    "lint": "eslint src --ext .js",
+    "lint:fix": "eslint src --ext .js --fix",
+    "lint:ci": "eslint src --ext .js --format json --output-file lint-results.json",
+    "clean": "rm -rf dist node_modules coverage",
+    "clean:win": "rmdir /s /q dist node_modules coverage",
+    "prerelease": "npm run clean && npm run test:ci && npm run lint:ci",
+    "release": "npm run build:prod && npm run electron:build:all",
+    "update-manifest": "node scripts/update-manifest.js",
+    "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s",
+    "docs:api": "jsdoc -c jsdoc.conf.json",
+    "security:audit": "npm audit --audit-level=moderate",
+    "security:fix": "npm audit fix",
+    "dist": "node scripts/dist/build-all.js",
+    "dist:windows": "node scripts/dist/build-windows.js",
+    "dist:macos": "node scripts/dist/build-macos.js",
+    "dist:linux": "node scripts/dist/build-linux.js",
+    "prepare-release": "node scripts/dist/prepare-release.js"
+  },
+  "keywords": [
+    "time-tracking",
+    "productivity",
+    "electron"
+  ],
+  "author": "LightSuite Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@babel/core": "^7.28.5",
+    "@babel/preset-env": "^7.28.5",
+    "babel-jest": "^29.7.0",
+    "commander": "^14.0.2",
+    "conventional-changelog-cli": "^5.0.0",
+    "electron": "^39.2.7",
+    "electron-builder": "^26.0.12",
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "jsdoc": "^4.0.5"
+  },
+  "dependencies": {
+    "active-win": "^8.2.1",
+    "electron-log": "^5.4.3",
+    "electron-store": "^8.2.0",
+    "electron-updater": "^6.6.2",
+    "node-ical": "^0.22.1"
+  },
+  "build": {
+    "appId": "com.lightsuite.lighttrack",
+    "productName": "LightTrack",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "!src/**/*.test.js",
+      "!src/**/*.map"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "include": "build/installer/installer.nsh",
+      "deleteAppDataOnUninstall": false
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "assets/icon.icns"
+    },
+    "linux": {
+      "target": ["deb", "AppImage"],
+      "icon": "assets/icon.png"
+    }
+  }
+}

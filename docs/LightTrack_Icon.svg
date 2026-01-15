@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <linearGradient id="lighttrackGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06B6D4"/>
+      <stop offset="50%" style="stop-color:#8B5CF6"/>
+      <stop offset="100%" style="stop-color:#F97316"/>
+    </linearGradient>
+    <linearGradient id="clockGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06B6D4"/>
+      <stop offset="100%" style="stop-color:#0EA5E9"/>
+    </linearGradient>
+    <linearGradient id="swooshGradient" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" style="stop-color:#06B6D4"/>
+      <stop offset="100%" style="stop-color:#F97316"/>
+    </linearGradient>
+    <filter id="lighttrackGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- Dark circular background -->
+  <circle cx="50" cy="50" r="45" fill="#1E293B"/>
+  <g fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" filter="url(#lighttrackGlow)">
+    <!-- Clock face outline (partial arc) -->
+    <path d="M50 12 A38 38 0 0 1 85 60" stroke="url(#clockGradient)"/>
+    <!-- Clock tick marks -->
+    <line x1="50" y1="16" x2="50" y2="22" stroke="#06B6D4"/>
+    <line x1="78" y1="50" x2="72" y2="50" stroke="#06B6D4"/>
+    <line x1="50" y1="78" x2="50" y2="84" stroke="#F97316"/>
+    <line x1="22" y1="50" x2="28" y2="50" stroke="#06B6D4"/>
+    <!-- Clock hands -->
+    <line x1="50" y1="50" x2="50" y2="28" stroke="#06B6D4" stroke-width="2.5"/>
+    <line x1="50" y1="50" x2="65" y2="50" stroke="#06B6D4" stroke-width="2"/>
+    <!-- Infinity swoosh with arrow -->
+    <path d="M15 55 Q25 30 50 50 Q75 70 85 45" stroke="url(#swooshGradient)" stroke-width="4"/>
+    <!-- Arrow head at end -->
+    <path d="M80 52 L88 44 L82 38" stroke="#F97316" stroke-width="3"/>
+  </g>
+</svg>

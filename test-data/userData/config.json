@@ -1,0 +1,29 @@
+{
+	"activities": [],
+	"settings": {
+		"idleThreshold": 300,
+		"autoStart": true,
+		"showNotifications": true,
+		"promptOnReturn": true,
+		"autoSaveInterval": 60,
+		"employeeId": "",
+		"defaultActivityId": "GEN-001",
+		"showFloatingTimer": false,
+		"floatingTimerOpacity": 0.9,
+		"showDailySummary": true,
+		"minActivityDuration": 60,
+		"consolidateActivities": true,
+		"smartSamplingEnabled": true,
+		"mergeGapThreshold": 300,
+		"trackFocusSessions": true
+	},
+	"projectMappings": {},
+	"customTags": [
+		"development",
+		"meeting",
+		"review",
+		"planning",
+		"research"
+	],
+	"version": "3.0.0"
+}

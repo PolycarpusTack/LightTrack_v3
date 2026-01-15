@@ -1,0 +1,221 @@
+--- a/main.js
++++ b/main.js
+@@ -1,3 +1,6 @@
++// Import tracking handlers to avoid internal API usage
++const { pauseTracking, resumeTracking } = require('./src/main/tracking-handlers');
++
+ // ... existing code ...
+ 
+ // REPLACE lines 3383-3456 with the following:
+@@ -3383,36 +3386,42 @@
+-ipcMain.handle('break:start', async () => {
+-  // Save break state
+-  appState.break.isActive = true;
+-  appState.break.startTime = Date.now();
+-  
+-  // Check if tracking is active and pause it
+-  if (appState.tracking.isActive && appState.tracking.currentActivity) {
+-    appState.break.pausedTracking = true;
+-    appState.break.pausedActivity = { ...appState.tracking.currentActivity };
+-    
+-    // Pause tracking with reason
+-    await ipcMain._handlers.get('tracking:pause')?.(null, 'break');
+-  }
+-  
+-  // Create a break activity
+-  const breakActivity = {
+-    id: Date.now().toString(),
+-    app: 'LightTrack',
+-    title: 'Break Time',
+-    project: 'Break',
+-    startTime: new Date().toISOString(),
+-    duration: 0,
+-    isBreak: true,
+-    billable: false
+-  };
+-  
+-  // Add to activities
+-  const activities = storage.getActivities();
+-  activities.push(breakActivity);
+-  storage.setActivities(activities);
+-  
++ipcMain.handle('break:start', async () => {
++  try {
++    // Save break state
++    appState.break.isActive = true;
++    appState.break.startTime = Date.now();
++    
++    let wasTracking = false;
++    
++    // Check if tracking is active and pause it
++    if (appState.tracking.isActive && appState.tracking.currentActivity) {
++      appState.break.pausedTracking = true;
++      appState.break.pausedActivity = { ...appState.tracking.currentActivity };
++      
++      // Use the proper tracking handler instead of internal API
++      const result = await pauseTracking(appState, storage, updateTrayMenu, 'break');
++      wasTracking = result.wasActive;
++    }
++    
++    // Create a break activity
++    const breakActivity = {
++      id: Date.now().toString(),
++      app: 'LightTrack',
++      title: 'Break Time',
++      project: 'Break',
++      startTime: new Date().toISOString(),
++      duration: 0,
++      isBreak: true,
++      billable: false
++    };
++    
++    // Add to activities
++    const activities = storage.getActivities();
++    activities.push(breakActivity);
++    storage.setActivities(activities);
++    
++    // Update tray
++    updateTrayMenu();
++    
+@@ -3415,11 +3424,19 @@
+-  // Update tray
+-  updateTrayMenu();
+-  
+-  return { success: true, breakId: breakActivity.id };
+-});
++    return { 
++      success: true, 
++      breakId: breakActivity.id,
++      wasTracking 
++    };
++  } catch (error) {
++    console.error('Error starting break:', error);
++    return { 
++      success: false, 
++      error: error.message 
++    };
++  }
++});
+ 
+-ipcMain.handle('break:end', async () => {
+-  const breakDuration = Date.now() - appState.break.startTime;
++ipcMain.handle('break:end', async () => {
++  try {
++    if (!appState.break.isActive) {
++      return { success: false, error: 'No active break to end' };
++    }
++    
++    const breakDuration = Date.now() - appState.break.startTime;
+@@ -3428,26 +3445,35 @@
+-  // Update the last break activity
+-  const activities = storage.getActivities();
+-  const breakActivity = activities[activities.length - 1];
+-  if (breakActivity && breakActivity.isBreak) {
+-    breakActivity.duration = breakDuration;
+-    breakActivity.endTime = new Date().toISOString();
+-    storage.setActivities(activities);
+-  }
+-  
+-  // Reset break state
+-  appState.break.isActive = false;
+-  appState.break.startTime = null;
+-  
+-  // Resume tracking if it was paused
+-  if (appState.break.pausedTracking) {
+-    await ipcMain._handlers.get('tracking:resume')?.(null);
+-    appState.break.pausedTracking = false;
+-    appState.break.pausedActivity = null;
+-  }
+-  
+-  // Update tray
+-  updateTrayMenu();
+-  
+-  return { success: true, duration: breakDuration };
+-});
++    // Update the break activity
++    const activities = storage.getActivities();
++    const breakActivity = activities[activities.length - 1];
++    if (breakActivity && breakActivity.isBreak) {
++      breakActivity.duration = breakDuration;
++      breakActivity.endTime = new Date().toISOString();
++      storage.setActivities(activities);
++    }
++    
++    // Reset break state
++    appState.break.isActive = false;
++    appState.break.startTime = null;
++    
++    let resumed = false;
++    
++    // Resume tracking if it was paused
++    if (appState.break.pausedTracking) {
++      const result = await resumeTracking(appState, updateTrayMenu);
++      resumed = result.resumed;
++      
++      appState.break.pausedTracking = false;
++      appState.break.pausedActivity = null;
++    }
++    
++    // Update tray
++    updateTrayMenu();
++    
++    return { 
++      success: true, 
++      duration: breakDuration,
++      resumed 
++    };
++  } catch (error) {
++    console.error('Error ending break:', error);
++    return { 
++      success: false, 
++      error: error.message 
++    };
++  }
++});
+ 
+ ipcMain.handle('break:get-state', () => {
+-  return appState.break;
++  try {
++    return {
++      success: true,
++      isActive: appState.break.isActive,
++      startTime: appState.break.startTime,
++      duration: appState.break.isActive ? Date.now() - appState.break.startTime : 0,
++      pausedTracking: appState.break.pausedTracking,
++      pausedActivity: appState.break.pausedActivity
++    };
++  } catch (error) {
++    console.error('Error getting break state:', error);
++    return {
++      success: false,
++      error: error.message,
++      isActive: false,
++      startTime: null,
++      duration: 0
++    };
++  }
++});
++
++// Add snooze handler if missing
++ipcMain.handle('break:snooze', async (event, minutes = 10) => {
++  try {
++    const snoozeMs = minutes * 60 * 1000;
++    
++    // Update break reminder state if it exists
++    if (appState.breakReminder) {
++      appState.breakReminder.snoozedUntil = Date.now() + snoozeMs;
++    }
++    
++    return { 
++      success: true, 
++      snoozedFor: minutes,
++      snoozedUntil: Date.now() + snoozeMs
++    };
++  } catch (error) {
++    console.error('Error snoozing break:', error);
++    return { 
++      success: false, 
++      error: error.message 
++    };
++  }
+ });

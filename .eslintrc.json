@@ -1,0 +1,45 @@
+{
+  "extends": ["eslint:recommended"],
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "commonjs",
+    "ecmaFeatures": {
+      "globalReturn": true
+    }
+  },
+  "env": {
+    "node": true,
+    "browser": true,
+    "es2022": true
+  },
+  "globals": {
+    "electron": "readonly",
+    "electronAPI": "readonly"
+  },
+  "rules": {
+    "semi": ["error", "always"],
+    "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
+    "no-console": "off",
+    "no-undef": "error",
+    "no-unreachable": "error",
+    "no-extra-semi": "error",
+    "no-irregular-whitespace": "error",
+    "no-unexpected-multiline": "error",
+    "no-redeclare": "error",
+    "no-shadow": "warn",
+    "no-mixed-spaces-and-tabs": "error",
+    "indent": ["error", 2, { "SwitchCase": 1 }],
+    "quotes": ["warn", "single", { "avoidEscape": true }],
+    "comma-dangle": ["error", "never"],
+    "no-trailing-spaces": "error",
+    "eol-last": "error",
+    "no-multiple-empty-lines": ["error", { "max": 2, "maxEOF": 1 }]
+  },
+  "ignorePatterns": [
+    "dist/",
+    "build/",
+    "node_modules/",
+    "*.min.js",
+    "browser-extension/"
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "name": "LightTrack",
+  "version": "3.0.0",
+  "startup": {
+    "minimumSplashDuration": 2500,
+    "hotkey": {
+      "registrationDelay": 500
+    }
+  },
+  "debugging": {
+    "enableConsole": false,
+    "enableDevTools": false
+  },
+  "storage": {
+    "maxActivities": 5000,
+    "compressionThreshold": 500,
+    "autoCleanup": true
+  },
+  "features": {
+    "webApi": true,
+    "breakReminders": true,
+    "activityMerging": true,
+    "focusMode": true
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "LightTrack Browser Extension",
+  "version": "1.0.0",
+  "description": "Track web browsing time in LightTrack",
+  "author": "2LS - Yannick Verrydt",
+  
+  "permissions": [
+    "tabs",
+    "activeTab",
+    "storage"
+  ],
+  
+  "host_permissions": [
+    "http://localhost/*"
+  ],
+  
+  "background": {
+    "service_worker": "background.js"
+  },
+  
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon-16.png",
+      "48": "icon-48.png",
+      "128": "icon-128.png"
+    }
+  },
+  
+  "icons": {
+    "16": "icon-16.png",
+    "48": "icon-48.png",
+    "128": "icon-128.png"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "debugging": {
+    "enableConsole": true,
+    "enableDevTools": true
+  },
+  "storage": {
+    "maxActivities": 1000
+  },
+  "features": {
+    "webApi": true,
+    "breakReminders": false,
+    "activityMerging": true,
+    "focusMode": true
+  }
+}

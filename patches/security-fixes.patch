@@ -1,0 +1,102 @@
+--- a/main.js
++++ b/main.js
+@@ -6,6 +6,7 @@
+ 
+ // Import tracking handlers to avoid internal API usage
+ const { pauseTracking, resumeTracking } = require('./src/main/tracking-handlers');
++const SecurityConfig = require('./src/security/security-config');
+ 
+ // Disable GPU hardware acceleration to prevent cache errors
+ app.disableHardwareAcceleration();
+@@ -341,6 +342,11 @@
+ // Initialize HTTP server for integrations (optional)
+ let httpServer = null;
+ 
++// SECURITY: Disable HTTP server by default
++// Only enable with explicit environment variable and authentication
++const HTTP_SERVER_ENABLED = process.env.LIGHTTRACK_HTTP_SERVER === 'true' && process.env.LIGHTTRACK_HTTP_SECRET;
++
++if (HTTP_SERVER_ENABLED) {
+ const express = require('express');
+ const bodyParser = require('body-parser');
+ const httpApp = express();
+@@ -348,6 +354,15 @@
+ httpApp.use(bodyParser.json());
+ httpApp.use(cors());
+ 
++// Add authentication middleware
++httpApp.use((req, res, next) => {
++  const authHeader = req.headers.authorization;
++  if (!authHeader || authHeader !== `Bearer ${process.env.LIGHTTRACK_HTTP_SECRET}`) {
++    return res.status(401).json({ error: 'Unauthorized' });
++  }
++  next();
++});
++
+ // Activity endpoints
+ httpApp.get('/api/activities', async (req, res) => {
+   try {
+@@ -383,6 +398,7 @@
+     console.log('HTTP API server running on http://localhost:7578');
+   });
+ }
++}
+ 
+ // Create the main window
+ function createWindow() {
+@@ -437,15 +453,10 @@
+   const splash = new BrowserWindow({
+     width: 400,
+     height: 300,
+-    frame: false,
+-    transparent: true,
+-    alwaysOnTop: true,
+-    center: true,
+-    webPreferences: {
+-      nodeIntegration: false,
+-      contextIsolation: true,
+-      preload: path.join(__dirname, 'preload.js')
+-    }
++    ...SecurityConfig.getSecureWindowOptions({
++      frame: false,
++      alwaysOnTop: true,
++    })
+   });
+ 
+   splash.loadFile('splash.html');
+@@ -473,13 +484,11 @@
+     height: 700,
+     minWidth: 900,
+     minHeight: 600,
+-    frame: false,
+-    show: false,
+-    backgroundColor: '#0f172a',
+-    webPreferences: {
+-      nodeIntegration: false,
+-      contextIsolation: true,
++    ...SecurityConfig.getSecureWindowOptions({
++      frame: false,
++      show: false,
+       preload: path.join(__dirname, 'preload.js')
++    })
+     },
+     icon: path.join(__dirname, 'assets/icon.png')
+   });
+@@ -567,10 +576,12 @@
+       }
+ 
+       // Switch to privacy tab if opened from privacy request
+-      if (fromPrivacy) {
+-        dialogWindow.webContents.executeJavaScript(`
+-          document.querySelector('[data-tab="privacy"]')?.click();
+-        `);
++      if (fromPrivacy && !dialogWindow.isDestroyed()) {
++        // Use IPC instead of executeJavaScript
++        dialogWindow.webContents.send('switch-tab', 'privacy');
++        // Handler should be added in the settings page:
++        // ipcRenderer.on('switch-tab', (event, tab) => {
++        //   document.querySelector(`[data-tab="${tab}"]`)?.click();
++        // });
+       }
+     });
+   }

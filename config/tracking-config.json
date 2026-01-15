@@ -1,0 +1,45 @@
+{
+  "activity": {
+    "checkInterval": 60000,
+    "quickSwitchThreshold": 120000,
+    "minimumFocusSession": 300,
+    "mergeGapThreshold": 300,
+    "consolidationInterval": 300000,
+    "minimumActivityDuration": 300
+  },
+  "idle": {
+    "defaultThreshold": 180,
+    "warningTime": 30,
+    "autoRetryDelay": 100
+  },
+  "breaks": {
+    "notificationCooldown": 30000,
+    "defaultSnoozeDuration": 300000,
+    "sessionDismissDuration": 14400000,
+    "defaultInterval": 3600,
+    "defaultDuration": 300
+  },
+  "performance": {
+    "maxSamplingInterval": 300000,
+    "baseSamplingInterval": 60000,
+    "samplingIncrement": 15000,
+    "dynamicSamplingEnabled": true
+  },
+  "merging": {
+    "communicationAppsMultiplier": 2.0,
+    "developmentAppsMultiplier": 1.5,
+    "maxMergeThreshold": 600,
+    "relatedAppsThreshold": 120,
+    "otherProjectsThreshold": 180
+  },
+  "focus": {
+    "qualityThresholds": {
+      "short": 1800,
+      "long": 7200
+    },
+    "qualityAdjustments": {
+      "shortPenalty": -20,
+      "longBonus": 10
+    }
+  }
+}

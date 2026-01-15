@@ -1,0 +1,38 @@
+{
+  "windows": {
+    "main": {
+      "width": 800,
+      "height": 600,
+      "minWidth": 600,
+      "minHeight": 400
+    },
+    "floatingTimer": {
+      "expandedHeight": 160,
+      "collapsedHeight": 60
+    }
+  },
+  "timers": {
+    "updateInterval": 1000,
+    "trayUpdateInterval": 10000,
+    "notificationAutoDismiss": 10000
+  },
+  "styling": {
+    "zIndex": {
+      "header": 100,
+      "modal": 1000,
+      "notification": 10000
+    },
+    "opacity": {
+      "headerBorder": 0.06,
+      "backgroundOverlay": 0.05,
+      "hoverOverlay": 0.1
+    },
+    "fontWeights": {
+      "semibold": 600
+    }
+  },
+  "animations": {
+    "transitionDuration": 300,
+    "debounceDelay": 500
+  }
+}

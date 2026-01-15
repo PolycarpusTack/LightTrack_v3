@@ -1,0 +1,55 @@
+{
+  "projects": {
+    "Digital Transformation": {
+      "sapCode": "P-2024-0156",
+      "costCenter": "CC-4521",
+      "poNumber": "PO-2024-8745",
+      "billable": true,
+      "wbsElement": "WBS-DT-001",
+      "department": "IT",
+      "manager": "John Smith"
+    },
+    "Internal IT": {
+      "sapCode": "P-2024-0120",
+      "costCenter": "CC-1212",
+      "poNumber": "PO-2024-4321",
+      "billable": false,
+      "wbsElement": "WBS-IT-001",
+      "department": "IT",
+      "manager": "Jane Doe"
+    },
+    "Customer Support": {
+      "sapCode": "P-2024-0089",
+      "costCenter": "CC-3456",
+      "poNumber": "PO-2024-6789",
+      "billable": true,
+      "wbsElement": "WBS-CS-001",
+      "department": "Support",
+      "manager": "Mike Johnson"
+    }
+  },
+  "departments": {
+    "IT": {
+      "code": "IT",
+      "name": "Information Technology",
+      "budgetCenter": "BC-IT-2024"
+    },
+    "Support": {
+      "code": "SUP",
+      "name": "Customer Support",
+      "budgetCenter": "BC-SUP-2024"
+    }
+  },
+  "timeTracking": {
+    "billableHours": {
+      "standardRate": 75.00,
+      "overtimeRate": 112.50,
+      "weekendRate": 150.00
+    },
+    "workingHours": {
+      "dailyTarget": 8,
+      "weeklyTarget": 40,
+      "maxDaily": 12
+    }
+  }
+}

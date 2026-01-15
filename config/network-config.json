@@ -1,0 +1,34 @@
+{
+  "webApi": {
+    "preferredPort": 41417,
+    "fallbackPorts": [41417, 41418, 41419, 41420, 41421],
+    "host": "localhost",
+    "timeout": 10000,
+    "enabled": true
+  },
+  "http": {
+    "statusCodes": {
+      "ok": 200,
+      "badRequest": 400,
+      "notFound": 404,
+      "internalError": 500
+    },
+    "headers": {
+      "json": "application/json",
+      "cors": "*"
+    },
+    "retries": {
+      "maxAttempts": 3,
+      "delay": 1000
+    }
+  },
+  "security": {
+    "enableCors": true,
+    "allowedOrigins": ["localhost"],
+    "rateLimit": {
+      "enabled": false,
+      "maxRequests": 100,
+      "windowMs": 60000
+    }
+  }
+}

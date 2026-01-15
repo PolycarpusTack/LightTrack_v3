@@ -1,0 +1,123 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/*.exe
+build/*.yml
+build/*.yaml
+build/*.blockmap
+build/*.nsh
+out/
+build-manifest.txt
+
+# Electron Builder output
+dist_electron/
+.webpack/
+electron-builder-cache/
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+
+# CRITICAL: Backup files that cause bugs
+*.backup
+*.backup-*
+*.bak
+*.fixed-backup-*
+main.js.backup-*
+*.orig
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+app.log
+lint-fix-report.json
+
+# Cache directories
+.cache/
+.electron-cache/
+%APPDATA%/electron-builder/
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Temporary fix scripts (NEVER include these)
+fix-*.js
+emergency-*.js
+comprehensive-*.js
+final-*.js
+full-lint-and-fix.js
+check-*.js
+!check-syntax.js
+*-implementation.js
+*-guide.js
+cleanup-data.js
+build-safe.js
+!build-safe.bat
+electron-builder-alt.js
+memory-optimization-guide.js
+activity-efficiency-implementation.js
+enhancements.js
+help-tooltips.js
+enhanced-break-reminder.js
+
+# Obsolete batch files
+cleanup-*.bat
+!clean-build-cache.bat
+rebuild-*.bat
+fix-and-test.bat
+optimization-complete.bat
+polish-and-release.bat
+build-v*.bat
+complete-setup.bat
+package-extension.bat
+uninstall-helper.bat
+start-ultra.bat
+
+# Build artifacts
+builder-debug.yml
+builder-effective-config.yaml
+.build-in-progress
+build-info.json
+
+# Archive directories
+_archive_*/
+archives/
+old/
+backup/
+backups/
+
+# Installer files (keep source configs)
+*.exe
+*.exe.blockmap
+*.msi
+*.dmg
+*.AppImage
+*.snap
+*.deb
+!electron-builder.json
+!package.json
+
+# Validation scripts output
+validation-report.txt
+build-report.txt

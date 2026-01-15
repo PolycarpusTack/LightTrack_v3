@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LightTrack · Mediagenix Skin</title>
+  <style>
+    /* Mediagenix tokens */
+    :root {
+      --cobalt: #3805e3;
+      --purple: #3e257c;
+      --mauve: #b8afda;
+      --neon: #b3fc4f;
+      --black: #000000;
+      --ink: #e8e9ee;
+      --ink-muted: #b6bbca;
+      --bg: #0a0a12;
+      --card: rgba(255, 255, 255, 0.02);
+      --border: rgba(255, 255, 255, 0.08);
+      --radius: 14px;
+      --pill: 999px;
+      --shadow: 0 12px 36px rgba(0, 0, 0, 0.28);
+      --speed: 180ms ease;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Poppins", "Century Gothic", "Segoe UI", system-ui, sans-serif;
+      background: radial-gradient(120% 120% at 20% 20%, rgba(56,5,227,0.16), transparent),
+                  radial-gradient(100% 120% at 80% 0%, rgba(179,252,79,0.12), transparent),
+                  var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      padding: 22px;
+      display: grid;
+      grid-template-columns: 84px 280px 1fr;
+      gap: 16px;
+    }
+
+    /* Left rail */
+    .rail {
+      background: linear-gradient(180deg, rgba(56,5,227,0.16), rgba(0,0,0,0.6));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 12px;
+      box-shadow: var(--shadow);
+    }
+
+    .rail .logo {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      background: linear-gradient(135deg, var(--cobalt), var(--neon));
+      color: var(--black);
+      box-shadow: 0 12px 30px rgba(179,252,79,0.35);
+    }
+
+    .rail button {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.02);
+      color: var(--ink-muted);
+      font-size: 18px;
+      cursor: pointer;
+      transition: transform var(--speed), box-shadow var(--speed), color var(--speed), background var(--speed);
+      position: relative;
+    }
+
+    .rail button.active {
+      color: var(--neon);
+      background: linear-gradient(180deg, rgba(56,5,227,0.22), rgba(0,0,0,0.8));
+      box-shadow: 0 12px 30px rgba(56,5,227,0.35);
+    }
+
+    .rail button.active::before {
+      content: "";
+      position: absolute;
+      left: -11px;
+      top: 14px;
+      width: 4px;
+      height: 24px;
+      border-radius: 2px;
+      background: var(--neon);
+    }
+
+    /* Sidebar */
+    .sidebar {
+      background: linear-gradient(180deg, rgba(0,0,0,0.6), rgba(62,37,124,0.22));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      display: grid;
+      gap: 12px;
+      box-shadow: var(--shadow);
+    }
+
+    .sidebar h3 {
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      color: var(--ink-muted);
+      text-transform: uppercase;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .pill {
+      border-radius: var(--pill);
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      color: var(--ink);
+      background: rgba(255,255,255,0.03);
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all var(--speed);
+    }
+
+    .pill.active {
+      border-color: rgba(179,252,79,0.7);
+      background: linear-gradient(135deg, rgba(179,252,79,0.18), rgba(56,5,227,0.16));
+      color: var(--neon);
+    }
+
+    .divider {
+      border: 1px solid var(--border);
+      border-radius: 999px;
+    }
+
+    /* Content */
+    .content {
+      background: linear-gradient(180deg, rgba(56,5,227,0.14), rgba(0,0,0,0.7));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .glow {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(60% 70% at 80% 10%, rgba(56,5,227,0.2), transparent);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .topbar .title {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .topbar .sub {
+      color: var(--ink-muted);
+      font-size: 13px;
+    }
+
+    .topbar-actions {
+      display: flex;
+      gap: 10px;
+      margin-left: auto;
+    }
+
+    .ghost {
+      border-radius: var(--pill);
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.02);
+      color: var(--ink);
+      padding: 8px 14px;
+      cursor: pointer;
+      transition: all var(--speed);
+    }
+
+    .ghost:hover {
+      border-color: rgba(56,5,227,0.45);
+      color: var(--neon);
+    }
+
+    /* Hero */
+    .hero {
+      background: linear-gradient(135deg, rgba(56,5,227,0.22), rgba(62,37,124,0.22), rgba(0,0,0,0.6));
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: var(--radius);
+      padding: 20px;
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 14px;
+      position: relative;
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(60% 90% at 20% 80%, rgba(179,252,79,0.16), transparent);
+    }
+
+    .hero-left, .hero-right { position: relative; z-index: 1; }
+
+    .timer {
+      font-size: clamp(42px, 5vw, 64px);
+      font-weight: 700;
+      letter-spacing: 1px;
+      font-variant-numeric: tabular-nums;
+      color: var(--neon);
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      color: var(--ink);
+      font-size: 14px;
+      margin-top: 8px;
+    }
+
+    .badge {
+      border-radius: var(--pill);
+      border: 1px solid rgba(255,255,255,0.12);
+      padding: 6px 10px;
+      background: rgba(0,0,0,0.35);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .solid {
+      border: none;
+      border-radius: var(--pill);
+      padding: 10px 18px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--speed);
+      color: var(--black);
+    }
+
+    .solid.primary {
+      background: linear-gradient(135deg, var(--neon), var(--mauve));
+      box-shadow: 0 12px 24px rgba(179,252,79,0.35);
+    }
+
+    .solid.danger {
+      background: linear-gradient(135deg, #f26b6b, #eb652b);
+      box-shadow: 0 12px 24px rgba(242,107,107,0.32);
+    }
+
+    .solid:hover { transform: translateY(-1px); }
+
+    /* KPI grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card .label {
+      color: var(--ink-muted);
+      font-size: 12px;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+
+    .card .value {
+      font-size: 26px;
+      font-weight: 700;
+      margin-top: 6px;
+    }
+
+    .card .meta-line {
+      color: var(--ink-muted);
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    .card.spark::after {
+      content: "";
+      position: absolute;
+      right: -30px;
+      bottom: -30px;
+      width: 200px;
+      height: 200px;
+      background: radial-gradient(60% 60% at 50% 50%, rgba(56,5,227,0.2), transparent);
+    }
+
+    /* Split */
+    .split {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .list, .insights { display: grid; gap: 10px; }
+
+    .section-title {
+      font-size: 14px;
+      letter-spacing: 0.05em;
+      color: var(--ink-muted);
+      text-transform: uppercase;
+    }
+
+    .activity {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      transition: all var(--speed);
+    }
+
+    .activity:hover {
+      border-color: rgba(56,5,227,0.45);
+      transform: translateX(1px);
+    }
+
+    .activity .title {
+      font-weight: 600;
+    }
+
+    .activity .meta-line {
+      color: var(--ink-muted);
+      font-size: 13px;
+      margin-top: 2px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .duration {
+      font-weight: 700;
+      color: var(--mauve);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .insight-card {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .bar {
+      height: 8px;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.08);
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .bar span {
+      display: block;
+      height: 100%;
+      background: linear-gradient(90deg, var(--cobalt), var(--neon));
+      width: 70%;
+    }
+
+    .status-strip {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      color: var(--ink-muted);
+      font-size: 13px;
+      margin-top: 2px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--neon);
+      box-shadow: 0 0 0 6px rgba(179,252,79,0.16);
+    }
+
+    @media (max-width: 1100px) {
+      body { grid-template-columns: 84px 1fr; padding: 14px; }
+      .sidebar { display: none; }
+      .split { grid-template-columns: 1fr; }
+      .hero { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 780px) {
+      body { grid-template-columns: 1fr; }
+      .rail { flex-direction: row; height: 70px; }
+      .topbar-actions { flex-wrap: wrap; justify-content: flex-end; }
+      .kpi-grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <nav class="rail">
+    <div class="logo">LT</div>
+    <button class="active" title="Timer">⏱️</button>
+    <button title="Timeline">🗺️</button>
+    <button title="Analytics">📊</button>
+    <button title="Projects">📁</button>
+    <button title="Settings">⚙️</button>
+  </nav>
+
+  <aside class="sidebar">
+    <h3>Filters</h3>
+    <div class="pill-row">
+      <div class="pill active">This week</div>
+      <div class="pill">Today</div>
+      <div class="pill">Last 30d</div>
+    </div>
+    <div class="pill-row">
+      <div class="pill">Billable</div>
+      <div class="pill">Non-billable</div>
+      <div class="pill">Meetings</div>
+    </div>
+    <div class="divider"></div>
+    <h3>Projects</h3>
+    <div class="pill-row">
+      <div class="pill active">Phoenix API</div>
+      <div class="pill">Ops</div>
+      <div class="pill">Website</div>
+    </div>
+    <div class="divider"></div>
+    <h3>Quick tags</h3>
+    <div class="pill-row">
+      <div class="pill">Focus</div>
+      <div class="pill">Deep work</div>
+      <div class="pill">Emails</div>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="glow"></div>
+    <div class="topbar">
+      <div>
+        <div class="title">Dashboard</div>
+        <div class="sub">Trusted partner. Clear tracking.</div>
+      </div>
+      <div class="topbar-actions">
+        <button class="ghost">Floating timer</button>
+        <button class="ghost">Export</button>
+        <button class="ghost">Command palette</button>
+      </div>
+    </div>
+
+    <section class="hero">
+      <div class="hero-left">
+        <div class="timer">02:14:08</div>
+        <div class="meta">
+          <span class="badge">Project: Phoenix API</span>
+          <span class="badge">App: VS Code</span>
+          <span class="badge">Sampling: 10s</span>
+        </div>
+        <div class="actions">
+          <button class="solid danger">Stop</button>
+          <button class="solid primary">Add manual</button>
+          <button class="ghost">Mark break</button>
+        </div>
+      </div>
+      <div class="hero-right">
+        <div class="label">Focus score</div>
+        <div class="value">86</div>
+        <div class="meta-line">Three sessions. One distraction.</div>
+        <div class="label" style="margin-top: 12px;">Goals</div>
+        <div class="meta" style="gap: 6px;">
+          <span class="badge">4h Deep work</span>
+          <span class="badge">2/4 Breaks avoided</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="kpi-grid">
+      <div class="card spark">
+        <div class="label">Today</div>
+        <div class="value">6h 42m</div>
+        <div class="meta-line">+12% vs yesterday</div>
+      </div>
+      <div class="card">
+        <div class="label">Billable</div>
+        <div class="value">78%</div>
+        <div class="meta-line">5h 12m billed</div>
+      </div>
+      <div class="card">
+        <div class="label">Context switches</div>
+        <div class="value">14</div>
+        <div class="meta-line">Down three</div>
+      </div>
+      <div class="card">
+        <div class="label">Breaks</div>
+        <div class="value" style="color: var(--neon);">2/4</div>
+        <div class="meta-line">Next nudge in 25 min</div>
+      </div>
+    </section>
+
+    <section class="split">
+      <div class="list">
+        <div class="section-title">Activity feed</div>
+        <div class="activity">
+          <div>
+            <div class="title">JIRA-431 · Refactor auth middleware</div>
+            <div class="meta-line">
+              <span>VS Code</span><span>• Phoenix API</span><span>• 09:00–10:30</span>
+            </div>
+          </div>
+          <div class="duration">1h 30m</div>
+        </div>
+        <div class="activity">
+          <div>
+            <div class="title">Team standup</div>
+            <div class="meta-line">
+              <span>Teams</span><span>• Ops</span><span>• 10:30–10:45</span>
+            </div>
+          </div>
+          <div class="duration">15m</div>
+        </div>
+        <div class="activity">
+          <div>
+            <div class="title">Email triage</div>
+            <div class="meta-line">
+              <span>Outlook</span><span>• Ops</span><span>• 10:45–11:00</span>
+            </div>
+          </div>
+          <div class="duration">15m</div>
+        </div>
+        <div class="activity">
+          <div>
+            <div class="title">Browser research · Auth flows</div>
+            <div class="meta-line">
+              <span>Chrome</span><span>• Phoenix API</span><span>• 11:00–11:35</span>
+            </div>
+          </div>
+          <div class="duration">35m</div>
+        </div>
+      </div>
+
+      <div class="insights">
+        <div class="section-title">Insights</div>
+        <div class="insight-card">
+          <div class="label">Top projects</div>
+          <div class="bar-row">
+            <span class="badge">Phoenix API</span>
+            <div class="bar"><span style="width: 82%;"></span></div>
+            <div class="duration">4h 32m</div>
+          </div>
+          <div class="bar-row">
+            <span class="badge">Website</span>
+            <div class="bar"><span style="width: 48%;"></span></div>
+            <div class="duration">2h 05m</div>
+          </div>
+          <div class="bar-row">
+            <span class="badge">Ops</span>
+            <div class="bar"><span style="width: 26%;"></span></div>
+            <div class="duration">58m</div>
+          </div>
+        </div>
+        <div class="insight-card">
+          <div class="label">Focus score (7d)</div>
+          <div class="value">84</div>
+          <div class="meta-line">Up four points. Two distractions a day.</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="status-strip">
+      <span class="dot"></span> Tracking active
+      <span>•</span> Auto-save on
+      <span>•</span> Extension linked
+      <span>•</span> Ctrl/Cmd+K for commands
+    </div>
+  </main>
+</body>
+</html>

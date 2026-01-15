@@ -1,0 +1,41 @@
+{
+	"enabled": true,
+	"mode": "mark",
+	"entries": [],
+	"categories": {
+		"personal": {
+			"track": true,
+			"export": false,
+			"color": "#94a3b8",
+			"description": "Personal activities"
+		},
+		"social": {
+			"track": true,
+			"export": false,
+			"color": "#f59e0b",
+			"description": "Social media and entertainment"
+		},
+		"sensitive": {
+			"track": false,
+			"export": false,
+			"color": "#ef4444",
+			"description": "Banking, medical, and confidential"
+		},
+		"break": {
+			"track": true,
+			"export": true,
+			"color": "#22c55e",
+			"description": "Break time activities"
+		},
+		"confidential": {
+			"track": true,
+			"export": false,
+			"color": "#8b5cf6",
+			"description": "Client confidential work"
+		}
+	},
+	"incognitoMode": {
+		"active": false,
+		"endTime": null
+	}
+}
