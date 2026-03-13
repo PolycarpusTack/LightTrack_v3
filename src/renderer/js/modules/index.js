@@ -31,7 +31,12 @@ window.LightTrack._loaded = {
   utils: false,
   charts: false,
   notifications: false,
-  sapExport: false
+  sapExport: false,
+  timeline: false,
+  dashboard: false,
+  analytics: false,
+  settingsView: false,
+  modals: false
 };
 
 // Check if all modules are loaded
@@ -51,6 +56,11 @@ document.addEventListener('DOMContentLoaded', function() {
   if (window.LightTrack.ChartRenderer) window.LightTrack._loaded.charts = true;
   if (window.LightTrack.UI) window.LightTrack._loaded.notifications = true;
   if (window.LightTrack.SAPExport) window.LightTrack._loaded.sapExport = true;
+  if (window.LightTrack.Timeline) window.LightTrack._loaded.timeline = true;
+  if (window.LightTrack.Dashboard) window.LightTrack._loaded.dashboard = true;
+  if (window.LightTrack.Analytics) window.LightTrack._loaded.analytics = true;
+  if (window.LightTrack.SettingsView) window.LightTrack._loaded.settingsView = true;
+  if (window.LightTrack.Modals) window.LightTrack._loaded.modals = true;
 
   window.LightTrack.initModules();
 });

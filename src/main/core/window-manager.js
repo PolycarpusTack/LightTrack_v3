@@ -80,16 +80,34 @@ class WindowManager {
           indexPath
         });
 
-        // Try to load a simple error page
+        // Try to load a simple error page (escape values to prevent injection)
+        const safeDescription = encodeURIComponent(errorDescription || 'Unknown error');
+        const safePath = encodeURIComponent(indexPath || 'Unknown path');
         this.mainWindow.loadURL(`data:text/html,
           <html>
             <body style="background: #0f172a; color: #f1f5f9; font-family: sans-serif; padding: 20px;">
               <h1>Failed to load LightTrack</h1>
-              <p>Error: ${errorDescription}</p>
-              <p>Path: ${indexPath}</p>
+              <p>Error: ${safeDescription}</p>
+              <p>Path: ${safePath}</p>
             </body>
           </html>
         `);
+      });
+
+      // Security: Block navigation away from the app
+      this.mainWindow.webContents.on('will-navigate', (event, navigationUrl) => {
+        const parsedUrl = new URL(navigationUrl);
+        // Only allow file:// protocol (our app) and data: (error pages)
+        if (parsedUrl.protocol !== 'file:' && parsedUrl.protocol !== 'data:') {
+          event.preventDefault();
+          logger.warn('Blocked navigation to:', navigationUrl);
+        }
+      });
+
+      // Security: Block new window creation (window.open, target=_blank, etc.)
+      this.mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+        logger.warn('Blocked window.open for:', url);
+        return { action: 'deny' };
       });
 
       // Window event handlers

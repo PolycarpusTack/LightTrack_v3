@@ -2,6 +2,7 @@
 const activeWin = require('active-win');
 const { Notification } = require('electron');
 const path = require('path');
+const { generateId } = require('../../shared/generate-id');
 
 /**
  * ActivityTracker Service
@@ -227,7 +228,7 @@ class ActivityTracker {
     const projectConfig = this.getProjectConfig(projectName);
 
     this.state.currentActivity = {
-      id: Date.now().toString(),
+      id: generateId(),
       startTime: new Date().toISOString(),
       app: windowInfo.app,
       title: windowInfo.title,
@@ -670,7 +671,7 @@ class ActivityTracker {
     const projectConfig = this.getProjectConfig(projectName);
 
     this.state.currentActivity = {
-      id: Date.now().toString(),
+      id: generateId(),
       startTime: new Date().toISOString(),
       app: browserInfo.app,
       title: browserInfo.title,

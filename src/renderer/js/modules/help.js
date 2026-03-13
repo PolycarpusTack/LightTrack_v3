@@ -486,12 +486,9 @@ Data is stored locally:
     content.querySelectorAll('a[href^="http"]').forEach(link => {
       link.addEventListener('click', function(e) {
         e.preventDefault();
-        // Use Electron shell to open external links
-        if (window.require) {
-          const { shell } = window.require('electron');
-          shell.openExternal(this.href);
-        } else {
-          window.open(this.href, '_blank');
+        // Use preload bridge to open external links safely
+        if (window.lightTrackAPI && window.lightTrackAPI.openExternal) {
+          window.lightTrackAPI.openExternal(this.href);
         }
       });
     });

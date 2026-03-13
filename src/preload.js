@@ -755,6 +755,16 @@ contextBridge.exposeInMainWorld('lightTrackAPI', {
     }
   },
 
+  // Open external URL in system browser
+  openExternal: async (url) => {
+    try {
+      return await ipcRenderer.invoke('shell:open-external', url);
+    } catch (error) {
+      console.error('Failed to open external URL:', error);
+      throw new Error('Failed to open URL. Please try again.');
+    }
+  },
+
   // Cleanup all listeners
   cleanupAll: () => {
     cleanupFunctions.forEach((_, cleanup) => cleanup());

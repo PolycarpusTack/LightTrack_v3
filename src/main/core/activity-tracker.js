@@ -1,5 +1,6 @@
 const activeWin = require('active-win');
 const logger = require('../logger');
+const { generateId } = require('../../shared/generate-id');
 const TitleParser = require('./title-parser');
 const IdleDetector = require('./idle-detector');
 const FocusSessionTracker = require('./focus-session-tracker');
@@ -493,7 +494,7 @@ class ActivityTracker {
   startNewActivity(activityData, startTimeMs = Date.now()) {
     this.currentActivity = {
       ...activityData,
-      id: Date.now().toString(),
+      id: generateId(),
       startTime: startTimeMs,
       endTime: startTimeMs,
       duration: 0,
@@ -803,7 +804,7 @@ class ActivityTracker {
   // Create manual activity
   createManualActivity(activityData) {
     const activity = {
-      id: Date.now().toString(),
+      id: generateId(),
       app: activityData.app || 'Manual Entry',
       title: activityData.title || activityData.description || 'Manual time entry',
       project: activityData.project || 'General',

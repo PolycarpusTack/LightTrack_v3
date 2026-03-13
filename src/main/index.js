@@ -1,4 +1,4 @@
-const { app, ipcMain, globalShortcut } = require('electron');
+const { app, ipcMain, globalShortcut, shell } = require('electron');
 const logger = require('./logger');
 
 // Import core modules
@@ -6,7 +6,7 @@ const StorageManager = require('./core/storage-manager');
 const ActivityTracker = require('./core/activity-tracker');
 const TrayManager = require('./core/tray-manager');
 const WindowManager = require('./core/window-manager');
-const autoUpdater = require('./auto-updater');
+const AutoUpdater = require('./auto-updater');
 const UpdaterHandlerMain = require('./ipc/handlers/updaterHandlerMain');
 const ActivitiesHandlerMain = require('./ipc/handlers/activitiesHandlerMain');
 const SettingsHandlerMain = require('./ipc/handlers/settingsHandlerMain');
@@ -18,6 +18,7 @@ const CalendarSyncService = require('./services/calendarSyncService');
 const CalendarHandlerMain = require('./ipc/handlers/calendarHandlerMain');
 const BrowserExtensionServer = require('./core/browser-extension-server');
 const UpgradeManager = require('./core/upgrade-manager');
+const { validateAndSanitizeActivity, sanitizeString } = require('../shared/sanitize');
 
 
 class LightTrackApp {
@@ -106,20 +107,26 @@ class LightTrackApp {
 
       this.tracker = null; // Will be initialized after window creation
 
+      // Initialize auto-updater
+      this.autoUpdater = new AutoUpdater();
+      this.autoUpdater.initialize();
+
       // Instantiate UpdaterHandlerMain
       this.updaterHandler = new UpdaterHandlerMain(this.appState);
 
-      // Register CTRL+Y shortcut to toggle DevTools
-      globalShortcut.register('CommandOrControl+Y', () => {
-        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-          if (this.mainWindow.webContents.isDevToolsOpened()) {
-            this.mainWindow.webContents.closeDevTools();
-          } else {
-            this.mainWindow.webContents.openDevTools();
+      // Register CTRL+Y shortcut to toggle DevTools (development only)
+      if (process.env.NODE_ENV === 'development') {
+        globalShortcut.register('CommandOrControl+Y', () => {
+          if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+            if (this.mainWindow.webContents.isDevToolsOpened()) {
+              this.mainWindow.webContents.closeDevTools();
+            } else {
+              this.mainWindow.webContents.openDevTools();
+            }
           }
-        }
-      });
-      logger.info('Registered CommandOrControl+Y shortcut for DevTools');
+        });
+        logger.info('Registered CommandOrControl+Y shortcut for DevTools');
+      }
 
       // Initialize WindowManager
       this.windowManager = new WindowManager({
@@ -234,66 +241,8 @@ class LightTrackApp {
         }
       };
 
-      // Activity validation function
-      const validateActivity = (activity) => {
-        if (!activity || typeof activity !== 'object') {
-          return { valid: false, error: 'Activity must be an object' };
-        }
-
-        // Sanitize string fields
-        const sanitizeString = (str, maxLength = 500) => {
-          if (typeof str !== 'string') return str;
-          return str.slice(0, maxLength).replace(/<[^>]*>/g, ''); // Strip HTML tags
-        };
-
-        // Validate required fields
-        if (activity.title && typeof activity.title !== 'string') {
-          return { valid: false, error: 'Title must be a string' };
-        }
-        if (activity.project && typeof activity.project !== 'string') {
-          return { valid: false, error: 'Project must be a string' };
-        }
-        if (activity.duration !== undefined && (typeof activity.duration !== 'number' || activity.duration < 0)) {
-          return { valid: false, error: 'Duration must be a non-negative number' };
-        }
-        if (activity.startTime && isNaN(new Date(activity.startTime).getTime())) {
-          return { valid: false, error: 'Invalid startTime' };
-        }
-
-        // Sanitize only the fields that are actually provided (for partial updates)
-        const sanitized = {};
-
-        // Copy non-string fields as-is
-        if (activity.id !== undefined) sanitized.id = activity.id;
-        if (activity.duration !== undefined) sanitized.duration = activity.duration;
-        if (activity.actualDuration !== undefined) sanitized.actualDuration = activity.actualDuration;
-        if (activity.startTime !== undefined) sanitized.startTime = activity.startTime;
-        if (activity.endTime !== undefined) sanitized.endTime = activity.endTime;
-        if (activity.date !== undefined) sanitized.date = activity.date;
-        if (activity.isManual !== undefined) sanitized.isManual = activity.isManual;
-        if (activity.billable !== undefined) sanitized.billable = activity.billable;
-
-        // Sanitize string fields only if provided
-        if (activity.title !== undefined) sanitized.title = sanitizeString(activity.title);
-        if (activity.project !== undefined) sanitized.project = sanitizeString(activity.project, 100);
-        if (activity.app !== undefined) sanitized.app = sanitizeString(activity.app, 100);
-
-        // Sanitize tags only if provided (don't default to empty array)
-        if (activity.tags !== undefined) {
-          sanitized.tags = Array.isArray(activity.tags)
-            ? activity.tags.slice(0, 20).map(t => sanitizeString(t, 50))
-            : [];
-        }
-
-        // Sanitize tickets only if provided
-        if (activity.tickets !== undefined) {
-          sanitized.tickets = Array.isArray(activity.tickets)
-            ? activity.tickets.slice(0, 20).map(t => sanitizeString(t, 50))
-            : [];
-        }
-
-        return { valid: true, sanitized };
-      };
+      // Use shared validation from sanitize.js
+      const validateActivity = validateAndSanitizeActivity;
 
       // Instantiate and register ActivitiesHandlerMain
       this.activitiesHandler = new ActivitiesHandlerMain(
@@ -408,6 +357,24 @@ class LightTrackApp {
         this.updaterHandler.registerHandlers();
       }
 
+      // Register shell:open-external handler with URL validation
+      ipcMain.handle('shell:open-external', (event, url) => {
+        if (typeof url !== 'string') {
+          throw new Error('URL must be a string');
+        }
+        // Only allow http and https URLs
+        try {
+          const parsed = new URL(url);
+          if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+            throw new Error('Only http and https URLs are allowed');
+          }
+        } catch (e) {
+          if (e.message === 'Only http and https URLs are allowed') throw e;
+          throw new Error('Invalid URL');
+        }
+        return shell.openExternal(url);
+      });
+
       // Register upgrade info handler
       ipcMain.handle('upgrade:getInfo', () => {
         return this.upgradeManager?.getInstallationInfo() || null;
@@ -455,6 +422,9 @@ class LightTrackApp {
       await this.tracker.stop();
     }
 
+    // Stop browser extension server
+    this.browserExtensionServer?.stop();
+
     // Cleanup calendar sync
     this.calendarSyncService?.cleanup();
   }
@@ -484,7 +454,7 @@ app.on('before-quit', async (event) => {
     logger.error('Error during cleanup:', error);
   }
 
-  autoUpdater.cleanup();
+  lightTrackApp.autoUpdater?.cleanup();
   globalShortcut.unregisterAll();
 
   // Now actually quit

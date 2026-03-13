@@ -18,13 +18,12 @@ class AutoUpdater {
     this.updateChannel = 'stable';
     this.manifestUrl = 'https://releases.lighttrack.app/update-manifest.json';
 
-    this.init();
   }
 
   /**
    * Initialize auto-updater
    */
-  init() {
+  initialize() {
     // Configure logging
     log.transports.file.level = 'info';
     autoUpdater.logger = log;
@@ -483,5 +482,4 @@ class AutoUpdater {
   }
 }
 
-// Export singleton
-module.exports = new AutoUpdater();
+module.exports = AutoUpdater;

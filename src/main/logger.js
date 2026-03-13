@@ -1,31 +1,14 @@
-/**
- * Simple logger for LightTrack
- */
+const log = require('electron-log');
 
-const isDev = process.env.NODE_ENV === 'development';
+log.transports.file.level = 'info';
+log.transports.console.level = process.env.NODE_ENV === 'development' ? 'debug' : 'info';
 
 const logger = {
-  init() {
-    // No-op for simple logger
-  },
-
-  info(message, data = {}) {
-    console.log(`[INFO] ${message}`, Object.keys(data).length ? data : '');
-  },
-
-  warn(message, data = {}) {
-    console.warn(`[WARN] ${message}`, Object.keys(data).length ? data : '');
-  },
-
-  error(message, ...args) {
-    console.error(`[ERROR] ${message}`, ...args);
-  },
-
-  debug(message, data = {}) {
-    if (isDev) {
-      console.debug(`[DEBUG] ${message}`, Object.keys(data).length ? data : '');
-    }
-  }
+  init() { /* electron-log auto-initializes */ },
+  info(message, data = {}) { log.info(message, data); },
+  warn(message, data = {}) { log.warn(message, data); },
+  error(message, ...args) { log.error(message, ...args); },
+  debug(message, data = {}) { log.debug(message, data); }
 };
 
 module.exports = logger;

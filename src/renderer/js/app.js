@@ -1176,139 +1176,42 @@ function updateTopProjects() {
 
 /**
  * Map percentage to nearest 5% fill class
+ * @delegated to LightTrack.Dashboard module
  */
 function getBarFillClass(percent) {
-  const clamped = Math.max(0, Math.min(100, percent));
-  const bucket = Math.round(clamped / 5) * 5;
-  return `bar-fill-${bucket}`;
+  return window.LightTrack.Dashboard?.getBarFillClass?.(percent);
 }
 
 /**
  * Calculate daily summary statistics from activities
- * @param {Array} activities - Array of activity objects
- * @returns {Object} Statistics object with totalSeconds, billableSeconds, projectTimes, earliestTime, latestTime
+ * @delegated to LightTrack.Dashboard module
  */
 function calculateDailySummaryStats(activities) {
-  let totalSeconds = 0;
-  let billableSeconds = 0;
-  const projectTimes = {};
-  let earliestTime = null;
-  let latestTime = null;
-
-  activities.forEach(a => {
-    const duration = a.duration || 0;
-    totalSeconds += duration;
-    if (a.billable !== false) billableSeconds += duration;
-
-    const project = a.project || 'General';
-    projectTimes[project] = (projectTimes[project] || 0) + duration;
-
-    // Track time range
-    if (a.startTime) {
-      const start = new Date(a.startTime);
-      if (!earliestTime || start < earliestTime) earliestTime = start;
-    }
-    if (a.endTime) {
-      const end = new Date(a.endTime);
-      if (!latestTime || end > latestTime) latestTime = end;
-    }
-  });
-
-  return { totalSeconds, billableSeconds, projectTimes, earliestTime, latestTime };
+  return window.LightTrack.Dashboard?.calculateDailySummaryStats?.(activities);
 }
 
 /**
  * Render daily summary statistics to UI elements
- * @param {Object} stats - Statistics object from calculateDailySummaryStats
+ * @delegated to LightTrack.Dashboard module
  */
-function renderDailySummaryStats({ totalSeconds, billableSeconds, projectTimes, earliestTime, latestTime }) {
-  // Update total time
-  if (Elements.summaryTotalTime) {
-    Elements.summaryTotalTime.textContent = formatDuration(totalSeconds);
-  }
-
-  // Update billable time
-  if (Elements.summaryBillable) {
-    const billableHours = formatDuration(billableSeconds);
-    const percent = totalSeconds > 0 ? Math.round((billableSeconds / totalSeconds) * 100) : 0;
-    Elements.summaryBillable.textContent = `${billableHours} (${percent}%)`;
-  }
-
-  // Update goal progress
-  if (Elements.summaryGoal) {
-    const goalHours = (AppState.settings.deepWorkTarget || 4) * 3600;
-    const goalPercent = goalHours > 0 ? Math.min(100, Math.round((totalSeconds / goalHours) * 100)) : 0;
-    Elements.summaryGoal.textContent = `${goalPercent}%`;
-  }
-
-  // Update projects list (top 5)
-  if (Elements.summaryProjects) {
-    const sorted = Object.entries(projectTimes).sort((a, b) => b[1] - a[1]).slice(0, 5);
-
-    if (sorted.length === 0) {
-      Elements.summaryProjects.innerHTML = '<div class="meta-line">No activities yet</div>';
-    } else {
-      Elements.summaryProjects.innerHTML = sorted.map(([project, seconds]) => `
-        <div class="summary-project-row">
-          <span class="project-name">${escapeHtml(project)}</span>
-          <span class="project-time">${formatDuration(seconds)}</span>
-        </div>
-      `).join('');
-    }
-  }
-
-  // Update time range
-  if (Elements.summaryTimeRange) {
-    if (earliestTime && latestTime) {
-      const startStr = earliestTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const endStr = latestTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      Elements.summaryTimeRange.textContent = `Active: ${startStr} - ${endStr}`;
-    } else {
-      Elements.summaryTimeRange.textContent = '--';
-    }
-  }
+function renderDailySummaryStats(stats) {
+  return window.LightTrack.Dashboard?.renderDailySummaryStats?.(stats);
 }
 
 /**
  * Update the daily summary UI
+ * @delegated to LightTrack.Dashboard module
  */
 function updateDailySummary() {
-  if (!Elements.dailySummaryCard) return;
-  const stats = calculateDailySummaryStats(AppState.activities);
-  renderDailySummaryStats(stats);
+  return window.LightTrack.Dashboard?.updateDailySummary?.();
 }
 
 /**
  * Initialize daily summary toggle
+ * @delegated to LightTrack.Dashboard module
  */
 function initDailySummary() {
-  if (!Elements.toggleDailySummary || !Elements.dailySummaryCard) return;
-
-  // Check if it's after auto-expand hour (5 PM) - auto-expand
-  const currentHour = new Date().getHours();
-  const isAfternoon = currentHour >= CONSTANTS.AUTO_EXPAND_HOUR;
-
-  // Load saved state with proper validation or use time-based default
-  const savedState = localStorage.getItem(CONSTANTS.STORAGE_KEYS.DAILY_SUMMARY_COLLAPSED);
-  let isCollapsed;
-  if (savedState === 'true') {
-    isCollapsed = true;
-  } else if (savedState === 'false') {
-    isCollapsed = false;
-  } else {
-    isCollapsed = !isAfternoon; // Default based on time if no valid saved state
-  }
-
-  if (isCollapsed) {
-    Elements.dailySummaryCard.classList.add('collapsed');
-  }
-
-  // Toggle handler
-  Elements.toggleDailySummary.addEventListener('click', () => {
-    Elements.dailySummaryCard.classList.toggle('collapsed');
-    const nowCollapsed = Elements.dailySummaryCard.classList.contains('collapsed');
-    safeLocalStorageSet(CONSTANTS.STORAGE_KEYS.DAILY_SUMMARY_COLLAPSED, nowCollapsed.toString());
-  });
+  return window.LightTrack.Dashboard?.initDailySummary?.();
 }
 
 /**
@@ -1975,354 +1878,36 @@ function capitalize(text) {
 
 /**
  * Calculate and update weekly focus score
+ * @delegated to LightTrack.Dashboard module
  */
 async function updateWeeklyFocusScore() {
-  const weeklyFocusEl = document.getElementById('weekly-focus-score');
-  const weeklySummaryEl = document.getElementById('weekly-focus-summary');
-
-  if (!weeklyFocusEl) return;
-
-  // Check cache first (5 minute TTL)
-  const now = Date.now();
-  const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
-  if (AppState.weeklyFocusCache &&
-      (now - AppState.weeklyFocusCache.timestamp) < CACHE_TTL) {
-    // Use cached data
-    weeklyFocusEl.textContent = AppState.weeklyFocusCache.score;
-    if (weeklySummaryEl) {
-      weeklySummaryEl.textContent = AppState.weeklyFocusCache.summary;
-    }
-    return;
-  }
-
-  try {
-    if (!window.lightTrackAPI) {
-      weeklyFocusEl.textContent = '--';
-      return;
-    }
-
-    // Get last 7 days of activities (fetch each day individually for better caching)
-    const weekActivities = [];
-    const today = new Date();
-
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      const dateStr = getLocalDateString(date);
-
-      const activities = await window.lightTrackAPI.getActivities(dateStr) || [];
-      weekActivities.push(...activities);
-    }
-
-    if (weekActivities.length === 0) {
-      weeklyFocusEl.textContent = '--';
-      if (weeklySummaryEl) weeklySummaryEl.textContent = 'Track more to see insights';
-
-      // Cache the empty result
-      AppState.weeklyFocusCache = {
-        timestamp: now,
-        score: '--',
-        summary: 'Track more to see insights'
-      };
-      return;
-    }
-
-    // Group by day and calculate daily focus scores
-    const dayStats = {};
-
-    weekActivities.forEach(a => {
-      if (!a.startTime) return;
-      const day = new Date(a.startTime).toDateString();
-      if (!dayStats[day]) {
-        dayStats[day] = { apps: [], switches: 0, lastApp: null };
-      }
-
-      const app = a.app || 'Unknown';
-      if (dayStats[day].lastApp && dayStats[day].lastApp !== app) {
-        dayStats[day].switches++;
-      }
-      dayStats[day].lastApp = app;
-      dayStats[day].apps.push(app);
-    });
-
-    // Calculate focus score for each day (100 - switches * 3, min 50)
-    const dailyScores = Object.values(dayStats).map(d =>
-      Math.max(50, 100 - d.switches * 3)
-    );
-
-    // Average
-    const avgScore = dailyScores.length > 0
-      ? Math.round(dailyScores.reduce((sum, s) => sum + s, 0) / dailyScores.length)
-      : 0;
-
-    const scoreText = avgScore > 0 ? avgScore.toString() : '--';
-    weeklyFocusEl.textContent = scoreText;
-
-    // Summary text
-    let summaryText = 'Track more to see insights';
-    if (weeklySummaryEl && Object.keys(dayStats).length > 0) {
-      const totalSwitches = Object.values(dayStats).reduce((sum, d) => sum + d.switches, 0);
-      const daysTracked = Object.keys(dayStats).length;
-      summaryText = `${daysTracked} days, ${totalSwitches} switches`;
-      weeklySummaryEl.textContent = summaryText;
-    }
-
-    // Cache the result
-    AppState.weeklyFocusCache = {
-      timestamp: now,
-      score: scoreText,
-      summary: summaryText
-    };
-
-  } catch (error) {
-    console.error('Failed to calculate weekly focus:', error);
-    weeklyFocusEl.textContent = '--';
-  }
+  return window.LightTrack.Dashboard?.updateWeeklyFocusScore?.();
 }
 
 /**
  * Calculate and display tracking streak (consecutive days)
+ * @delegated to LightTrack.Dashboard module
  */
 async function updateStreak() {
-  const streakCountEl = document.getElementById('streak-count');
-  const streakSummaryEl = document.getElementById('streak-summary');
-
-  if (!streakCountEl) return;
-
-  // Check cache (30 minute TTL)
-  const now = Date.now();
-  const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
-
-  if (AppState.streakCache && (now - AppState.streakCache.timestamp) < CACHE_TTL) {
-    streakCountEl.textContent = AppState.streakCache.streak;
-    if (streakSummaryEl) streakSummaryEl.textContent = AppState.streakCache.summary;
-    if (AppState.streakCache.streak >= 7) streakCountEl.classList.add('fire');
-    return;
-  }
-
-  try {
-    if (!window.lightTrackAPI) {
-      streakCountEl.textContent = '0';
-      return;
-    }
-
-    // Check consecutive days going back from today
-    let streak = 0;
-    const today = new Date();
-    const MIN_MINUTES_FOR_DAY = 5; // Minimum 5 minutes to count as a tracking day
-
-    for (let i = 0; i < 365; i++) { // Check up to a year back
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      const dateStr = getLocalDateString(date);
-
-      const activities = await window.lightTrackAPI.getActivities(dateStr) || [];
-      const totalSeconds = activities.reduce((sum, a) => sum + (a.duration || 0), 0);
-      const totalMinutes = Math.floor(totalSeconds / 60);
-
-      if (totalMinutes >= MIN_MINUTES_FOR_DAY) {
-        streak++;
-      } else if (i === 0) {
-        // Today doesn't count yet, check if we have a streak from yesterday
-        continue;
-      } else {
-        // Streak broken
-        break;
-      }
-    }
-
-    streakCountEl.textContent = streak.toString();
-
-    // Add fire animation for streaks >= 7 days
-    if (streak >= 7) {
-      streakCountEl.classList.add('fire');
-    } else {
-      streakCountEl.classList.remove('fire');
-    }
-
-    // Summary text
-    let summary = 'Start tracking to build your streak';
-    if (streak === 0) {
-      summary = 'Start tracking to build your streak';
-    } else if (streak === 1) {
-      summary = 'Great start! Keep it going';
-    } else if (streak < 7) {
-      summary = `${7 - streak} more days to a week streak`;
-    } else if (streak < 30) {
-      summary = 'On fire! Keep the momentum';
-    } else {
-      summary = 'Incredible consistency!';
-    }
-
-    if (streakSummaryEl) streakSummaryEl.textContent = summary;
-
-    // Cache the result
-    AppState.streakCache = {
-      timestamp: now,
-      streak: streak.toString(),
-      summary
-    };
-
-  } catch (error) {
-    console.error('Failed to calculate streak:', error);
-    streakCountEl.textContent = '0';
-  }
+  return window.LightTrack.Dashboard?.updateStreak?.();
 }
 
 /**
  * Update mini timeline preview in hero section
+ * @delegated to LightTrack.Dashboard module
  */
 function updateMiniTimeline() {
-  const timelineBar = document.getElementById('mini-timeline-bar');
-  const startLabel = document.querySelector('.mini-timeline-start');
-  const endLabel = document.querySelector('.mini-timeline-end');
-
-  if (!timelineBar) return;
-
-  // Get work day bounds
-  const dayStartMinutes = getWorkDayStartMinutes();
-  const dayEndMinutes = getWorkDayEndMinutes();
-  const dayDurationMinutes = dayEndMinutes - dayStartMinutes;
-
-  // Update labels
-  if (startLabel) {
-    const startHour = Math.floor(dayStartMinutes / 60);
-    startLabel.textContent = `${startHour}${startHour < 12 ? 'am' : 'pm'}`;
-  }
-  if (endLabel) {
-    const endHour = Math.floor(dayEndMinutes / 60);
-    const displayHour = endHour > 12 ? endHour - 12 : endHour;
-    endLabel.textContent = `${displayHour}${endHour < 12 ? 'am' : 'pm'}`;
-  }
-
-  // Build segment HTML
-  const activities = AppState.activities;
-  const projectColors = {};
-  const colorPalette = [
-    '#3805e3', '#b3fc4f', '#9c27b0', '#ff9800',
-    '#00bcd4', '#f44336', '#8bc34a', '#e91e63'
-  ];
-  let colorIndex = 0;
-
-  const segments = activities
-    .filter(a => a.startTime)
-    .map(a => {
-      const start = new Date(a.startTime);
-      const end = a.endTime ? new Date(a.endTime) : new Date();
-
-      const startMinutes = start.getHours() * 60 + start.getMinutes();
-      const endMinutes = end.getHours() * 60 + end.getMinutes();
-
-      // Calculate position as percentage of work day
-      const leftPercent = Math.max(0, ((startMinutes - dayStartMinutes) / dayDurationMinutes) * 100);
-      const widthPercent = Math.min(100 - leftPercent, ((endMinutes - startMinutes) / dayDurationMinutes) * 100);
-
-      // Assign color to project
-      const project = a.project || 'General';
-      if (!projectColors[project]) {
-        projectColors[project] = colorPalette[colorIndex % colorPalette.length];
-        colorIndex++;
-      }
-
-      return `<div class="mini-timeline-segment"
-                   style="left: ${leftPercent}%; width: ${Math.max(0.5, widthPercent)}%; background: ${projectColors[project]};"
-                   title="${escapeHtml(project)}: ${formatDuration(a.duration || 0)}"></div>`;
-    })
-    .join('');
-
-  // Add "now" indicator
-  const now = new Date();
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
-  const nowPercent = ((nowMinutes - dayStartMinutes) / dayDurationMinutes) * 100;
-
-  let nowIndicator = '';
-  if (nowPercent >= 0 && nowPercent <= 100) {
-    nowIndicator = `<div class="mini-timeline-now" style="left: ${nowPercent}%;"></div>`;
-  }
-
-  timelineBar.innerHTML = segments + nowIndicator;
+  return window.LightTrack.Dashboard?.updateMiniTimeline?.();
 }
 
 // ============= Goals Tracking =============
 
 /**
  * Update goals display based on today's activities
+ * @delegated to LightTrack.Dashboard module
  */
 function updateGoals() {
-  const activities = AppState.activities;
-  const deepWorkTargetSeconds = AppState.settings.deepWorkTarget * 3600;
-  const breaksTarget = AppState.settings.breaksTarget;
-
-  // Calculate deep work (total time minus breaks)
-  let deepWorkSeconds = 0;
-  let breakCount = 0;
-
-  activities.forEach(a => {
-    const project = (a.project || '').toLowerCase();
-    if (project === 'break') {
-      breakCount++;
-    } else {
-      deepWorkSeconds += (a.duration || 0);
-    }
-  });
-
-  // Update deep work badge
-  const deepWorkBadge = document.getElementById('deep-work-badge');
-  if (deepWorkBadge) {
-    const hours = Math.floor(deepWorkSeconds / 3600);
-    const targetHours = AppState.settings.deepWorkTarget;
-    deepWorkBadge.textContent = `${hours}h / ${targetHours}h Deep work`;
-
-    // Visual feedback if goal reached
-    if (deepWorkSeconds >= deepWorkTargetSeconds) {
-      deepWorkBadge.style.borderColor = 'var(--neon)';
-    } else {
-      deepWorkBadge.style.borderColor = '';
-    }
-  }
-
-  // Update breaks badge
-  const breaksBadge = document.getElementById('breaks-badge');
-  if (breaksBadge) {
-    breaksBadge.textContent = `${breakCount} / ${breaksTarget} Breaks`;
-
-    // Visual feedback if breaks taken
-    if (breakCount >= breaksTarget) {
-      breaksBadge.style.borderColor = 'var(--neon)';
-    } else {
-      breaksBadge.style.borderColor = '';
-    }
-  }
-
-  // Update goal progress bar
-  const progressBar = document.getElementById('goal-progress-bar');
-  const progressText = document.getElementById('goal-progress-text');
-
-  if (progressBar && progressText) {
-    const percent = deepWorkTargetSeconds > 0
-      ? Math.min(100, Math.round((deepWorkSeconds / deepWorkTargetSeconds) * 100))
-      : 0;
-
-    progressBar.style.width = `${percent}%`;
-
-    if (percent >= 100) {
-      progressBar.classList.add('complete');
-      progressText.textContent = 'Daily goal reached!';
-    } else {
-      progressBar.classList.remove('complete');
-      const remaining = deepWorkTargetSeconds - deepWorkSeconds;
-      const remainingHours = Math.floor(remaining / 3600);
-      const remainingMins = Math.floor((remaining % 3600) / 60);
-      if (remainingHours > 0) {
-        progressText.textContent = `${percent}% • ${remainingHours}h ${remainingMins}m to goal`;
-      } else if (remainingMins > 0) {
-        progressText.textContent = `${percent}% • ${remainingMins}m to goal`;
-      } else {
-        progressText.textContent = `${percent}% of daily goal`;
-      }
-    }
-  }
+  return window.LightTrack.Dashboard?.updateGoals?.();
 }
 
 // ============= Quick Project Switcher =============
@@ -2600,310 +2185,35 @@ function resetBreakReminderTimer() {
  * Navigate timeline by days
  */
 function navigateTimeline(days) {
-  const current = parseLocalDateString(AppState.timelineDate);
-  current.setDate(current.getDate() + days);
-  AppState.timelineDate = getLocalDateString(current);
-  loadTimelineView();
+  return window.LightTrack.Timeline?.navigateTimeline?.(days);
 }
 
 /**
  * Load Timeline view - shows all activities for selected date
  */
 async function loadTimelineView() {
-  // Use cached elements
-  const { timelineDate: timelineDateEl, timelineSummary, timelineList,
-          timelineTracked, timelineGaps, timelineBillable,
-          timelineProjects, timelineBar, timelineBarLabel,
-          timelineProjectFilter, timelineBillableFilter, timelineGroupToggle } = Elements;
-
-  // Show loading state
-  if (timelineList) timelineList.classList.add('view-loading');
-
-  // Clear selection when loading/reloading timeline
-  AppState.selectedActivities = [];
-  if (Elements.timelineSelectAll) Elements.timelineSelectAll.checked = false;
-  if (Elements.timelineMergeSelected) {
-    Elements.timelineMergeSelected.disabled = true;
-    Elements.timelineMergeSelected.textContent = 'Merge';
-  }
-
-  try {
-    // Fetch activities for the timeline date and store in AppState for edit/delete
-    let activities = [];
-    if (window.lightTrackAPI) {
-      activities = await window.lightTrackAPI.getActivities(AppState.timelineDate) || [];
-      AppState.activities = activities; // Store for edit/delete modal access
-    }
-
-  // Populate project filter dropdown
-  if (timelineProjectFilter) {
-    const projectsInDay = [...new Set(activities.map(a => a.project || 'General'))].sort();
-    let currentValue = AppState.timelineFilters.project;
-    if (currentValue && !projectsInDay.includes(currentValue)) {
-      currentValue = '';
-      AppState.timelineFilters.project = '';
-    }
-    timelineProjectFilter.innerHTML = '<option value="">All Projects</option>' +
-      projectsInDay.map(p => `<option value="${escapeHtml(p)}"${p === currentValue ? ' selected' : ''}>${escapeHtml(p)}</option>`).join('');
-  }
-
-  // Sync filter UI state
-  if (timelineBillableFilter) {
-    timelineBillableFilter.checked = AppState.timelineFilters.billableOnly;
-  }
-  if (timelineGroupToggle) {
-    timelineGroupToggle.checked = AppState.timelineFilters.groupByProject;
-  }
-
-  // Apply filters
-  let filteredActivities = activities;
-  if (AppState.timelineFilters.project) {
-    filteredActivities = filteredActivities.filter(a => (a.project || 'General') === AppState.timelineFilters.project);
-  }
-  if (AppState.timelineFilters.billableOnly) {
-    filteredActivities = filteredActivities.filter(a => a.billable !== false);
-  }
-
-  // Check if viewing today
-  const today = getLocalDateString(new Date());
-  const isToday = AppState.timelineDate === today;
-
-  // Update date display
-  if (timelineDateEl) {
-    const date = parseLocalDateString(AppState.timelineDate);
-    const yesterdayDate = new Date();
-    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-    const yesterday = getLocalDateString(yesterdayDate);
-
-    let dateText;
-    if (isToday) {
-      dateText = 'Today';
-    } else if (AppState.timelineDate === yesterday) {
-      dateText = 'Yesterday';
-    } else {
-      dateText = date.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
-    }
-    timelineDateEl.textContent = dateText;
-  }
-
-  // Calculate stats (use filtered activities for display)
-  const totalTracked = filteredActivities.reduce((sum, a) => sum + (a.duration || 0), 0);
-  const billableTime = filteredActivities.filter(a => a.billable !== false).reduce((sum, a) => sum + (a.duration || 0), 0);
-  const uniqueProjects = new Set(filteredActivities.map(a => a.project || 'General')).size;
-
-  // Calculate real gaps between activities during work hours (use all activities for gaps)
-  const gapSeconds = calculateRealGaps(activities, AppState.timelineDate);
-
-  // Update stats
-  if (timelineTracked) timelineTracked.textContent = formatDuration(totalTracked);
-  if (timelineGaps) timelineGaps.textContent = formatDuration(gapSeconds);
-  if (timelineBillable) {
-    const pct = totalTracked > 0 ? Math.round((billableTime / totalTracked) * 100) : 0;
-    timelineBillable.textContent = `${pct}%`;
-  }
-  if (timelineProjects) timelineProjects.textContent = uniqueProjects;
-
-  // Update summary (show filtered count vs total)
-  if (timelineSummary) {
-    const filterInfo = filteredActivities.length !== activities.length ? ` (${activities.length} total)` : '';
-    timelineSummary.textContent = `${filteredActivities.length} entries, ${formatDuration(totalTracked)}${filterInfo}`;
-  }
-
-  // Update timeline bar label with work day hours
-  if (timelineBarLabel) {
-    const startHour = AppState.settings.workDayStart.replace(':00', '').replace(':30', ':30');
-    const endHour = AppState.settings.workDayEnd.replace(':00', '').replace(':30', ':30');
-    timelineBarLabel.textContent = `Day overview (${startHour} - ${endHour})`;
-  }
-
-  // Render timeline bar with time markers and now indicator
-  if (timelineBar) {
-    renderTimelineBar(timelineBar, activities, AppState.timelineDate, isToday);
-  }
-
-  // Render activity list
-  if (timelineList) {
-    if (filteredActivities.length === 0) {
-      const emptyMessage = activities.length === 0 ? 'No activities for this date' : 'No activities match filters';
-      timelineList.innerHTML = `
-        <div class="empty-state">
-          <div class="icon">📋</div>
-          <div>${emptyMessage}</div>
-        </div>
-      `;
-      return;
-    }
-
-    const sorted = [...filteredActivities].sort((a, b) =>
-      new Date(a.startTime || 0) - new Date(b.startTime || 0)
-    );
-
-    // Check if grouping is enabled
-    if (AppState.timelineFilters.groupByProject) {
-      timelineList.innerHTML = renderGroupedActivities(sorted);
-    } else {
-      timelineList.innerHTML = sorted.map(activity => renderActivityItem(activity)).join('');
-    }
-
-    // Attach event listeners to timeline activity buttons
-    attachTimelineListeners(timelineList);
-  }
-  } finally {
-    // Remove loading state
-    if (timelineList) timelineList.classList.remove('view-loading');
-  }
+  return window.LightTrack.Timeline?.loadTimelineView?.();
 }
 
 /**
  * Render a single activity item
  */
 function renderActivityItem(activity) {
-    const appName = activity.app || 'Unknown';
-    const windowTitle = activity.title || '';
-    const project = activity.project || 'General';
-    const duration = formatDuration(activity.duration || 0);
-    const activityType = activity.activityType || activity.activity || '';
-    const tickets = activity.tickets || [];
-
-    // Safe date parsing with validation
-    let startTime = '--';
-    let endTime = '--';
-    if (activity.startTime) {
-      const startDate = new Date(activity.startTime);
-      if (!isNaN(startDate.getTime())) {
-        startTime = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      }
-    }
-    if (activity.endTime) {
-      const endDate = new Date(activity.endTime);
-      if (!isNaN(endDate.getTime())) {
-        endTime = endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      }
-    }
-
-    const billableClass = activity.billable !== false ? 'billable' : '';
-    const activityId = escapeHtml(String(activity.id));
-
-    // Render activity tags
-    const tagsHtml = renderActivityTags(activity);
-
-    // Render JIRA tickets if present
-    const ticketsHtml = tickets.length > 0
-      ? `<div class="activity-tickets">${tickets.map(t => `<span class="ticket-badge">${escapeHtml(t)}</span>`).join('')}</div>`
-      : '';
-
-    // Render activity type if present
-    const activityTypeHtml = activityType
-      ? `<span class="activity-type-badge">${escapeHtml(activityType)}</span>`
-      : '';
-
-    // Show window title if different from app name and meaningful
-    const showTitle = windowTitle && windowTitle !== appName && windowTitle.length > 0 && windowTitle.length < 100;
-    const titleHtml = showTitle
-      ? `<div class="activity-window-title">${escapeHtml(windowTitle.substring(0, 80))}${windowTitle.length > 80 ? '...' : ''}</div>`
-      : '';
-
-    const isSelected = AppState.selectedActivities?.includes(activity.id) ? 'selected' : '';
-    const isChecked = isSelected ? 'checked' : '';
-
-    return `
-      <div class="activity ${billableClass} ${isSelected}" data-id="${activityId}">
-        <div class="activity-select">
-          <input type="checkbox" class="activity-checkbox" data-id="${activityId}" ${isChecked}>
-        </div>
-        <div class="activity-info">
-          <div class="title">${escapeHtml(appName)} ${activityTypeHtml}</div>
-          ${titleHtml}
-          <div class="meta-line">
-            <span>${escapeHtml(project)}</span>
-            <span>• ${startTime} - ${endTime}</span>
-          </div>
-          ${ticketsHtml}
-          ${tagsHtml}
-        </div>
-        <div class="activity-actions">
-          <button class="btn-edit" data-id="${activityId}">Edit</button>
-          <button class="btn-tags btn-small" data-id="${activityId}">Tags</button>
-          <button class="btn-delete delete" data-id="${activityId}">Delete</button>
-        </div>
-        <div class="duration">${duration}</div>
-      </div>
-    `;
+  return window.LightTrack.Timeline?.renderActivityItem?.(activity);
 }
 
 /**
  * Render activities grouped by project
  */
 function renderGroupedActivities(activities) {
-  // Group by project
-  const groups = {};
-  activities.forEach(activity => {
-    const project = activity.project || 'General';
-    if (!groups[project]) {
-      groups[project] = [];
-    }
-    groups[project].push(activity);
-  });
-
-  // Sort projects by total duration
-  const sortedProjects = Object.keys(groups).sort((a, b) => {
-    const durationA = groups[a].reduce((sum, act) => sum + (act.duration || 0), 0);
-    const durationB = groups[b].reduce((sum, act) => sum + (act.duration || 0), 0);
-    return durationB - durationA;
-  });
-
-  return sortedProjects.map(project => {
-    const projectActivities = groups[project];
-    const totalDuration = projectActivities.reduce((sum, a) => sum + (a.duration || 0), 0);
-    const count = projectActivities.length;
-
-    return `
-      <div class="project-group" data-project="${escapeHtml(project)}">
-        <div class="project-group-header" onclick="this.nextElementSibling.classList.toggle('collapsed')">
-          <span class="project-group-name">${escapeHtml(project)}</span>
-          <span class="project-group-stats">${count} ${count === 1 ? 'entry' : 'entries'} • ${formatDuration(totalDuration)}</span>
-        </div>
-        <div class="project-group-content">
-          ${projectActivities.map(activity => renderActivityItem(activity)).join('')}
-        </div>
-      </div>
-    `;
-  }).join('');
+  return window.LightTrack.Timeline?.renderGroupedActivities?.(activities);
 }
 
 /**
  * Set up event delegation for timeline list (call once on init)
  */
 function setupTimelineEventDelegation() {
-  const container = Elements.timelineList;
-  if (!container || container.dataset.delegated) return;
-  container.dataset.delegated = 'true';
-
-  container.addEventListener('click', (e) => {
-    const target = e.target;
-
-    // Handle checkbox clicks
-    if (target.classList.contains('activity-checkbox')) {
-      const id = target.dataset.id;
-      if (id) toggleActivitySelection(id);
-      return;
-    }
-
-    const btn = target.closest('button[data-id]');
-    if (!btn) return;
-
-    e.stopPropagation();
-    const id = btn.dataset.id;
-    if (!id) return;
-
-    if (btn.classList.contains('btn-edit')) {
-      openEditModal(id);
-    } else if (btn.classList.contains('btn-tags')) {
-      openTagEditor(id);
-    } else if (btn.classList.contains('btn-delete')) {
-      openDeleteModal(id);
-    }
-  });
+  return window.LightTrack.Timeline?.setupTimelineEventDelegation?.();
 }
 
 /**
@@ -2911,7 +2221,7 @@ function setupTimelineEventDelegation() {
  * Kept for backwards compatibility but now a no-op
  */
 function attachTimelineListeners(container) {
-  // Event delegation is now used instead - see setupTimelineEventDelegation()
+  return window.LightTrack.Timeline?.attachTimelineListeners?.(container);
 }
 
 // ============= Activity Selection for Bulk Operations =============
@@ -2920,145 +2230,28 @@ function attachTimelineListeners(container) {
  * Toggle selection of a single activity
  */
 function toggleActivitySelection(id) {
-  const index = AppState.selectedActivities.indexOf(id);
-  if (index === -1) {
-    AppState.selectedActivities.push(id);
-  } else {
-    AppState.selectedActivities.splice(index, 1);
-  }
-  updateSelectionUI();
+  return window.LightTrack.Timeline?.toggleActivitySelection?.(id);
 }
 
 /**
  * Select or deselect all visible activities
  */
 function toggleSelectAllActivities(selectAll) {
-  if (selectAll) {
-    // Select all visible activities
-    const checkboxes = document.querySelectorAll('.activity-checkbox');
-    AppState.selectedActivities = Array.from(checkboxes).map(cb => cb.dataset.id);
-  } else {
-    AppState.selectedActivities = [];
-  }
-  updateSelectionUI();
+  return window.LightTrack.Timeline?.toggleSelectAllActivities?.(selectAll);
 }
 
 /**
  * Update the UI to reflect current selection state
  */
 function updateSelectionUI() {
-  const selectedCount = AppState.selectedActivities.length;
-
-  // Update merge button state
-  if (Elements.timelineMergeSelected) {
-    Elements.timelineMergeSelected.disabled = selectedCount < 2;
-    Elements.timelineMergeSelected.textContent = selectedCount > 0 ? `Merge (${selectedCount})` : 'Merge';
-  }
-
-  // Update select all checkbox
-  const allCheckboxes = document.querySelectorAll('.activity-checkbox');
-  if (Elements.timelineSelectAll && allCheckboxes.length > 0) {
-    Elements.timelineSelectAll.checked = selectedCount === allCheckboxes.length;
-    Elements.timelineSelectAll.indeterminate = selectedCount > 0 && selectedCount < allCheckboxes.length;
-  }
-
-  // Update activity visual state
-  document.querySelectorAll('.activity[data-id]').forEach(el => {
-    const id = el.dataset.id;
-    const checkbox = el.querySelector('.activity-checkbox');
-    if (AppState.selectedActivities.includes(id)) {
-      el.classList.add('selected');
-      if (checkbox) checkbox.checked = true;
-    } else {
-      el.classList.remove('selected');
-      if (checkbox) checkbox.checked = false;
-    }
-  });
+  return window.LightTrack.Timeline?.updateSelectionUI?.();
 }
 
 /**
  * Merge selected activities into one
  */
 async function mergeSelectedActivities() {
-  const selectedIds = AppState.selectedActivities;
-  if (selectedIds.length < 2) {
-    showNotification(ERRORS.MERGE_TOO_FEW, 'warning');
-    return;
-  }
-
-  // Get the selected activities from AppState.activities
-  const selectedActivities = AppState.activities.filter(a => selectedIds.includes(String(a.id)));
-
-  if (selectedActivities.length < 2) {
-    showNotification(ERRORS.MERGE_NOT_FOUND, 'error');
-    return;
-  }
-
-  // Check if all activities have the same project
-  const projects = [...new Set(selectedActivities.map(a => a.project || 'General'))];
-  if (projects.length > 1) {
-    showNotification('Can only merge activities with the same project', 'warning');
-    return;
-  }
-
-  // Sort by start time
-  selectedActivities.sort((a, b) => new Date(a.startTime || 0) - new Date(b.startTime || 0));
-
-  // Create merged activity
-  const earliest = selectedActivities[0];
-  const latest = selectedActivities[selectedActivities.length - 1];
-  const totalDuration = selectedActivities.reduce((sum, a) => sum + (a.duration || 0), 0);
-
-  // Collect unique tags and tickets
-  const allTags = [...new Set(selectedActivities.flatMap(a => a.tags || []))];
-  const allTickets = [...new Set(selectedActivities.flatMap(a => a.tickets || []))];
-
-  const mergedActivity = {
-    app: earliest.app,
-    title: earliest.title,
-    project: earliest.project || 'General',
-    startTime: earliest.startTime,
-    endTime: latest.endTime,
-    duration: totalDuration,
-    billable: earliest.billable,
-    activityType: earliest.activityType,
-    tags: allTags,
-    tickets: allTickets
-  };
-
-  let savedMerged = null;
-
-  try {
-    // Step 1: Save merged activity first
-    savedMerged = await window.lightTrackAPI.saveActivity(mergedActivity);
-
-    // Step 2: Delete all original activities atomically
-    try {
-      await Promise.all(
-        selectedActivities.map(a => window.lightTrackAPI.deleteActivity(a.id))
-      );
-    } catch (deleteError) {
-      // Rollback: delete the merged activity we just created
-      console.error('Delete failed, rolling back merge:', deleteError);
-      if (savedMerged?.id) {
-        try {
-          await window.lightTrackAPI.deleteActivity(savedMerged.id);
-        } catch (rollbackError) {
-          console.error('Rollback failed:', rollbackError);
-        }
-      }
-      throw new Error(ERRORS.MERGE_ROLLBACK);
-    }
-
-    // Clear selection and reload
-    AppState.selectedActivities = [];
-    if (Elements.timelineSelectAll) Elements.timelineSelectAll.checked = false;
-    showNotification(`Merged ${selectedActivities.length} activities`, 'success');
-    loadTimelineView();
-  } catch (error) {
-    console.error('Failed to merge activities:', error);
-    showNotification(ERRORS.MERGE_FAILED + ': ' + error.message, 'error');
-  }
+  return window.LightTrack.Timeline?.mergeSelectedActivities?.();
 }
 
 /**
@@ -3066,77 +2259,28 @@ async function mergeSelectedActivities() {
  * Space: Toggle tracking, M: Mark break, A: Add manual, F: Floating timer
  */
 function setupTimerKeyboardShortcuts() {
-  document.addEventListener('keydown', (e) => {
-    // Skip if user is typing in an input/textarea/select
-    if (e.target.matches('input, textarea, select, [contenteditable]')) return;
-
-    // Skip if any modal is open
-    const hasOpenModal = document.querySelector('.modal.active, .modal-overlay.active');
-    if (hasOpenModal) return;
-
-    // Skip if not in timer view (except for global shortcuts)
-    const isTimerView = AppState.currentView === 'timer';
-
-    // Timer view specific shortcuts (no modifier keys)
-    if (isTimerView && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      switch (e.key.toLowerCase()) {
-        case ' ': // Space - toggle tracking
-          e.preventDefault();
-          toggleTracking();
-          return;
-
-        case 'm': // M - mark break
-          e.preventDefault();
-          if (AppState.isTracking) {
-            markBreak();
-          } else {
-            showNotification('Start tracking first to mark a break', 'warning');
-          }
-          return;
-
-        case 'a': // A - add manual entry
-          e.preventDefault();
-          openManualEntryModal();
-          return;
-
-        case 'f': // F - toggle floating timer
-          e.preventDefault();
-          if (Elements.floatingTimer) {
-            Elements.floatingTimer.classList.toggle('active');
-            const isActive = Elements.floatingTimer.classList.contains('active');
-            showNotification(isActive ? 'Floating timer shown' : 'Floating timer hidden', 'info');
-          }
-          return;
-      }
-    }
-  });
-
-  console.log('Timer keyboard shortcuts initialized: Space=toggle, M=break, A=add, F=float');
+  return window.LightTrack.Timeline?.setupTimerKeyboardShortcuts?.();
 }
 
 /**
  * Get work day start time in minutes from midnight
  */
 function getWorkDayStartMinutes() {
-  const [hours, minutes] = AppState.settings.workDayStart.split(':').map(Number);
-  return hours * 60 + (minutes || 0);
+  return window.LightTrack.Timeline?.getWorkDayStartMinutes?.();
 }
 
 /**
  * Get work day end time in minutes from midnight
  */
 function getWorkDayEndMinutes() {
-  const [hours, minutes] = AppState.settings.workDayEnd.split(':').map(Number);
-  return hours * 60 + (minutes || 0);
+  return window.LightTrack.Timeline?.getWorkDayEndMinutes?.();
 }
 
 /**
  * Get work day duration in seconds
  */
 function getWorkDayDurationSeconds() {
-  const startMin = getWorkDayStartMinutes();
-  const endMin = getWorkDayEndMinutes();
-  return (endMin - startMin) * 60;
+  return window.LightTrack.Timeline?.getWorkDayDurationSeconds?.();
 }
 
 /**
@@ -3144,1227 +2288,64 @@ function getWorkDayDurationSeconds() {
  * Returns total gap time in seconds
  */
 function calculateRealGaps(activities, dateStr) {
-  const dayStartMin = getWorkDayStartMinutes();
-  const dayEndMin = getWorkDayEndMinutes();
-
-  if (dayEndMin <= dayStartMin) return 0;
-
-  const baseDate = dateStr ? parseLocalDateString(dateStr) : new Date();
-  const dayStartDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
-  const dayEndDate = new Date(dayStartDate);
-  dayEndDate.setDate(dayEndDate.getDate() + 1);
-
-  // Filter activities with valid times and sort by start time
-  const validActivities = activities
-    .filter(a => a.startTime && a.endTime)
-    .map(a => {
-      const start = new Date(a.startTime);
-      const end = new Date(a.endTime);
-      if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
-      const effectiveStart = new Date(Math.max(start.getTime(), dayStartDate.getTime()));
-      const effectiveEnd = new Date(Math.min(end.getTime(), dayEndDate.getTime()));
-      if (effectiveEnd <= effectiveStart) return null;
-      return {
-        startMin: Math.floor((effectiveStart.getTime() - dayStartDate.getTime()) / 60000),
-        endMin: Math.floor((effectiveEnd.getTime() - dayStartDate.getTime()) / 60000)
-      };
-    })
-    .filter(Boolean)
-    .sort((a, b) => a.startMin - b.startMin);
-
-  if (validActivities.length === 0) {
-    // No activities = entire work day is a gap
-    return (dayEndMin - dayStartMin) * 60;
-  }
-
-  // Merge overlapping activities and calculate covered time
-  const merged = [];
-  for (const activity of validActivities) {
-    // Clamp to work hours
-    const clampedStart = Math.max(dayStartMin, Math.min(dayEndMin, activity.startMin));
-    const clampedEnd = Math.max(dayStartMin, Math.min(dayEndMin, activity.endMin));
-
-    if (clampedStart >= clampedEnd) continue;
-
-    if (merged.length === 0) {
-      merged.push({ startMin: clampedStart, endMin: clampedEnd });
-    } else {
-      const last = merged[merged.length - 1];
-      if (clampedStart <= last.endMin) {
-        // Overlapping or adjacent - extend the last segment
-        last.endMin = Math.max(last.endMin, clampedEnd);
-      } else {
-        merged.push({ startMin: clampedStart, endMin: clampedEnd });
-      }
-    }
-  }
-
-  // Calculate gaps between merged segments and at start/end of day
-  let gapMinutes = 0;
-
-  // Gap at start of day
-  if (merged.length > 0 && merged[0].startMin > dayStartMin) {
-    gapMinutes += merged[0].startMin - dayStartMin;
-  }
-
-  // Gaps between activities
-  for (let i = 1; i < merged.length; i++) {
-    const gap = merged[i].startMin - merged[i - 1].endMin;
-    if (gap > 0) {
-      gapMinutes += gap;
-    }
-  }
-
-  // Gap at end of day
-  if (merged.length > 0 && merged[merged.length - 1].endMin < dayEndMin) {
-    gapMinutes += dayEndMin - merged[merged.length - 1].endMin;
-  }
-
-  return gapMinutes * 60; // Convert to seconds
+  return window.LightTrack.Timeline?.calculateRealGaps?.(activities, dateStr);
 }
 
 /**
  * Render visual timeline bar with time markers and now indicator
  */
-function renderTimelineBar(container, activities, dateStr, isToday = false) {
-  // Work day from settings
-  const dayStart = getWorkDayStartMinutes();
-  const dayEnd = getWorkDayEndMinutes();
-  const dayDuration = dayEnd - dayStart;
-
-  if (dayDuration <= 0) {
-    container.innerHTML = '<div class="timeline-bar-empty">Invalid work day settings</div>';
-    return;
-  }
-
-  const baseDate = dateStr ? parseLocalDateString(dateStr) : new Date();
-  const dayStartDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
-  const dayEndDate = new Date(dayStartDate);
-  dayEndDate.setDate(dayEndDate.getDate() + 1);
-
-  // Generate time markers (every hour on the hour)
-  const markers = [];
-  const startHour = Math.ceil(dayStart / 60);
-  const endHour = Math.floor(dayEnd / 60);
-  for (let hour = startHour; hour <= endHour; hour++) {
-    const hourMin = hour * 60;
-    if (hourMin >= dayStart && hourMin <= dayEnd) {
-      const leftPct = ((hourMin - dayStart) / dayDuration) * 100;
-      const label = hour <= 12 ? `${hour === 0 ? 12 : hour}${hour < 12 ? 'a' : 'p'}` : `${hour - 12}p`;
-      markers.push({ left: leftPct, label, isStart: hourMin === dayStart, isEnd: hourMin === dayEnd });
-    }
-  }
-
-  // Generate "now" indicator if viewing today
-  let nowIndicator = '';
-  if (isToday) {
-    const now = new Date();
-    const nowMin = now.getHours() * 60 + now.getMinutes();
-    if (nowMin >= dayStart && nowMin <= dayEnd) {
-      const nowLeft = ((nowMin - dayStart) / dayDuration) * 100;
-      nowIndicator = `<div class="timeline-now-indicator" style="left: ${nowLeft}%;" title="Now"></div>`;
-    }
-  }
-
-  // Generate marker HTML
-  const markersHtml = markers.map(m =>
-    `<div class="timeline-marker${m.isStart ? ' start' : ''}${m.isEnd ? ' end' : ''}" style="left: ${m.left}%;">
-      <span class="timeline-marker-label">${m.label}</span>
-    </div>`
-  ).join('');
-
-  if (activities.length === 0) {
-    container.innerHTML = `<div class="timeline-bar-content"><div class="timeline-bar-empty">No activities</div>${markersHtml}${nowIndicator}</div>`;
-    return;
-  }
-
-  const segments = activities
-    .filter(a => a.startTime && a.endTime)
-    .map(activity => {
-      const start = new Date(activity.startTime);
-      const end = new Date(activity.endTime);
-      if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
-
-      const effectiveStart = new Date(Math.max(start.getTime(), dayStartDate.getTime()));
-      const effectiveEnd = new Date(Math.min(end.getTime(), dayEndDate.getTime()));
-      if (effectiveEnd <= effectiveStart) return null;
-
-      const startMin = Math.floor((effectiveStart.getTime() - dayStartDate.getTime()) / 60000);
-      const endMin = Math.floor((effectiveEnd.getTime() - dayStartDate.getTime()) / 60000);
-
-      // Clamp to work day
-      const clampedStart = Math.max(dayStart, Math.min(dayEnd, startMin));
-      const clampedEnd = Math.max(dayStart, Math.min(dayEnd, endMin));
-
-      if (clampedStart >= clampedEnd) return null;
-
-      const left = ((clampedStart - dayStart) / dayDuration) * 100;
-      const width = ((clampedEnd - clampedStart) / dayDuration) * 100;
-      const type = (activity.project || '').toLowerCase() === 'break' ? 'break' :
-                   activity.billable !== false ? 'billable' : 'non-billable';
-
-      // Format times for tooltip
-      const startTimeStr = effectiveStart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const endTimeStr = effectiveEnd.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const durationSec = activity.duration || Math.round((effectiveEnd - effectiveStart) / 1000);
-      const durationStr = formatDuration(durationSec);
-
-      // Build tooltip content
-      const project = activity.project || 'General';
-      const app = activity.app || 'Unknown';
-      const tickets = activity.tickets || [];
-      const ticketStr = tickets.length > 0 ? `\n${tickets.join(', ')}` : '';
-      const tooltip = `${project}\n${app}\n${startTimeStr} - ${endTimeStr} (${durationStr})${ticketStr}`;
-
-      return { left, width, type, tooltip, project, id: activity.id };
-    })
-    .filter(Boolean);
-
-  if (segments.length === 0) {
-    container.innerHTML = `<div class="timeline-bar-content"><div class="timeline-bar-empty">No activities in work hours</div>${markersHtml}${nowIndicator}</div>`;
-    return;
-  }
-
-  // Sort segments by left position for overlap detection
-  segments.sort((a, b) => a.left - b.left);
-
-  // Detect overlaps and assign rows (stacking)
-  const rows = [];
-  segments.forEach(seg => {
-    let assignedRow = -1;
-    for (let r = 0; r < rows.length; r++) {
-      const rowEnd = rows[r];
-      if (seg.left >= rowEnd) {
-        assignedRow = r;
-        rows[r] = seg.left + seg.width;
-        break;
-      }
-    }
-    if (assignedRow === -1) {
-      assignedRow = rows.length;
-      rows.push(seg.left + seg.width);
-    }
-    seg.row = assignedRow;
-  });
-
-  const totalRows = rows.length;
-  const heightPercent = totalRows > 1 ? (100 / totalRows) : 100;
-
-  const segmentsHtml = segments.map(seg => {
-    const escapedTooltip = seg.tooltip.replace(/"/g, '&quot;').replace(/\n/g, ' | ');
-    const topPercent = totalRows > 1 ? (seg.row * heightPercent) : 0;
-    const heightStyle = totalRows > 1 ? `height: ${heightPercent}%; top: ${topPercent}%;` : '';
-    const dataId = seg.id ? `data-id="${escapeHtml(String(seg.id))}"` : '';
-    return `<div class="timeline-bar-segment ${seg.type}" style="left: ${seg.left}%; width: ${seg.width}%; ${heightStyle}" data-tooltip="${escapedTooltip}" data-project="${(seg.project || '').replace(/"/g, '&quot;')}" ${dataId}></div>`;
-  }).join('');
-
-  container.innerHTML = `<div class="timeline-bar-content">${segmentsHtml}${markersHtml}${nowIndicator}</div>`;
-
-  // Add click handlers for segments
-  container.querySelectorAll('.timeline-bar-segment[data-id]').forEach(seg => {
-    seg.addEventListener('click', () => {
-      const id = seg.dataset.id;
-      if (id) openEditModal(id);
-    });
-  });
+function renderTimelineBar(container, activities, dateStr, isToday) {
+  return window.LightTrack.Timeline?.renderTimelineBar?.(container, activities, dateStr, isToday);
 }
 
-// Constants for analytics
-const FOCUS_SESSION_THRESHOLD = 1500; // 25 minutes in seconds
-const ANALYTICS_CHART_MAX_DAYS = 14;  // Max days to show in bar chart
-const ANALYTICS_MAX_PROJECTS = 10;    // Max projects in breakdown list
-const ANALYTICS_MAX_PIE_SLICES = 8;   // Max slices in pie chart
-const ANALYTICS_MAX_INSIGHTS = 4;     // Max insights to display
-const TREND_THRESHOLD_PERCENT = 5;    // Min % change to show trend indicator
+// ============= Analytics (delegated to modules/analytics.js) =============
 
-/**
- * Get activities with caching to avoid redundant API calls
- * @param {boolean} forceRefresh - Force a fresh fetch from storage
- * @returns {Promise<Array>} - Activities array
- */
-async function getCachedActivities(forceRefresh = false) {
-  const cache = AppState.analyticsCache;
-  const now = Date.now();
-
-  // Return cached data if valid and not forcing refresh
-  if (!forceRefresh && cache.activities && cache.timestamp && (now - cache.timestamp) < cache.maxAge) {
-    return cache.activities;
-  }
-
-  // Fetch fresh data
-  const activities = await window.lightTrackAPI?.getActivities() || [];
-
-  // Update cache
-  cache.activities = activities;
-  cache.timestamp = now;
-
-  return activities;
+function getCachedActivities(forceRefresh = false) {
+  return window.LightTrack.Analytics?.getCachedActivities?.(forceRefresh);
 }
 
-/**
- * Invalidate the analytics cache (call after activity changes)
- */
 function invalidateAnalyticsCache() {
-  AppState.analyticsCache.activities = null;
-  AppState.analyticsCache.timestamp = null;
+  return window.LightTrack.Analytics?.invalidateAnalyticsCache?.();
 }
 
-/**
- * Calculate date range bounds for analytics
- */
 function getAnalyticsDateRange(range, weekStartDay = 1, customRange = null) {
-  const now = new Date();
-  let rangeStart = new Date(now);
-  let rangeEnd = null; // End of current period
-  let prevRangeStart = new Date(now);
-  let prevRangeEnd = new Date(now);
-
-  switch (range) {
-    case 'week': {
-      // Use configurable week start (0=Sun, 1=Mon, etc.)
-      const currentDay = now.getDay();
-      const daysFromStart = (currentDay - weekStartDay + 7) % 7;
-      rangeStart.setDate(now.getDate() - daysFromStart);
-      // Previous week
-      prevRangeEnd = new Date(rangeStart);
-      prevRangeEnd.setDate(prevRangeEnd.getDate() - 1);
-      prevRangeStart = new Date(prevRangeEnd);
-      prevRangeStart.setDate(prevRangeStart.getDate() - 6);
-      break;
-    }
-    case 'month':
-      rangeStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      prevRangeEnd = new Date(rangeStart);
-      prevRangeEnd.setDate(prevRangeEnd.getDate() - 1);
-      prevRangeStart = new Date(prevRangeEnd.getFullYear(), prevRangeEnd.getMonth(), 1);
-      break;
-    case 'year':
-      rangeStart = new Date(now.getFullYear(), 0, 1);
-      prevRangeEnd = new Date(rangeStart);
-      prevRangeEnd.setDate(prevRangeEnd.getDate() - 1);
-      prevRangeStart = new Date(now.getFullYear() - 1, 0, 1);
-      break;
-    case 'all':
-      rangeStart = new Date(0);
-      prevRangeStart = new Date(0);
-      prevRangeEnd = new Date(0);
-      break;
-    case 'custom':
-      if (customRange?.from && customRange?.to) {
-        rangeStart = parseLocalDateString(customRange.from);
-        rangeEnd = parseLocalDateString(customRange.to);
-        // Calculate previous period with same duration
-        const durationMs = rangeEnd.getTime() - rangeStart.getTime();
-        prevRangeEnd = new Date(rangeStart.getTime() - 1);
-        prevRangeStart = new Date(prevRangeEnd.getTime() - durationMs);
-      } else {
-        // Default to this week if custom range not set
-        const currentDay = now.getDay();
-        const daysFromStart = (currentDay - weekStartDay + 7) % 7;
-        rangeStart.setDate(now.getDate() - daysFromStart);
-        prevRangeEnd = new Date(rangeStart);
-        prevRangeEnd.setDate(prevRangeEnd.getDate() - 1);
-        prevRangeStart = new Date(prevRangeEnd);
-        prevRangeStart.setDate(prevRangeStart.getDate() - 6);
-      }
-      break;
-  }
-
-  rangeStart.setHours(0, 0, 0, 0);
-  prevRangeStart.setHours(0, 0, 0, 0);
-  prevRangeEnd.setHours(23, 59, 59, 999);
-  if (range === 'custom' && rangeEnd) {
-    rangeEnd.setHours(23, 59, 59, 999);
-  } else if (range !== 'all') {
-    rangeEnd = new Date(now);
-    rangeEnd.setHours(23, 59, 59, 999);
-  }
-
-  return { rangeStart, rangeEnd, prevRangeStart, prevRangeEnd };
+  return window.LightTrack.Analytics?.getAnalyticsDateRange?.(range, weekStartDay, customRange);
 }
 
 function getActivityDate(activity) {
-  if (!activity) return null;
-  const raw = activity.startTime || activity.timestamp || activity.date;
-  if (!raw) return null;
-  if (typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw)) {
-    return parseLocalDateString(raw);
-  }
-  const date = new Date(raw);
-  return Number.isNaN(date.getTime()) ? null : date;
+  return window.LightTrack.Analytics?.getActivityDate?.(activity);
 }
 
-/**
- * Calculate analytics stats from activities
- */
 function calculateAnalyticsStats(activities) {
-  const totalSeconds = activities.reduce((sum, a) => sum + (a.duration || 0), 0);
-  const billableSeconds = activities.filter(a => a.billable !== false).reduce((sum, a) => sum + (a.duration || 0), 0);
-  const nonBillableSeconds = totalSeconds - billableSeconds;
-
-  const daysWithData = new Set(activities.map(a => {
-    const date = getActivityDate(a);
-    return date ? date.toDateString() : null;
-  }).filter(Boolean)).size;
-
-  const focusActivities = activities.filter(a => (a.duration || 0) >= FOCUS_SESSION_THRESHOLD);
-  const focusSeconds = focusActivities.reduce((sum, a) => sum + (a.duration || 0), 0);
-
-  const projectTimes = {};
-  activities.forEach(a => {
-    const project = a.project || 'General';
-    projectTimes[project] = (projectTimes[project] || 0) + (a.duration || 0);
-  });
-  const sortedProjects = Object.entries(projectTimes).sort((a, b) => b[1] - a[1]);
-
-  return { totalSeconds, billableSeconds, nonBillableSeconds, daysWithData, focusSeconds, sortedProjects };
+  return window.LightTrack.Analytics?.calculateAnalyticsStats?.(activities);
 }
 
-/**
- * Generate trend indicator HTML
- */
 function getTrendIndicator(current, previous) {
-  if (previous === 0) return '';
-  const change = ((current - previous) / previous) * 100;
-  if (Math.abs(change) < TREND_THRESHOLD_PERCENT) return ''; // No significant change
-
-  const isUp = change > 0;
-  const arrow = isUp ? '↑' : '↓';
-  const colorClass = isUp ? 'trend-up' : 'trend-down';
-  return `<span class="trend-indicator ${colorClass}">${arrow}${Math.abs(Math.round(change))}%</span>`;
+  return window.LightTrack.Analytics?.getTrendIndicator?.(current, previous);
 }
 
-/**
- * Render hourly activity heatmap
- * Shows activity distribution across hours for weekdays vs weekends
- */
 function renderHourlyHeatmap(activities) {
-  const weekdayCells = document.getElementById('heatmap-weekday-cells');
-  const weekendCells = document.getElementById('heatmap-weekend-cells');
-  if (!weekdayCells || !weekendCells) return;
-
-  // Initialize hourly buckets (6am to 11pm = hours 6-23)
-  const HEATMAP_START_HOUR = 6;
-  const HEATMAP_END_HOUR = 23;
-  const hourCount = HEATMAP_END_HOUR - HEATMAP_START_HOUR + 1;
-
-  const weekdayHours = new Array(hourCount).fill(0);
-  const weekendHours = new Array(hourCount).fill(0);
-
-  // Aggregate activity time by hour
-  activities.forEach(activity => {
-    if (!activity.startTime || !activity.duration) return;
-
-    const start = new Date(activity.startTime);
-    const dayOfWeek = start.getDay(); // 0 = Sunday, 6 = Saturday
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-    const targetArray = isWeekend ? weekendHours : weekdayHours;
-
-    // Distribute duration across hours the activity spans
-    let remaining = activity.duration;
-    let currentTime = new Date(start);
-
-    while (remaining > 0) {
-      const hour = currentTime.getHours();
-      if (hour >= HEATMAP_START_HOUR && hour <= HEATMAP_END_HOUR) {
-        const idx = hour - HEATMAP_START_HOUR;
-        // Time until end of this hour
-        const endOfHour = new Date(currentTime);
-        endOfHour.setMinutes(59, 59, 999);
-        const timeInHour = Math.min(remaining, Math.ceil((endOfHour - currentTime) / 1000));
-        targetArray[idx] += timeInHour;
-        remaining -= timeInHour;
-      } else {
-        // Outside heatmap range, skip this hour
-        remaining -= Math.min(remaining, 3600);
-      }
-      currentTime.setHours(currentTime.getHours() + 1, 0, 0, 0);
-    }
-  });
-
-  // Find max for normalization
-  const maxWeekday = Math.max(...weekdayHours, 1);
-  const maxWeekend = Math.max(...weekendHours, 1);
-  const overallMax = Math.max(maxWeekday, maxWeekend);
-
-  // Render cells
-  const renderCells = (container, data) => {
-    container.innerHTML = data.map((seconds, idx) => {
-      const hour = HEATMAP_START_HOUR + idx;
-      const intensity = overallMax > 0 ? Math.min(5, Math.ceil((seconds / overallMax) * 5)) : 0;
-      const hours = (seconds / 3600).toFixed(1);
-      const hourLabel = hour <= 12 ? `${hour}${hour < 12 ? 'am' : 'pm'}` : `${hour - 12}pm`;
-      return `<div class="heatmap-cell" data-intensity="${intensity}" data-tooltip="${hourLabel}: ${hours}h"></div>`;
-    }).join('');
-  };
-
-  renderCells(weekdayCells, weekdayHours);
-  renderCells(weekendCells, weekendHours);
+  return window.LightTrack.Analytics?.renderHourlyHeatmap?.(activities);
 }
 
-/**
- * Update daily goals progress display
- * Shows progress toward deep work target and focus sessions
- */
 function updateGoalsProgress(allActivities) {
-  const deepWorkValue = document.getElementById('goal-deepwork-value');
-  const deepWorkFill = document.getElementById('goal-deepwork-fill');
-  const focusValue = document.getElementById('goal-focus-value');
-  const focusFill = document.getElementById('goal-focus-fill');
-
-  if (!deepWorkValue || !deepWorkFill || !focusValue || !focusFill) return;
-
-  // Get today's activities
-  const today = getLocalDateString(new Date());
-  const todayActivities = allActivities.filter(a => {
-    if (!a.startTime) return false;
-    return getLocalDateString(new Date(a.startTime)) === today;
-  });
-
-  // Calculate today's total time (deep work)
-  const totalSeconds = todayActivities.reduce((sum, a) => sum + (a.duration || 0), 0);
-  const totalHours = totalSeconds / 3600;
-  const deepWorkTarget = AppState.settings.deepWorkTarget || 4;
-  const deepWorkPercent = Math.min(100, Math.round((totalHours / deepWorkTarget) * 100));
-
-  // Calculate focus sessions (activities 25+ minutes)
-  const focusSessions = todayActivities.filter(a => (a.duration || 0) >= FOCUS_SESSION_THRESHOLD).length;
-  const focusTarget = AppState.settings.breaksTarget || 4; // Using breaksTarget as focus sessions target
-  const focusPercent = Math.min(100, Math.round((focusSessions / focusTarget) * 100));
-
-  // Update UI
-  deepWorkValue.textContent = `${totalHours.toFixed(1)}h / ${deepWorkTarget}h`;
-  deepWorkFill.style.width = `${deepWorkPercent}%`;
-  if (deepWorkPercent >= 100) {
-    deepWorkFill.classList.add('complete');
-  } else {
-    deepWorkFill.classList.remove('complete');
-  }
-
-  focusValue.textContent = `${focusSessions} / ${focusTarget}`;
-  focusFill.style.width = `${focusPercent}%`;
-  if (focusPercent >= 100) {
-    focusFill.classList.add('complete');
-  } else {
-    focusFill.classList.remove('complete');
-  }
+  return window.LightTrack.Analytics?.updateGoalsProgress?.(allActivities);
 }
 
-/**
- * Update period comparison display
- */
 function updateComparisonSection(currentStats, prevStats, range) {
-  const comparisonSection = document.getElementById('comparison-section');
-  if (!comparisonSection || comparisonSection.style.display === 'none') return;
-
-  // Labels based on range
-  const labels = {
-    week: ['This Week', 'Last Week'],
-    month: ['This Month', 'Last Month'],
-    year: ['This Year', 'Last Year'],
-    all: ['All Time', 'N/A'],
-    custom: ['Selected Period', 'Previous Period']
-  };
-  const [currentLabel, prevLabel] = labels[range] || labels.week;
-
-  // Update labels
-  const currentLabelEl = document.getElementById('comparison-current-label');
-  const prevLabelEl = document.getElementById('comparison-prev-label');
-  if (currentLabelEl) currentLabelEl.textContent = currentLabel;
-  if (prevLabelEl) prevLabelEl.textContent = prevLabel;
-
-  // Update current period values
-  document.getElementById('comparison-current-total').textContent = formatDuration(currentStats.totalSeconds);
-  document.getElementById('comparison-current-billable').textContent = formatDuration(currentStats.billableSeconds);
-  document.getElementById('comparison-current-focus').textContent = formatDuration(currentStats.focusSeconds);
-  document.getElementById('comparison-current-projects').textContent = currentStats.sortedProjects.length;
-
-  // Update previous period values
-  document.getElementById('comparison-prev-total').textContent = formatDuration(prevStats.totalSeconds);
-  document.getElementById('comparison-prev-billable').textContent = formatDuration(prevStats.billableSeconds);
-  document.getElementById('comparison-prev-focus').textContent = formatDuration(prevStats.focusSeconds);
-  document.getElementById('comparison-prev-projects').textContent = prevStats.sortedProjects.length;
-
-  // Calculate and update changes
-  const formatChange = (current, previous) => {
-    if (previous === 0) return current > 0 ? '+100%' : '--';
-    const change = ((current - previous) / previous) * 100;
-    const prefix = change >= 0 ? '+' : '';
-    return `${prefix}${Math.round(change)}%`;
-  };
-
-  const setChangeClass = (element, current, previous) => {
-    element.classList.remove('positive', 'negative');
-    if (current > previous) element.classList.add('positive');
-    else if (current < previous) element.classList.add('negative');
-  };
-
-  const totalChange = document.getElementById('comparison-change-total');
-  const billableChange = document.getElementById('comparison-change-billable');
-  const focusChange = document.getElementById('comparison-change-focus');
-  const projectsChange = document.getElementById('comparison-change-projects');
-
-  totalChange.textContent = formatChange(currentStats.totalSeconds, prevStats.totalSeconds);
-  setChangeClass(totalChange, currentStats.totalSeconds, prevStats.totalSeconds);
-
-  billableChange.textContent = formatChange(currentStats.billableSeconds, prevStats.billableSeconds);
-  setChangeClass(billableChange, currentStats.billableSeconds, prevStats.billableSeconds);
-
-  focusChange.textContent = formatChange(currentStats.focusSeconds, prevStats.focusSeconds);
-  setChangeClass(focusChange, currentStats.focusSeconds, prevStats.focusSeconds);
-
-  projectsChange.textContent = formatChange(currentStats.sortedProjects.length, prevStats.sortedProjects.length);
-  // For projects, fewer might be better (more focus), so no color class
+  return window.LightTrack.Analytics?.updateComparisonSection?.(currentStats, prevStats, range);
 }
 
-/**
- * Load Analytics view - with date range, charts, and insights
- */
 async function loadAnalyticsView() {
-  try {
-    if (!window.lightTrackAPI) return;
-
-    // Use cached elements
-    const { analyticsWeekTotal, analyticsWeekDays, analyticsAvgDay,
-            analyticsTopProject, analyticsTopTime, analyticsFocusTime,
-            analyticsFocusPercent, analyticsBillableTime, analyticsBillableFill,
-            analyticsBillablePercent, analyticsNonbillable, dailyChart,
-            projectPieChart, analyticsProjectBreakdown, analyticsInsights } = Elements;
-
-    // Show loading state
-    if (analyticsWeekTotal) analyticsWeekTotal.innerHTML = '<span class="loading-text">...</span>';
-    if (analyticsProjectBreakdown) analyticsProjectBreakdown.innerHTML = '<div class="loading-text">Loading...</div>';
-
-    // Wire up date range buttons (only once)
-    const rangeBtns = document.querySelectorAll('.date-range-selector .range-btn');
-    const { customRangePicker, analyticsDateFrom: dateFromInput,
-            analyticsDateTo: dateToInput, applyCustomRange: applyCustomBtn } = Elements;
-
-    rangeBtns.forEach(btn => {
-      if (!btn.dataset.wired) {
-        btn.dataset.wired = 'true';
-        btn.addEventListener('click', () => {
-          rangeBtns.forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          AppState.analyticsRange = btn.dataset.range;
-
-          // Show/hide custom range picker
-          if (customRangePicker) {
-            if (btn.dataset.range === 'custom') {
-              customRangePicker.style.display = 'block';
-              // Set default dates if not already set
-              if (!dateFromInput.value) {
-                const weekAgo = new Date();
-                weekAgo.setDate(weekAgo.getDate() - 7);
-                dateFromInput.value = getLocalDateString(weekAgo);
-              }
-              if (!dateToInput.value) {
-                dateToInput.value = getLocalDateString(new Date());
-              }
-            } else {
-              customRangePicker.style.display = 'none';
-              loadAnalyticsView();
-            }
-          } else if (btn.dataset.range !== 'custom') {
-            loadAnalyticsView();
-          }
-        });
-      }
-    });
-
-    // Wire up custom range apply button
-    if (applyCustomBtn && !applyCustomBtn.dataset.wired) {
-      applyCustomBtn.dataset.wired = 'true';
-      applyCustomBtn.addEventListener('click', () => {
-        if (dateFromInput?.value && dateToInput?.value) {
-          // Validate date range
-          const fromDate = parseLocalDateString(dateFromInput.value);
-          const toDate = parseLocalDateString(dateToInput.value);
-          if (fromDate > toDate) {
-            showNotification('Start date must be before end date', 'error');
-            return;
-          }
-          AppState.customDateRange = {
-            from: dateFromInput.value,
-            to: dateToInput.value
-          };
-          loadAnalyticsView();
-        }
-      });
-    }
-
-    // Show/hide custom picker based on current range
-    if (customRangePicker) {
-      customRangePicker.style.display = AppState.analyticsRange === 'custom' ? 'block' : 'none';
-    }
-
-    // Wire up analytics filter pills
-    const filterPills = document.querySelectorAll('.analytics-filter-row .pill');
-    filterPills.forEach(pill => {
-      if (!pill.dataset.wired) {
-        pill.dataset.wired = 'true';
-        pill.addEventListener('click', () => {
-          filterPills.forEach(p => p.classList.remove('active'));
-          pill.classList.add('active');
-          AppState.analyticsFilter = pill.dataset.analyticsFilter || 'all';
-          loadAnalyticsView();
-        });
-      }
-    });
-    filterPills.forEach(p => p.classList.toggle('active', (p.dataset.analyticsFilter || 'all') === AppState.analyticsFilter));
-
-    // Wire up export button (only once)
-    const exportCsvBtn = document.getElementById('export-analytics-csv');
-    if (exportCsvBtn && !exportCsvBtn.dataset.wired) {
-      exportCsvBtn.dataset.wired = 'true';
-      exportCsvBtn.addEventListener('click', exportAnalyticsToCSV);
-    }
-
-    // Wire up comparison toggle (only once)
-    const toggleComparisonBtn = document.getElementById('toggle-comparison');
-    const comparisonSection = document.getElementById('comparison-section');
-    if (toggleComparisonBtn && !toggleComparisonBtn.dataset.wired) {
-      toggleComparisonBtn.dataset.wired = 'true';
-      toggleComparisonBtn.addEventListener('click', () => {
-        const isVisible = comparisonSection.style.display !== 'none';
-        comparisonSection.style.display = isVisible ? 'none' : 'block';
-        toggleComparisonBtn.classList.toggle('active', !isVisible);
-        if (!isVisible) {
-          // Comparison will be updated by loadAnalyticsView
-          loadAnalyticsView();
-        }
-      });
-    }
-
-    // Wire up keyboard navigation (only once)
-    if (!document.body.dataset.analyticsKeyboardWired) {
-      document.body.dataset.analyticsKeyboardWired = 'true';
-      const rangeOrder = ['week', 'month', 'year', 'all', 'custom'];
-      document.addEventListener('keydown', (e) => {
-        // Only handle when analytics view is active and no input focused
-        const analyticsView = document.querySelector('.view[data-view="analytics"]');
-        if (!analyticsView || !analyticsView.classList.contains('active')) return;
-        if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
-
-        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-          e.preventDefault();
-          const currentIdx = rangeOrder.indexOf(AppState.analyticsRange);
-          let newIdx;
-          if (e.key === 'ArrowLeft') {
-            newIdx = currentIdx > 0 ? currentIdx - 1 : rangeOrder.length - 1;
-          } else {
-            newIdx = currentIdx < rangeOrder.length - 1 ? currentIdx + 1 : 0;
-          }
-          const newRange = rangeOrder[newIdx];
-          AppState.analyticsRange = newRange;
-
-          // Update UI
-          const rangeBtns = document.querySelectorAll('.date-range-selector .range-btn');
-          rangeBtns.forEach(b => b.classList.toggle('active', b.dataset.range === newRange));
-
-          // Show/hide custom picker
-          const customPicker = Elements.customRangePicker;
-          if (customPicker) {
-            customPicker.style.display = newRange === 'custom' ? 'block' : 'none';
-          }
-
-          if (newRange !== 'custom') {
-            loadAnalyticsView();
-          }
-        } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-          // Navigate filter pills
-          e.preventDefault();
-          const filterOrder = ['all', 'billable', 'non-billable', 'meetings'];
-          const currentIdx = filterOrder.indexOf(AppState.analyticsFilter);
-          let newIdx;
-          if (e.key === 'ArrowUp') {
-            newIdx = currentIdx > 0 ? currentIdx - 1 : filterOrder.length - 1;
-          } else {
-            newIdx = currentIdx < filterOrder.length - 1 ? currentIdx + 1 : 0;
-          }
-          AppState.analyticsFilter = filterOrder[newIdx];
-
-          // Update UI
-          const filterPills = document.querySelectorAll('.analytics-filter-row .pill');
-          filterPills.forEach(p => p.classList.toggle('active', (p.dataset.analyticsFilter || 'all') === AppState.analyticsFilter));
-          loadAnalyticsView();
-        } else if (e.key === 'e' && !e.ctrlKey && !e.metaKey) {
-          // 'E' to export
-          exportAnalyticsToCSV();
-        }
-      });
-    }
-
-    // Get all activities (using cache for filter/range changes)
-    const allActivities = await getCachedActivities();
-
-    // Calculate date ranges (current and previous for comparison)
-    const weekStartDay = AppState.settings.weekStartDay ?? 1; // Default Monday
-    const customRange = AppState.analyticsRange === 'custom' ? AppState.customDateRange : null;
-    const { rangeStart, rangeEnd, prevRangeStart, prevRangeEnd } = getAnalyticsDateRange(
-      AppState.analyticsRange, weekStartDay, customRange
-    );
-
-    // Filter activities to current and previous ranges
-    const rangeActivities = allActivities.filter(a => {
-      const date = getActivityDate(a);
-      if (!date) return false;
-      if (rangeEnd) {
-        return date >= rangeStart && date <= rangeEnd;
-      }
-      return date >= rangeStart;
-    });
-
-    const prevRangeActivities = AppState.analyticsRange !== 'all' ? allActivities.filter(a => {
-      const date = getActivityDate(a);
-      if (!date) return false;
-      return date >= prevRangeStart && date <= prevRangeEnd;
-    }) : [];
-
-    // Apply analytics filters
-    const filter = AppState.analyticsFilter;
-    const applyFilter = (activities) => activities.filter(a => {
-      if (filter === 'billable') return a.billable !== false;
-      if (filter === 'non-billable') return a.billable === false;
-      if (filter === 'meetings') {
-        const tags = a.tags || [];
-        const app = (a.app || '').toLowerCase();
-        return tags.includes('meeting') || /teams|zoom|meet|skype|webex/.test(app);
-      }
-      return true;
-    });
-
-    const filteredActivities = applyFilter(rangeActivities);
-    const prevFilteredActivities = applyFilter(prevRangeActivities);
-
-    // Calculate stats for current and previous periods
-    const stats = calculateAnalyticsStats(filteredActivities);
-    const prevStats = calculateAnalyticsStats(prevFilteredActivities);
-
-    // Update comparison section (if visible)
-    updateComparisonSection(stats, prevStats, AppState.analyticsRange);
-
-    // Daily breakdown for chart
-    const dailyTimes = {};
-    filteredActivities.forEach(a => {
-      const date = getActivityDate(a);
-      if (!date) return;
-      const dateStr = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-      const dateKey = getLocalDateString(date);
-      dailyTimes[dateKey] = {
-        label: dateStr,
-        seconds: (dailyTimes[dateKey]?.seconds || 0) + (a.duration || 0)
-      };
-    });
-
-    // Sort days and prepare chart data
-    const sortedDays = Object.entries(dailyTimes)
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .slice(-ANALYTICS_CHART_MAX_DAYS);
-
-    const chartLabels = sortedDays.map(([_, d]) => d.label.split(',')[0]);
-    const chartValues = sortedDays.map(([_, d]) => d.seconds / 3600);
-
-    // Update KPI cards with trend indicators
-    const totalTrend = getTrendIndicator(stats.totalSeconds, prevStats.totalSeconds);
-    const focusTrend = getTrendIndicator(stats.focusSeconds, prevStats.focusSeconds);
-
-    if (analyticsWeekTotal) {
-      analyticsWeekTotal.innerHTML = `${formatDuration(stats.totalSeconds)} ${totalTrend}`;
-    }
-    if (analyticsWeekDays) {
-      analyticsWeekDays.textContent = `${stats.daysWithData} days tracked`;
-    }
-    if (analyticsAvgDay) {
-      analyticsAvgDay.textContent = stats.daysWithData > 0
-        ? formatDuration(Math.round(stats.totalSeconds / stats.daysWithData))
-        : '0h 0m';
-    }
-    if (analyticsTopProject) {
-      analyticsTopProject.textContent = stats.sortedProjects[0] ? stats.sortedProjects[0][0] : '--';
-    }
-    if (analyticsTopTime) {
-      analyticsTopTime.textContent = stats.sortedProjects[0] ? formatDuration(stats.sortedProjects[0][1]) : '0h';
-    }
-    if (analyticsFocusTime) {
-      analyticsFocusTime.innerHTML = `${formatDuration(stats.focusSeconds)} ${focusTrend}`;
-    }
-    if (analyticsFocusPercent) {
-      const focusPercent = stats.totalSeconds > 0 ? Math.round((stats.focusSeconds / stats.totalSeconds) * 100) : 0;
-      analyticsFocusPercent.textContent = `${focusPercent}% of total time`;
-    }
-
-    // Update billable breakdown
-    const billableTrend = getTrendIndicator(stats.billableSeconds, prevStats.billableSeconds);
-    const billablePercent = stats.totalSeconds > 0 ? Math.round((stats.billableSeconds / stats.totalSeconds) * 100) : 0;
-
-    if (analyticsBillableTime) {
-      analyticsBillableTime.innerHTML = `${formatDuration(stats.billableSeconds)} ${billableTrend}`;
-    }
-    if (analyticsBillableFill) {
-      analyticsBillableFill.style.width = `${billablePercent}%`;
-    }
-    if (analyticsBillablePercent) {
-      analyticsBillablePercent.textContent = `${billablePercent}% billable`;
-    }
-    if (analyticsNonbillable) {
-      analyticsNonbillable.textContent = `${formatDuration(stats.nonBillableSeconds)} non-billable`;
-    }
-
-    // Render daily activity chart with click handler
-    if (dailyChart) {
-      const dateKeys = sortedDays.map(([key]) => key);
-      ChartRenderer.renderBarChart(dailyChart, chartLabels, chartValues, {
-        dateKeys,
-        onBarClick: (label, index, dateKey) => {
-          if (dateKey) {
-            // Navigate to timeline for that date
-            AppState.timelineDate = dateKey;
-            switchView('timeline');
-          }
-        }
-      });
-    }
-
-    // Render pie chart with click handler
-    if (projectPieChart) {
-      const pieLabels = stats.sortedProjects.slice(0, ANALYTICS_MAX_PIE_SLICES).map(([name]) => name);
-      const pieValues = stats.sortedProjects.slice(0, ANALYTICS_MAX_PIE_SLICES).map(([_, secs]) => secs);
-      ChartRenderer.renderPieChart(projectPieChart, pieLabels, pieValues, {
-        onSliceClick: (projectName, index) => {
-          // Set project filter in timeline
-          AppState.filters.project = projectName;
-          if (Elements.timelineProjectFilter) {
-            Elements.timelineProjectFilter.value = projectName;
-          }
-          switchView('timeline');
-        }
-      });
-    }
-
-    // Update project breakdown bars using cached element
-    if (analyticsProjectBreakdown) {
-      if (stats.sortedProjects.length === 0) {
-        analyticsProjectBreakdown.innerHTML = `
-          <div class="empty-state-enhanced">
-            <div class="empty-icon">📊</div>
-            <div class="empty-title">No project data yet</div>
-            <div class="empty-description">Start tracking to see your project breakdown.</div>
-            <button class="btn btn-sm primary empty-cta" onclick="switchView('timer')">Go to Timer</button>
-          </div>
-        `;
-      } else {
-        const maxTime = stats.sortedProjects[0][1] || 1;
-        analyticsProjectBreakdown.innerHTML = stats.sortedProjects.slice(0, ANALYTICS_MAX_PROJECTS).map(([project, seconds], idx) => {
-          const percent = Math.round((seconds / maxTime) * 100);
-          const colorIdx = idx % 8;
-          // Round to nearest 5% for CSS class
-          const widthClass = `bar-fill-${Math.round(percent / 5) * 5}`;
-          return `
-            <div class="bar-row" data-project="${escapeHtml(project)}">
-              <span class="badge chart-color-${colorIdx}">${escapeHtml(project)}</span>
-              <div class="bar"><span class="${widthClass} chart-color-${colorIdx}"></span></div>
-              <div class="duration">${formatDuration(seconds)}</div>
-            </div>
-          `;
-        }).join('');
-      }
-    }
-
-    // Render hourly heatmap
-    renderHourlyHeatmap(filteredActivities);
-
-    // Update goals progress (based on today's data)
-    updateGoalsProgress(allActivities);
-
-    // Generate insights using cached element (use filteredActivities to match displayed data)
-    if (analyticsInsights) {
-      const insights = generateAnalyticsInsights(
-        filteredActivities,
-        stats.totalSeconds,
-        stats.focusSeconds,
-        stats.daysWithData,
-        stats.sortedProjects,
-        stats.billableSeconds
-      );
-      if (insights.length === 0) {
-        analyticsInsights.innerHTML = `
-          <div class="empty-state-enhanced">
-            <div class="empty-icon">💡</div>
-            <div class="empty-title">Insights will appear here</div>
-            <div class="empty-description">Track at least 1 hour of work to generate personalized insights about your productivity patterns.</div>
-            <div class="empty-tips">
-              <span class="tip-item">Try longer focus sessions for better insights</span>
-            </div>
-          </div>
-        `;
-      } else {
-        analyticsInsights.innerHTML = insights.map(insight => `
-          <div class="insight-item ${insight.type}">
-            <span class="insight-icon">${insight.icon}</span>
-            <div class="insight-content">
-              <div class="insight-title">${escapeHtml(insight.title)}</div>
-              <div class="insight-description">${escapeHtml(insight.description)}</div>
-            </div>
-          </div>
-        `).join('');
-      }
-    }
-
-  } catch (error) {
-    console.error('Failed to load analytics:', error);
-    showNotification('Failed to load analytics', 'error');
-  }
+  return window.LightTrack.Analytics?.loadAnalyticsView?.();
 }
 
-/**
- * Generate insights based on activity data
- */
 function generateAnalyticsInsights(activities, totalSeconds, focusSeconds, daysWithData, sortedProjects, billableSeconds = 0) {
-  const insights = [];
-
-  if (activities.length === 0) return insights;
-
-  // Billable time insight
-  if (totalSeconds > 3600 && billableSeconds !== undefined) {
-    const billablePercent = totalSeconds > 0 ? (billableSeconds / totalSeconds) * 100 : 0;
-    if (billablePercent >= 80) {
-      insights.push({
-        type: 'positive',
-        icon: '💰',
-        title: 'High Billable Ratio',
-        description: `${Math.round(billablePercent)}% of your time is billable. Great productivity!`
-      });
-    } else if (billablePercent < 50 && billablePercent > 0) {
-      insights.push({
-        type: 'tip',
-        icon: '📊',
-        title: 'Billable Time Review',
-        description: `Only ${Math.round(billablePercent)}% billable. Check if activities are categorized correctly.`
-      });
-    }
-  }
-
-  // Meeting time insight
-  const meetingActivities = activities.filter(a => {
-    const tags = a.tags || [];
-    const app = (a.app || '').toLowerCase();
-    return tags.includes('meeting') || /teams|zoom|meet|skype|webex|outlook.*meeting/i.test(app);
-  });
-  const meetingSeconds = meetingActivities.reduce((sum, a) => sum + (a.duration || 0), 0);
-  const meetingPercent = totalSeconds > 0 ? (meetingSeconds / totalSeconds) * 100 : 0;
-  const meetingHours = meetingSeconds / 3600;
-
-  if (meetingPercent >= 40 && totalSeconds > 7200) {
-    insights.push({
-      type: 'warning',
-      icon: '📅',
-      title: 'Meeting Heavy',
-      description: `${Math.round(meetingPercent)}% of time in meetings (${meetingHours.toFixed(1)}h). Consider blocking focus time.`
-    });
-  } else if (meetingPercent >= 20 && meetingPercent < 40 && totalSeconds > 7200) {
-    insights.push({
-      type: 'tip',
-      icon: '🗓️',
-      title: 'Meeting Balance',
-      description: `${Math.round(meetingPercent)}% of time in meetings. Good balance with focus work.`
-    });
-  } else if (meetingPercent < 10 && meetingSeconds > 0 && daysWithData >= 3) {
-    insights.push({
-      type: 'positive',
-      icon: '🎉',
-      title: 'Low Meeting Load',
-      description: `Only ${Math.round(meetingPercent)}% in meetings. More time for deep work!`
-    });
-  }
-
-  // Focus time insight
-  const focusPercent = totalSeconds > 0 ? (focusSeconds / totalSeconds) * 100 : 0;
-  if (focusPercent >= 60) {
-    insights.push({
-      type: 'positive',
-      icon: '🎯',
-      title: 'Excellent Focus',
-      description: `${Math.round(focusPercent)}% of your time is in focused sessions (25+ min). Great deep work!`
-    });
-  } else if (focusPercent < 30 && totalSeconds > 3600) {
-    insights.push({
-      type: 'tip',
-      icon: '💡',
-      title: 'Increase Focus Sessions',
-      description: 'Try working in longer uninterrupted blocks. Consider the Pomodoro technique.'
-    });
-  }
-
-  // Daily average insight
-  const avgHoursPerDay = daysWithData > 0 ? (totalSeconds / daysWithData) / 3600 : 0;
-  if (avgHoursPerDay >= 6) {
-    insights.push({
-      type: 'warning',
-      icon: '⚠️',
-      title: 'High Workload',
-      description: `You're averaging ${avgHoursPerDay.toFixed(1)} hours per day. Remember to take breaks!`
-    });
-  } else if (avgHoursPerDay >= 4 && avgHoursPerDay < 6) {
-    insights.push({
-      type: 'positive',
-      icon: '✅',
-      title: 'Healthy Work Pattern',
-      description: `Averaging ${avgHoursPerDay.toFixed(1)} hours per day is a sustainable pace.`
-    });
-  }
-
-  // Project diversity insight
-  if (sortedProjects.length === 1 && totalSeconds > 7200) {
-    insights.push({
-      type: 'tip',
-      icon: '📁',
-      title: 'Single Project Focus',
-      description: `All time spent on "${sortedProjects[0][0]}". Consider categorizing by task type.`
-    });
-  } else if (sortedProjects.length > 5) {
-    insights.push({
-      type: 'tip',
-      icon: '🔄',
-      title: 'Many Projects',
-      description: `Tracking ${sortedProjects.length} projects. Context switching may impact productivity.`
-    });
-  }
-
-  // Top project insight
-  if (sortedProjects.length > 0 && totalSeconds > 0) {
-    const topPercent = (sortedProjects[0][1] / totalSeconds) * 100;
-    if (topPercent >= 50) {
-      insights.push({
-        type: 'positive',
-        icon: '🏆',
-        title: 'Main Focus',
-        description: `"${sortedProjects[0][0]}" takes ${Math.round(topPercent)}% of your time.`
-      });
-    }
-  }
-
-  return insights.slice(0, ANALYTICS_MAX_INSIGHTS);
+  return window.LightTrack.Analytics?.generateAnalyticsInsights?.(activities, totalSeconds, focusSeconds, daysWithData, sortedProjects, billableSeconds);
 }
 
-/**
- * Export analytics data to CSV
- */
 async function exportAnalyticsToCSV() {
-  try {
-    if (!window.lightTrackAPI) return;
-
-    const allActivities = await window.lightTrackAPI.getActivities() || [];
-    const weekStartDay = AppState.settings.weekStartDay ?? 1;
-    const customRange = AppState.analyticsRange === 'custom' ? AppState.customDateRange : null;
-    const { rangeStart, rangeEnd } = getAnalyticsDateRange(AppState.analyticsRange, weekStartDay, customRange);
-
-    // Filter activities to selected range
-    const rangeActivities = allActivities.filter(a => {
-      const date = getActivityDate(a);
-      if (!date) return false;
-      if (rangeEnd) {
-        return date >= rangeStart && date <= rangeEnd;
-      }
-      return date >= rangeStart;
-    });
-
-    // Apply current filter
-    const filter = AppState.analyticsFilter;
-    const filteredActivities = rangeActivities.filter(a => {
-      if (filter === 'billable') return a.billable !== false;
-      if (filter === 'non-billable') return a.billable === false;
-      if (filter === 'meetings') {
-        const tags = a.tags || [];
-        const app = (a.app || '').toLowerCase();
-        return tags.includes('meeting') || /teams|zoom|meet|skype|webex/.test(app);
-      }
-      return true;
-    });
-
-    // Calculate stats for summary
-    const stats = calculateAnalyticsStats(filteredActivities);
-
-    // Build CSV content
-    const lines = [];
-
-    // Summary section
-    lines.push('ANALYTICS SUMMARY');
-    lines.push(`Date Range,${AppState.analyticsRange === 'custom' ? `${customRange?.from} to ${customRange?.to}` : AppState.analyticsRange}`);
-    lines.push(`Filter,${AppState.analyticsFilter}`);
-    lines.push(`Total Time,${formatDuration(stats.totalSeconds)}`);
-    lines.push(`Days Tracked,${stats.daysWithData}`);
-    lines.push(`Avg per Day,${stats.daysWithData > 0 ? formatDuration(Math.round(stats.totalSeconds / stats.daysWithData)) : '0h 0m'}`);
-    lines.push(`Focus Time,${formatDuration(stats.focusSeconds)}`);
-    lines.push(`Billable Time,${formatDuration(stats.billableSeconds)}`);
-    lines.push(`Non-Billable Time,${formatDuration(stats.nonBillableSeconds)}`);
-    lines.push('');
-
-    // Project breakdown
-    lines.push('PROJECT BREAKDOWN');
-    lines.push('Project,Hours,Percentage');
-    stats.sortedProjects.forEach(([project, seconds]) => {
-      const hours = (seconds / 3600).toFixed(2);
-      const percent = stats.totalSeconds > 0 ? Math.round((seconds / stats.totalSeconds) * 100) : 0;
-      lines.push(`"${project}",${hours},${percent}%`);
-    });
-    lines.push('');
-
-    // Daily breakdown
-    lines.push('DAILY BREAKDOWN');
-    lines.push('Date,Hours,Activities');
-    const dailyData = {};
-    filteredActivities.forEach(a => {
-      const date = getActivityDate(a);
-      if (!date) return;
-      const dateKey = getLocalDateString(date);
-      if (!dailyData[dateKey]) {
-        dailyData[dateKey] = { seconds: 0, count: 0 };
-      }
-      dailyData[dateKey].seconds += (a.duration || 0);
-      dailyData[dateKey].count += 1;
-    });
-    Object.entries(dailyData).sort((a, b) => a[0].localeCompare(b[0])).forEach(([date, data]) => {
-      lines.push(`${date},${(data.seconds / 3600).toFixed(2)},${data.count}`);
-    });
-    lines.push('');
-
-    // Detailed activities
-    lines.push('DETAILED ACTIVITIES');
-    lines.push('Date,Start Time,End Time,Project,App,Title,Duration (h),Billable');
-    filteredActivities.sort((a, b) => new Date(a.startTime) - new Date(b.startTime)).forEach(a => {
-      const startDate = a.startTime ? new Date(a.startTime) : null;
-      const endDate = a.endTime ? new Date(a.endTime) : null;
-      const date = startDate ? getLocalDateString(startDate) : '';
-      const startTime = startDate ? startDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
-      const endTime = endDate ? endDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
-      const hours = ((a.duration || 0) / 3600).toFixed(2);
-      const title = (a.title || '').replace(/"/g, '""');
-      lines.push(`${date},${startTime},${endTime},"${a.project || 'General'}","${a.app || ''}","${title}",${hours},${a.billable !== false ? 'Yes' : 'No'}`);
-    });
-
-    const csvContent = lines.join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-
-    const rangeLabel = AppState.analyticsRange === 'custom'
-      ? `${customRange?.from}_to_${customRange?.to}`
-      : AppState.analyticsRange;
-    const filename = `lighttrack-analytics-${rangeLabel}-${getLocalDateString(new Date())}.csv`;
-
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    showNotification('Analytics exported to CSV', 'success');
-  } catch (error) {
-    console.error('Failed to export analytics:', error);
-    showNotification('Failed to export analytics', 'error');
-  }
+  return window.LightTrack.Analytics?.exportAnalyticsToCSV?.();
 }
 
 /**
@@ -4948,747 +2929,86 @@ async function saveNewProject() {
   }
 }
 
-// ============= URL Mappings =============
+// ============= URL Mappings (delegated to SettingsView module) =============
 
-/**
- * Load and display URL mappings
- */
-async function loadUrlMappings() {
-  const mappingsList = document.getElementById('url-mappings-list');
-  if (!mappingsList || !window.lightTrackAPI?.getUrlMappings) return;
-
-  try {
-    const mappings = await window.lightTrackAPI.getUrlMappings() || {};
-    const entries = Object.entries(mappings);
-
-    if (entries.length === 0) {
-      mappingsList.innerHTML = '<div class="meta-line">No URL rules yet. Add a rule to auto-assign URLs to projects.</div>';
-    } else {
-      // Cache mappings for edit
-      AppState.urlMappingsCache = mappings;
-
-      mappingsList.innerHTML = entries.map(([pattern, value]) => {
-        const project = typeof value === 'string' ? value : value.project;
-        const activity = typeof value === 'object' ? value.activity : null;
-        const sapCode = typeof value === 'object' ? value.sapCode : null;
-        const activityHtml = activity ? `<span class="activity">[${escapeHtml(activity)}]</span>` : '';
-        const sapCodeHtml = sapCode ? `<span class="sap-code" style="color: var(--neon); font-size: 11px;">(SAP: ${escapeHtml(sapCode)})</span>` : '';
-        return `
-        <div class="mapping-item" data-pattern="${escapeAttr(pattern)}">
-          <div>
-            <span class="pattern">${escapeHtml(pattern)}</span>
-            <span class="arrow">→</span>
-            <span class="project">${escapeHtml(project)}</span>
-            ${activityHtml}
-            ${sapCodeHtml}
-          </div>
-          <div class="mapping-actions">
-            <button data-action="edit-url-mapping" data-pattern="${escapeAttr(pattern)}" title="Edit rule">✎</button>
-            <button data-action="remove-url-mapping" data-pattern="${escapeAttr(pattern)}" title="Remove rule">✕</button>
-          </div>
-        </div>
-      `}).join('');
-    }
-  } catch (error) {
-    console.error('Failed to load URL mappings:', error);
-    mappingsList.innerHTML = '<div class="meta-line">Failed to load rules</div>';
-  }
+function loadUrlMappings() {
+  return window.LightTrack.SettingsView?.loadUrlMappings?.();
 }
 
-/**
- * Add a new URL mapping rule
- */
-async function addUrlMapping() {
-  const patternInput = document.getElementById('url-mapping-pattern');
-  const projectInput = document.getElementById('url-mapping-project');
-  const activityInput = document.getElementById('url-mapping-activity');
-  const sapCodeInput = document.getElementById('url-mapping-sap-code');
-  const costCenterInput = document.getElementById('url-mapping-cost-center');
-  const wbsInput = document.getElementById('url-mapping-wbs');
-
-  const pattern = patternInput?.value?.trim();
-  const project = projectInput?.value?.trim();
-  const activity = activityInput?.value?.trim();
-  const sapCode = sapCodeInput?.value?.trim();
-  const costCenter = costCenterInput?.value?.trim();
-  const wbsElement = wbsInput?.value?.trim();
-
-  if (!pattern || !project) {
-    showNotification('Please enter both URL pattern and project name', 'error');
-    return;
-  }
-
-  try {
-    let mappingValue = project;
-    if (activity || sapCode || costCenter || wbsElement) {
-      mappingValue = {
-        project,
-        ...(activity && { activity }),
-        ...(sapCode && { sapCode }),
-        ...(costCenter && { costCenter }),
-        ...(wbsElement && { wbsElement })
-      };
-    }
-    await window.lightTrackAPI.addUrlMapping(pattern, mappingValue);
-
-    const extras = [];
-    if (activity) extras.push(`[${activity}]`);
-    if (sapCode) extras.push(`SAP: ${sapCode}`);
-    if (costCenter) extras.push(`CC: ${costCenter}`);
-    if (wbsElement) extras.push(`WBS: ${wbsElement}`);
-    const extraText = extras.length > 0 ? ` ${extras.join(' ')}` : '';
-    showNotification(`URL rule added: "${pattern}" → "${project}"${extraText}`, 'success');
-
-    if (patternInput) patternInput.value = '';
-    if (projectInput) projectInput.value = '';
-    if (activityInput) activityInput.value = '';
-    if (sapCodeInput) sapCodeInput.value = '';
-    if (costCenterInput) costCenterInput.value = '';
-    if (wbsInput) wbsInput.value = '';
-
-    await loadUrlMappings();
-  } catch (error) {
-    showNotification('Failed to add URL rule', 'error');
-  }
+function addUrlMapping() {
+  return window.LightTrack.SettingsView?.addUrlMapping?.();
 }
 
-/**
- * Remove a URL mapping rule
- */
-async function removeUrlMapping(pattern) {
-  if (!confirm(`Remove URL rule for "${pattern}"?`)) return;
-
-  try {
-    await window.lightTrackAPI.removeUrlMapping(pattern);
-    showNotification('URL rule removed', 'success');
-    await loadUrlMappings();
-  } catch (error) {
-    showNotification('Failed to remove URL rule', 'error');
-  }
+function removeUrlMapping(pattern) {
+  return window.LightTrack.SettingsView?.removeUrlMapping?.(pattern);
 }
 
-/**
- * Edit an existing URL mapping (populate form for update)
- */
 function editUrlMapping(pattern) {
-  const mappings = AppState.urlMappingsCache || {};
-  const value = mappings[pattern];
-  if (!value) return;
-
-  const project = typeof value === 'string' ? value : value.project;
-  const activity = typeof value === 'object' ? value.activity : '';
-  const sapCode = typeof value === 'object' ? value.sapCode : '';
-  const costCenter = typeof value === 'object' ? value.costCenter : '';
-  const wbsElement = typeof value === 'object' ? value.wbsElement : '';
-
-  const patternInput = document.getElementById('url-mapping-pattern');
-  const projectInput = document.getElementById('url-mapping-project');
-  const activityInput = document.getElementById('url-mapping-activity');
-  const sapCodeInput = document.getElementById('url-mapping-sap-code');
-  const costCenterInput = document.getElementById('url-mapping-cost-center');
-  const wbsInput = document.getElementById('url-mapping-wbs');
-  const updateBtn = document.getElementById('update-url-mapping-btn');
-  const cancelBtn = document.getElementById('cancel-url-mapping-btn');
-
-  if (patternInput) {
-    patternInput.value = pattern;
-    patternInput.readOnly = true;
-  }
-  if (projectInput) projectInput.value = project || '';
-  if (activityInput) activityInput.value = activity || '';
-  if (sapCodeInput) sapCodeInput.value = sapCode || '';
-  if (costCenterInput) costCenterInput.value = costCenter || '';
-  if (wbsInput) wbsInput.value = wbsElement || '';
-
-  if (updateBtn) {
-    updateBtn.disabled = false;
-    updateBtn.dataset.pattern = pattern;
-  }
-  if (cancelBtn) cancelBtn.style.display = '';
-
-  // Highlight the item being edited
-  document.querySelectorAll('#url-mappings-list .mapping-item').forEach(el => el.classList.remove('editing'));
-  const editingItem = document.querySelector(`#url-mappings-list .mapping-item[data-pattern="${CSS.escape(pattern)}"]`);
-  if (editingItem) editingItem.classList.add('editing');
+  return window.LightTrack.SettingsView?.editUrlMapping?.(pattern);
 }
 
-/**
- * Cancel editing a URL mapping
- */
 function cancelUrlMappingEdit() {
-  const patternInput = document.getElementById('url-mapping-pattern');
-  const projectInput = document.getElementById('url-mapping-project');
-  const activityInput = document.getElementById('url-mapping-activity');
-  const sapCodeInput = document.getElementById('url-mapping-sap-code');
-  const costCenterInput = document.getElementById('url-mapping-cost-center');
-  const wbsInput = document.getElementById('url-mapping-wbs');
-  const updateBtn = document.getElementById('update-url-mapping-btn');
-  const cancelBtn = document.getElementById('cancel-url-mapping-btn');
-
-  if (patternInput) {
-    patternInput.value = '';
-    patternInput.readOnly = false;
-  }
-  if (projectInput) projectInput.value = '';
-  if (activityInput) activityInput.value = '';
-  if (sapCodeInput) sapCodeInput.value = '';
-  if (costCenterInput) costCenterInput.value = '';
-  if (wbsInput) wbsInput.value = '';
-
-  if (updateBtn) {
-    updateBtn.disabled = true;
-    delete updateBtn.dataset.pattern;
-  }
-  if (cancelBtn) cancelBtn.style.display = 'none';
-
-  document.querySelectorAll('#url-mappings-list .mapping-item').forEach(el => el.classList.remove('editing'));
+  return window.LightTrack.SettingsView?.cancelUrlMappingEdit?.();
 }
 
-/**
- * Update an existing URL mapping
- */
-async function updateUrlMapping() {
-  const updateBtn = document.getElementById('update-url-mapping-btn');
-  if (!updateBtn?.dataset.pattern) return;
-
-  const pattern = updateBtn.dataset.pattern;
-  const projectInput = document.getElementById('url-mapping-project');
-  const activityInput = document.getElementById('url-mapping-activity');
-  const sapCodeInput = document.getElementById('url-mapping-sap-code');
-  const costCenterInput = document.getElementById('url-mapping-cost-center');
-  const wbsInput = document.getElementById('url-mapping-wbs');
-
-  const project = projectInput?.value?.trim();
-  const activity = activityInput?.value?.trim();
-  const sapCode = sapCodeInput?.value?.trim();
-  const costCenter = costCenterInput?.value?.trim();
-  const wbsElement = wbsInput?.value?.trim();
-
-  if (!project) {
-    showNotification('Project is required', 'error');
-    return;
-  }
-
-  const mappingValue = {
-    project,
-    ...(activity && { activity }),
-    ...(sapCode && { sapCode }),
-    ...(costCenter && { costCenter }),
-    ...(wbsElement && { wbsElement })
-  };
-
-  try {
-    await window.lightTrackAPI.addUrlMapping(pattern, mappingValue);
-    showNotification(`Updated URL rule "${pattern}"`, 'success');
-    cancelUrlMappingEdit();
-    await loadUrlMappings();
-  } catch (error) {
-    showNotification('Failed to update URL rule', 'error');
-  }
+function updateUrlMapping() {
+  return window.LightTrack.SettingsView?.updateUrlMapping?.();
 }
 
-// ============= JIRA Mappings =============
+// ============= JIRA Mappings (delegated to SettingsView module) =============
 
-/**
- * Load and display JIRA project key mappings
- */
-async function loadJiraMappings() {
-  const mappingsList = document.getElementById('jira-mappings-list');
-  if (!mappingsList || !window.lightTrackAPI?.getJiraMappings) return;
-
-  try {
-    const mappings = await window.lightTrackAPI.getJiraMappings() || {};
-    const entries = Object.entries(mappings);
-
-    if (entries.length === 0) {
-      mappingsList.innerHTML = '<div class="meta-line">No JIRA rules yet. Add a rule to auto-assign JIRA tickets to projects.</div>';
-    } else {
-      // Cache mappings for edit
-      AppState.jiraMappingsCache = mappings;
-
-      mappingsList.innerHTML = entries.map(([key, value]) => {
-        const project = typeof value === 'string' ? value : value.project;
-        const activity = typeof value === 'object' ? value.activity : null;
-        const sapCode = typeof value === 'object' ? value.sapCode : null;
-        const activityHtml = activity ? `<span class="activity">[${escapeHtml(activity)}]</span>` : '';
-        const sapCodeHtml = sapCode ? `<span class="sap-code" style="color: var(--neon); font-size: 11px;">(SAP: ${escapeHtml(sapCode)})</span>` : '';
-        return `
-        <div class="mapping-item" data-key="${escapeAttr(key)}">
-          <div>
-            <span class="pattern">${escapeHtml(key)}-*</span>
-            <span class="arrow">→</span>
-            <span class="project">${escapeHtml(project)}</span>
-            ${activityHtml}
-            ${sapCodeHtml}
-          </div>
-          <div class="mapping-actions">
-            <button data-action="edit-jira-mapping" data-key="${escapeAttr(key)}" title="Edit rule">✎</button>
-            <button data-action="remove-jira-mapping" data-key="${escapeAttr(key)}" title="Remove rule">✕</button>
-          </div>
-        </div>
-      `}).join('');
-    }
-  } catch (error) {
-    console.error('Failed to load JIRA mappings:', error);
-    mappingsList.innerHTML = '<div class="meta-line">Failed to load rules</div>';
-  }
+function loadJiraMappings() {
+  return window.LightTrack.SettingsView?.loadJiraMappings?.();
 }
 
-/**
- * Add a new JIRA project key mapping
- */
-async function addJiraMapping() {
-  const keyInput = document.getElementById('jira-mapping-key');
-  const projectInput = document.getElementById('jira-mapping-project');
-  const activityInput = document.getElementById('jira-mapping-activity');
-  const sapCodeInput = document.getElementById('jira-mapping-sap-code');
-  const costCenterInput = document.getElementById('jira-mapping-cost-center');
-  const wbsInput = document.getElementById('jira-mapping-wbs');
-
-  const key = keyInput?.value?.trim().toUpperCase();
-  const project = projectInput?.value?.trim();
-  const activity = activityInput?.value?.trim();
-  const sapCode = sapCodeInput?.value?.trim();
-  const costCenter = costCenterInput?.value?.trim();
-  const wbsElement = wbsInput?.value?.trim();
-
-  if (!key || !project) {
-    showNotification('Please enter both JIRA project key and project name', 'error');
-    return;
-  }
-
-  try {
-    let mappingValue = project;
-    if (activity || sapCode || costCenter || wbsElement) {
-      mappingValue = {
-        project,
-        ...(activity && { activity }),
-        ...(sapCode && { sapCode }),
-        ...(costCenter && { costCenter }),
-        ...(wbsElement && { wbsElement })
-      };
-    }
-    await window.lightTrackAPI.addJiraMapping(key, mappingValue);
-
-    const extras = [];
-    if (activity) extras.push(`[${activity}]`);
-    if (sapCode) extras.push(`SAP: ${sapCode}`);
-    if (costCenter) extras.push(`CC: ${costCenter}`);
-    if (wbsElement) extras.push(`WBS: ${wbsElement}`);
-    const extraText = extras.length > 0 ? ` ${extras.join(' ')}` : '';
-    showNotification(`JIRA rule added: "${key}-*" → "${project}"${extraText}`, 'success');
-
-    if (keyInput) keyInput.value = '';
-    if (projectInput) projectInput.value = '';
-    if (activityInput) activityInput.value = '';
-    if (sapCodeInput) sapCodeInput.value = '';
-    if (costCenterInput) costCenterInput.value = '';
-    if (wbsInput) wbsInput.value = '';
-
-    await loadJiraMappings();
-  } catch (error) {
-    showNotification('Failed to add JIRA rule', 'error');
-  }
+function addJiraMapping() {
+  return window.LightTrack.SettingsView?.addJiraMapping?.();
 }
 
-/**
- * Remove a JIRA project key mapping
- */
-async function removeJiraMapping(key) {
-  if (!confirm(`Remove JIRA rule for "${key}"?`)) return;
-
-  try {
-    await window.lightTrackAPI.removeJiraMapping(key);
-    showNotification('JIRA rule removed', 'success');
-    await loadJiraMappings();
-  } catch (error) {
-    showNotification('Failed to remove JIRA rule', 'error');
-  }
+function removeJiraMapping(key) {
+  return window.LightTrack.SettingsView?.removeJiraMapping?.(key);
 }
 
-/**
- * Edit an existing JIRA mapping (populate form for update)
- */
 function editJiraMapping(key) {
-  const mappings = AppState.jiraMappingsCache || {};
-  const value = mappings[key];
-  if (!value) return;
-
-  const project = typeof value === 'string' ? value : value.project;
-  const activity = typeof value === 'object' ? value.activity : '';
-  const sapCode = typeof value === 'object' ? value.sapCode : '';
-  const costCenter = typeof value === 'object' ? value.costCenter : '';
-  const wbsElement = typeof value === 'object' ? value.wbsElement : '';
-
-  const keyInput = document.getElementById('jira-mapping-key');
-  const projectInput = document.getElementById('jira-mapping-project');
-  const activityInput = document.getElementById('jira-mapping-activity');
-  const sapCodeInput = document.getElementById('jira-mapping-sap-code');
-  const costCenterInput = document.getElementById('jira-mapping-cost-center');
-  const wbsInput = document.getElementById('jira-mapping-wbs');
-  const updateBtn = document.getElementById('update-jira-mapping-btn');
-  const cancelBtn = document.getElementById('cancel-jira-mapping-btn');
-
-  if (keyInput) {
-    keyInput.value = key;
-    keyInput.readOnly = true;
-  }
-  if (projectInput) projectInput.value = project || '';
-  if (activityInput) activityInput.value = activity || '';
-  if (sapCodeInput) sapCodeInput.value = sapCode || '';
-  if (costCenterInput) costCenterInput.value = costCenter || '';
-  if (wbsInput) wbsInput.value = wbsElement || '';
-
-  if (updateBtn) {
-    updateBtn.disabled = false;
-    updateBtn.dataset.key = key;
-  }
-  if (cancelBtn) cancelBtn.style.display = '';
-
-  // Highlight the item being edited
-  document.querySelectorAll('#jira-mappings-list .mapping-item').forEach(el => el.classList.remove('editing'));
-  const editingItem = document.querySelector(`#jira-mappings-list .mapping-item[data-key="${CSS.escape(key)}"]`);
-  if (editingItem) editingItem.classList.add('editing');
+  return window.LightTrack.SettingsView?.editJiraMapping?.(key);
 }
 
-/**
- * Cancel editing a JIRA mapping
- */
 function cancelJiraMappingEdit() {
-  const keyInput = document.getElementById('jira-mapping-key');
-  const projectInput = document.getElementById('jira-mapping-project');
-  const activityInput = document.getElementById('jira-mapping-activity');
-  const sapCodeInput = document.getElementById('jira-mapping-sap-code');
-  const costCenterInput = document.getElementById('jira-mapping-cost-center');
-  const wbsInput = document.getElementById('jira-mapping-wbs');
-  const updateBtn = document.getElementById('update-jira-mapping-btn');
-  const cancelBtn = document.getElementById('cancel-jira-mapping-btn');
-
-  if (keyInput) {
-    keyInput.value = '';
-    keyInput.readOnly = false;
-  }
-  if (projectInput) projectInput.value = '';
-  if (activityInput) activityInput.value = '';
-  if (sapCodeInput) sapCodeInput.value = '';
-  if (costCenterInput) costCenterInput.value = '';
-  if (wbsInput) wbsInput.value = '';
-
-  if (updateBtn) {
-    updateBtn.disabled = true;
-    delete updateBtn.dataset.key;
-  }
-  if (cancelBtn) cancelBtn.style.display = 'none';
-
-  document.querySelectorAll('#jira-mappings-list .mapping-item').forEach(el => el.classList.remove('editing'));
+  return window.LightTrack.SettingsView?.cancelJiraMappingEdit?.();
 }
 
-/**
- * Update an existing JIRA mapping
- */
-async function updateJiraMapping() {
-  const updateBtn = document.getElementById('update-jira-mapping-btn');
-  if (!updateBtn?.dataset.key) return;
-
-  const key = updateBtn.dataset.key;
-  const projectInput = document.getElementById('jira-mapping-project');
-  const activityInput = document.getElementById('jira-mapping-activity');
-  const sapCodeInput = document.getElementById('jira-mapping-sap-code');
-  const costCenterInput = document.getElementById('jira-mapping-cost-center');
-  const wbsInput = document.getElementById('jira-mapping-wbs');
-
-  const project = projectInput?.value?.trim();
-  const activity = activityInput?.value?.trim();
-  const sapCode = sapCodeInput?.value?.trim();
-  const costCenter = costCenterInput?.value?.trim();
-  const wbsElement = wbsInput?.value?.trim();
-
-  if (!project) {
-    showNotification('Project is required', 'error');
-    return;
-  }
-
-  const mappingValue = {
-    project,
-    ...(activity && { activity }),
-    ...(sapCode && { sapCode }),
-    ...(costCenter && { costCenter }),
-    ...(wbsElement && { wbsElement })
-  };
-
-  try {
-    await window.lightTrackAPI.addJiraMapping(key, mappingValue);
-    showNotification(`Updated JIRA rule "${key}"`, 'success');
-    cancelJiraMappingEdit();
-    await loadJiraMappings();
-  } catch (error) {
-    showNotification('Failed to update JIRA rule', 'error');
-  }
+function updateJiraMapping() {
+  return window.LightTrack.SettingsView?.updateJiraMapping?.();
 }
 
-// ============= Meeting Mappings =============
+// ============= Meeting Mappings (delegated to SettingsView module) =============
 
-/**
- * Load and display meeting subject mappings
- */
-async function loadMeetingMappings() {
-  const mappingsList = document.getElementById('meeting-mappings-list');
-  if (!mappingsList || !window.lightTrackAPI?.getMeetingMappings) return;
-
-  try {
-    const mappings = await window.lightTrackAPI.getMeetingMappings() || {};
-    const entries = Object.entries(mappings);
-
-    if (entries.length === 0) {
-      mappingsList.innerHTML = '<div class="meta-line">No meeting rules yet. Add a rule to auto-assign meetings to projects.</div>';
-    } else {
-      // Cache mappings for edit
-      AppState.meetingMappingsCache = mappings;
-
-      mappingsList.innerHTML = entries.map(([pattern, value]) => {
-        const project = typeof value === 'string' ? value : value.project;
-        const activity = typeof value === 'object' ? value.activity : null;
-        const sapCode = typeof value === 'object' ? value.sapCode : null;
-        const activityHtml = activity ? `<span class="activity">[${escapeHtml(activity)}]</span>` : '';
-        const sapCodeHtml = sapCode ? `<span class="sap-code" style="color: var(--neon); font-size: 11px;">(SAP: ${escapeHtml(sapCode)})</span>` : '';
-        return `
-        <div class="mapping-item" data-pattern="${escapeAttr(pattern)}">
-          <div>
-            <span class="pattern">${escapeHtml(pattern)}</span>
-            <span class="arrow">→</span>
-            <span class="project">${escapeHtml(project)}</span>
-            ${activityHtml}
-            ${sapCodeHtml}
-          </div>
-          <div class="mapping-actions">
-            <button data-action="edit-meeting-mapping" data-pattern="${escapeAttr(pattern)}" title="Edit rule">✎</button>
-            <button data-action="remove-meeting-mapping" data-pattern="${escapeAttr(pattern)}" title="Remove rule">✕</button>
-          </div>
-        </div>
-      `}).join('');
-    }
-  } catch (error) {
-    console.error('Failed to load meeting mappings:', error);
-    mappingsList.innerHTML = '<div class="meta-line">Failed to load rules</div>';
-  }
+function loadMeetingMappings() {
+  return window.LightTrack.SettingsView?.loadMeetingMappings?.();
 }
 
-/**
- * Validate that a string is a valid regex pattern
- * @param {string} pattern - The pattern to validate
- * @returns {boolean} True if valid, false otherwise
- */
 function isValidRegex(pattern) {
-  try {
-    new RegExp(pattern, 'i');
-    return true;
-  } catch (e) {
-    return false;
-  }
+  return window.LightTrack.SettingsView?.isValidRegex?.(pattern);
 }
 
-/**
- * Add a new meeting subject mapping
- */
-async function addMeetingMapping() {
-  const patternInput = document.getElementById('meeting-mapping-pattern');
-  const projectInput = document.getElementById('meeting-mapping-project');
-  const activityInput = document.getElementById('meeting-mapping-activity');
-  const sapCodeInput = document.getElementById('meeting-mapping-sap-code');
-  const costCenterInput = document.getElementById('meeting-mapping-cost-center');
-  const wbsInput = document.getElementById('meeting-mapping-wbs');
-
-  const pattern = patternInput?.value?.trim();
-  const project = projectInput?.value?.trim();
-  const activity = activityInput?.value?.trim();
-  const sapCode = sapCodeInput?.value?.trim();
-  const costCenter = costCenterInput?.value?.trim();
-  const wbsElement = wbsInput?.value?.trim();
-
-  if (!pattern || !project) {
-    showNotification('Please enter both a subject pattern and project name', 'error');
-    return;
-  }
-
-  // Validate regex pattern
-  if (!isValidRegex(pattern)) {
-    showNotification('Invalid regex pattern. Use plain text or valid regex syntax.', 'error');
-    return;
-  }
-
-  try {
-    let mappingValue = project;
-    if (activity || sapCode || costCenter || wbsElement) {
-      mappingValue = {
-        project,
-        ...(activity && { activity }),
-        ...(sapCode && { sapCode }),
-        ...(costCenter && { costCenter }),
-        ...(wbsElement && { wbsElement })
-      };
-    }
-    await window.lightTrackAPI.addMeetingMapping(pattern, mappingValue);
-
-    const extras = [];
-    if (activity) extras.push(`[${activity}]`);
-    if (sapCode) extras.push(`SAP: ${sapCode}`);
-    if (costCenter) extras.push(`CC: ${costCenter}`);
-    if (wbsElement) extras.push(`WBS: ${wbsElement}`);
-    const extraText = extras.length > 0 ? ` ${extras.join(' ')}` : '';
-    showNotification(`Meeting rule added: "${pattern}" → "${project}"${extraText}`, 'success');
-
-    if (patternInput) patternInput.value = '';
-    if (projectInput) projectInput.value = '';
-    if (activityInput) activityInput.value = '';
-    if (sapCodeInput) sapCodeInput.value = '';
-    if (costCenterInput) costCenterInput.value = '';
-    if (wbsInput) wbsInput.value = '';
-
-    await loadMeetingMappings();
-  } catch (error) {
-    showNotification('Failed to add meeting rule', 'error');
-  }
+function addMeetingMapping() {
+  return window.LightTrack.SettingsView?.addMeetingMapping?.();
 }
 
-/**
- * Remove a meeting subject mapping
- */
-async function removeMeetingMapping(pattern) {
-  if (!confirm(`Remove meeting rule for "${pattern}"?`)) return;
-
-  try {
-    await window.lightTrackAPI.removeMeetingMapping(pattern);
-    showNotification('Meeting rule removed', 'success');
-    await loadMeetingMappings();
-  } catch (error) {
-    showNotification('Failed to remove meeting rule', 'error');
-  }
+function removeMeetingMapping(pattern) {
+  return window.LightTrack.SettingsView?.removeMeetingMapping?.(pattern);
 }
 
-/**
- * Edit an existing meeting mapping (populate form for update)
- */
 function editMeetingMapping(pattern) {
-  const mappings = AppState.meetingMappingsCache || {};
-  const value = mappings[pattern];
-  if (!value) return;
-
-  const project = typeof value === 'string' ? value : value.project;
-  const activity = typeof value === 'object' ? value.activity : '';
-  const sapCode = typeof value === 'object' ? value.sapCode : '';
-  const costCenter = typeof value === 'object' ? value.costCenter : '';
-  const wbsElement = typeof value === 'object' ? value.wbsElement : '';
-
-  const patternInput = document.getElementById('meeting-mapping-pattern');
-  const projectInput = document.getElementById('meeting-mapping-project');
-  const activityInput = document.getElementById('meeting-mapping-activity');
-  const sapCodeInput = document.getElementById('meeting-mapping-sap-code');
-  const costCenterInput = document.getElementById('meeting-mapping-cost-center');
-  const wbsInput = document.getElementById('meeting-mapping-wbs');
-  const updateBtn = document.getElementById('update-meeting-mapping-btn');
-  const cancelBtn = document.getElementById('cancel-meeting-mapping-btn');
-
-  if (patternInput) {
-    patternInput.value = pattern;
-    patternInput.readOnly = true;
-  }
-  if (projectInput) projectInput.value = project || '';
-  if (activityInput) activityInput.value = activity || '';
-  if (sapCodeInput) sapCodeInput.value = sapCode || '';
-  if (costCenterInput) costCenterInput.value = costCenter || '';
-  if (wbsInput) wbsInput.value = wbsElement || '';
-
-  if (updateBtn) {
-    updateBtn.disabled = false;
-    updateBtn.dataset.pattern = pattern;
-  }
-  if (cancelBtn) cancelBtn.style.display = '';
-
-  // Highlight the item being edited
-  document.querySelectorAll('#meeting-mappings-list .mapping-item').forEach(el => el.classList.remove('editing'));
-  const editingItem = document.querySelector(`#meeting-mappings-list .mapping-item[data-pattern="${CSS.escape(pattern)}"]`);
-  if (editingItem) editingItem.classList.add('editing');
+  return window.LightTrack.SettingsView?.editMeetingMapping?.(pattern);
 }
 
-/**
- * Cancel editing a meeting mapping
- */
 function cancelMeetingMappingEdit() {
-  const patternInput = document.getElementById('meeting-mapping-pattern');
-  const projectInput = document.getElementById('meeting-mapping-project');
-  const activityInput = document.getElementById('meeting-mapping-activity');
-  const sapCodeInput = document.getElementById('meeting-mapping-sap-code');
-  const costCenterInput = document.getElementById('meeting-mapping-cost-center');
-  const wbsInput = document.getElementById('meeting-mapping-wbs');
-  const updateBtn = document.getElementById('update-meeting-mapping-btn');
-  const cancelBtn = document.getElementById('cancel-meeting-mapping-btn');
-
-  if (patternInput) {
-    patternInput.value = '';
-    patternInput.readOnly = false;
-  }
-  if (projectInput) projectInput.value = '';
-  if (activityInput) activityInput.value = '';
-  if (sapCodeInput) sapCodeInput.value = '';
-  if (costCenterInput) costCenterInput.value = '';
-  if (wbsInput) wbsInput.value = '';
-
-  if (updateBtn) {
-    updateBtn.disabled = true;
-    delete updateBtn.dataset.pattern;
-  }
-  if (cancelBtn) cancelBtn.style.display = 'none';
-
-  document.querySelectorAll('#meeting-mappings-list .mapping-item').forEach(el => el.classList.remove('editing'));
+  return window.LightTrack.SettingsView?.cancelMeetingMappingEdit?.();
 }
 
-/**
- * Update an existing meeting mapping
- */
-async function updateMeetingMapping() {
-  const updateBtn = document.getElementById('update-meeting-mapping-btn');
-  if (!updateBtn?.dataset.pattern) return;
-
-  const pattern = updateBtn.dataset.pattern;
-  const projectInput = document.getElementById('meeting-mapping-project');
-  const activityInput = document.getElementById('meeting-mapping-activity');
-  const sapCodeInput = document.getElementById('meeting-mapping-sap-code');
-  const costCenterInput = document.getElementById('meeting-mapping-cost-center');
-  const wbsInput = document.getElementById('meeting-mapping-wbs');
-
-  const project = projectInput?.value?.trim();
-  const activity = activityInput?.value?.trim();
-  const sapCode = sapCodeInput?.value?.trim();
-  const costCenter = costCenterInput?.value?.trim();
-  const wbsElement = wbsInput?.value?.trim();
-
-  if (!project) {
-    showNotification('Project is required', 'error');
-    return;
-  }
-
-  // Validate regex pattern
-  if (!isValidRegex(pattern)) {
-    showNotification('Invalid regex pattern', 'error');
-    return;
-  }
-
-  const mappingValue = {
-    project,
-    ...(activity && { activity }),
-    ...(sapCode && { sapCode }),
-    ...(costCenter && { costCenter }),
-    ...(wbsElement && { wbsElement })
-  };
-
-  try {
-    await window.lightTrackAPI.addMeetingMapping(pattern, mappingValue);
-    showNotification(`Updated meeting rule "${pattern}"`, 'success');
-    cancelMeetingMappingEdit();
-    await loadMeetingMappings();
-  } catch (error) {
-    showNotification('Failed to update meeting rule', 'error');
-  }
+function updateMeetingMapping() {
+  return window.LightTrack.SettingsView?.updateMeetingMapping?.();
 }
 
 // Expose mapping functions globally for onclick
@@ -5701,74 +3021,14 @@ window.editJiraMapping = editJiraMapping;
 window.editMeetingMapping = editMeetingMapping;
 window.removeMeetingMapping = removeMeetingMapping;
 
-/**
- * Load user settings from storage
- */
-async function loadSettings() {
-  try {
-    if (!window.lightTrackAPI?.getSettings) return;
+// ============= Settings Load/Save (delegated to SettingsView module) =============
 
-    const stored = await window.lightTrackAPI.getSettings() || {};
-
-    // Merge with defaults
-    AppState.settings = {
-      deepWorkTarget: stored.deepWorkTarget ?? 4,
-      breaksTarget: stored.breaksTarget ?? 4,
-      workDayStart: stored.workDayStart ?? '09:00',
-      workDayEnd: stored.workDayEnd ?? '18:00',
-      weekStartDay: stored.weekStartDay ?? 1,
-      defaultProject: stored.defaultProject ?? 'General',
-      launchAtStartup: stored.launchAtStartup ?? false,
-      autoStartTracking: stored.autoStartTracking ?? false,
-      closeBehavior: stored.closeBehavior ?? 'minimize',
-      minimizeToTray: stored.minimizeToTray ?? true,
-      breakReminderEnabled: stored.breakReminderEnabled ?? false,
-      breakReminderInterval: stored.breakReminderInterval ?? 60
-    };
-
-    console.log('Settings loaded:', AppState.settings);
-
-    // Initialize break reminder if enabled
-    initBreakReminder();
-  } catch (error) {
-    console.error('Failed to load settings:', error);
-    showNotification('Failed to load settings', 'error');
-  }
+function loadSettings() {
+  return window.LightTrack.SettingsView?.loadSettings?.();
 }
 
-/**
- * Save user settings to storage
- */
-async function saveSettings() {
-  try {
-    if (!window.lightTrackAPI?.updateSettings) return;
-
-    const result = await window.lightTrackAPI.updateSettings({
-      deepWorkTarget: AppState.settings.deepWorkTarget,
-      breaksTarget: AppState.settings.breaksTarget,
-      workDayStart: AppState.settings.workDayStart,
-      workDayEnd: AppState.settings.workDayEnd,
-      defaultProject: AppState.settings.defaultProject,
-      launchAtStartup: AppState.settings.launchAtStartup,
-      autoStartTracking: AppState.settings.autoStartTracking,
-      closeBehavior: AppState.settings.closeBehavior,
-      minimizeToTray: AppState.settings.minimizeToTray,
-      breakReminderEnabled: AppState.settings.breakReminderEnabled,
-      breakReminderInterval: AppState.settings.breakReminderInterval
-    });
-
-    // Reinitialize break reminder with new settings
-    initBreakReminder();
-
-    if (result !== true) {
-      throw new Error('Settings save did not confirm success');
-    }
-
-    showNotification('Settings saved', 'success');
-  } catch (error) {
-    console.error('Failed to save settings:', error);
-    showNotification('Failed to save settings', 'error');
-  }
+function saveSettings() {
+  return window.LightTrack.SettingsView?.saveSettings?.();
 }
 
 // Debounced version of saveSettings (500ms delay to batch rapid changes)
@@ -5843,817 +3103,42 @@ function loadExportHistory() {
   }
 }
 
-/**
- * Load Settings view
- */
-async function loadSettingsView() {
-  try {
-    if (!window.lightTrackAPI) return;
+// ============= Settings View (delegated to SettingsView module) =============
 
-    // Populate settings inputs with current values
-    const deepWorkInput = document.getElementById('settings-deep-work');
-    const breaksInput = document.getElementById('settings-breaks');
-    const dayStartInput = document.getElementById('settings-day-start');
-    const dayEndInput = document.getElementById('settings-day-end');
-    const weekStartInput = document.getElementById('settings-week-start');
-    const defaultProjectInput = document.getElementById('settings-default-project');
-    const launchStartupInput = document.getElementById('settings-launch-startup');
-    const autoTrackInput = document.getElementById('settings-auto-track');
-
-    if (deepWorkInput) deepWorkInput.value = AppState.settings.deepWorkTarget;
-    if (breaksInput) breaksInput.value = AppState.settings.breaksTarget;
-    if (dayStartInput) dayStartInput.value = AppState.settings.workDayStart;
-    if (dayEndInput) dayEndInput.value = AppState.settings.workDayEnd;
-    if (weekStartInput) weekStartInput.value = AppState.settings.weekStartDay ?? 1;
-    if (defaultProjectInput) defaultProjectInput.value = AppState.settings.defaultProject;
-    if (autoTrackInput) autoTrackInput.checked = AppState.settings.autoStartTracking;
-
-    // Sync launch at startup with actual system setting
-    if (launchStartupInput && window.lightTrackAPI?.getLaunchAtStartup) {
-      const launchStatus = await window.lightTrackAPI.getLaunchAtStartup();
-      launchStartupInput.checked = launchStatus.enabled;
-      AppState.settings.launchAtStartup = launchStatus.enabled;
-    } else if (launchStartupInput) {
-      launchStartupInput.checked = AppState.settings.launchAtStartup;
-    }
-
-    // Wire up change handlers (only once) - using debounced save
-    if (deepWorkInput && !deepWorkInput.dataset.wired) {
-      deepWorkInput.dataset.wired = 'true';
-      deepWorkInput.addEventListener('change', (e) => {
-        AppState.settings.deepWorkTarget = parseInt(e.target.value, 10) || 4;
-        debouncedSaveSettings();
-      });
-    }
-    if (breaksInput && !breaksInput.dataset.wired) {
-      breaksInput.dataset.wired = 'true';
-      breaksInput.addEventListener('change', (e) => {
-        AppState.settings.breaksTarget = parseInt(e.target.value, 10) || 4;
-        debouncedSaveSettings();
-      });
-    }
-    if (dayStartInput && !dayStartInput.dataset.wired) {
-      dayStartInput.dataset.wired = 'true';
-      dayStartInput.addEventListener('change', (e) => {
-        AppState.settings.workDayStart = e.target.value || '09:00';
-        debouncedSaveSettings();
-      });
-    }
-    if (dayEndInput && !dayEndInput.dataset.wired) {
-      dayEndInput.dataset.wired = 'true';
-      dayEndInput.addEventListener('change', (e) => {
-        AppState.settings.workDayEnd = e.target.value || '18:00';
-        debouncedSaveSettings();
-      });
-    }
-    if (weekStartInput && !weekStartInput.dataset.wired) {
-      weekStartInput.dataset.wired = 'true';
-      weekStartInput.addEventListener('change', (e) => {
-        AppState.settings.weekStartDay = parseInt(e.target.value, 10);
-        debouncedSaveSettings();
-        // Refresh analytics if visible
-        if (AppState.currentView === 'analytics') {
-          loadAnalyticsView();
-        }
-      });
-    }
-    if (defaultProjectInput && !defaultProjectInput.dataset.wired) {
-      defaultProjectInput.dataset.wired = 'true';
-      defaultProjectInput.addEventListener('change', (e) => {
-        AppState.settings.defaultProject = e.target.value || 'General';
-        debouncedSaveSettings();
-      });
-    }
-    if (launchStartupInput && !launchStartupInput.dataset.wired) {
-      launchStartupInput.dataset.wired = 'true';
-      launchStartupInput.addEventListener('change', async (e) => {
-        AppState.settings.launchAtStartup = e.target.checked;
-        // Call dedicated API to set login item settings
-        if (window.lightTrackAPI?.setLaunchAtStartup) {
-          await window.lightTrackAPI.setLaunchAtStartup(e.target.checked);
-        }
-        debouncedSaveSettings();
-      });
-    }
-    if (autoTrackInput && !autoTrackInput.dataset.wired) {
-      autoTrackInput.dataset.wired = 'true';
-      autoTrackInput.addEventListener('change', (e) => {
-        AppState.settings.autoStartTracking = e.target.checked;
-        debouncedSaveSettings();
-      });
-    }
-
-    // Close behavior and minimize to tray settings
-    const closeBehaviorInput = document.getElementById('settings-close-behavior');
-    const minimizeToTrayInput = document.getElementById('settings-minimize-to-tray');
-
-    if (closeBehaviorInput) {
-      closeBehaviorInput.value = AppState.settings.closeBehavior || 'minimize';
-    }
-    if (minimizeToTrayInput) {
-      minimizeToTrayInput.checked = AppState.settings.minimizeToTray !== false;
-    }
-
-    if (closeBehaviorInput && !closeBehaviorInput.dataset.wired) {
-      closeBehaviorInput.dataset.wired = 'true';
-      closeBehaviorInput.addEventListener('change', (e) => {
-        AppState.settings.closeBehavior = e.target.value;
-        debouncedSaveSettings();
-        // Notify main process about the setting change
-        if (window.lightTrackAPI?.updateWindowBehavior) {
-          window.lightTrackAPI.updateWindowBehavior({
-            closeBehavior: e.target.value,
-            minimizeToTray: AppState.settings.minimizeToTray
-          });
-        }
-      });
-    }
-    if (minimizeToTrayInput && !minimizeToTrayInput.dataset.wired) {
-      minimizeToTrayInput.dataset.wired = 'true';
-      minimizeToTrayInput.addEventListener('change', (e) => {
-        AppState.settings.minimizeToTray = e.target.checked;
-        debouncedSaveSettings();
-        // Notify main process about the setting change
-        if (window.lightTrackAPI?.updateWindowBehavior) {
-          window.lightTrackAPI.updateWindowBehavior({
-            closeBehavior: AppState.settings.closeBehavior,
-            minimizeToTray: e.target.checked
-          });
-        }
-      });
-    }
-
-    // Break reminder settings
-    const breakReminderEnabledInput = document.getElementById('settings-break-reminder-enabled');
-    const breakReminderIntervalInput = document.getElementById('settings-break-reminder-interval');
-
-    if (breakReminderEnabledInput) {
-      breakReminderEnabledInput.checked = AppState.settings.breakReminderEnabled === true;
-    }
-    if (breakReminderIntervalInput) {
-      breakReminderIntervalInput.value = AppState.settings.breakReminderInterval || 60;
-      breakReminderIntervalInput.disabled = !AppState.settings.breakReminderEnabled;
-    }
-
-    if (breakReminderEnabledInput && !breakReminderEnabledInput.dataset.wired) {
-      breakReminderEnabledInput.dataset.wired = 'true';
-      breakReminderEnabledInput.addEventListener('change', (e) => {
-        AppState.settings.breakReminderEnabled = e.target.checked;
-        if (breakReminderIntervalInput) {
-          breakReminderIntervalInput.disabled = !e.target.checked;
-        }
-        debouncedSaveSettings();
-      });
-    }
-
-    if (breakReminderIntervalInput && !breakReminderIntervalInput.dataset.wired) {
-      breakReminderIntervalInput.dataset.wired = 'true';
-      breakReminderIntervalInput.addEventListener('change', (e) => {
-        AppState.settings.breakReminderInterval = parseInt(e.target.value, 10) || 60;
-        debouncedSaveSettings();
-      });
-    }
-
-    // Consolidation settings
-    const consolidateInput = document.getElementById('settings-consolidate-activities');
-    const consolidationModeInput = document.getElementById('settings-consolidation-mode');
-
-    if (consolidateInput) {
-      consolidateInput.checked = AppState.settings.consolidateActivities !== false;
-    }
-    if (consolidationModeInput) {
-      consolidationModeInput.value = AppState.settings.consolidationMode || 'smart';
-      // Disable mode selector if consolidation is disabled
-      consolidationModeInput.disabled = !consolidateInput?.checked;
-    }
-
-    if (consolidateInput && !consolidateInput.dataset.wired) {
-      consolidateInput.dataset.wired = 'true';
-      consolidateInput.addEventListener('change', (e) => {
-        AppState.settings.consolidateActivities = e.target.checked;
-        // Enable/disable mode selector
-        if (consolidationModeInput) {
-          consolidationModeInput.disabled = !e.target.checked;
-        }
-        debouncedSaveSettings();
-      });
-    }
-
-    if (consolidationModeInput && !consolidationModeInput.dataset.wired) {
-      consolidationModeInput.dataset.wired = 'true';
-      consolidationModeInput.addEventListener('change', (e) => {
-        AppState.settings.consolidationMode = e.target.value || 'smart';
-        debouncedSaveSettings();
-      });
-    }
-
-    // Load statistics
-    const allActivities = await window.lightTrackAPI.getActivities() || [];
-    const totalDuration = allActivities.reduce((sum, a) => sum + (a.duration || 0), 0);
-
-    let oldest = null;
-    let newest = null;
-    allActivities.forEach(a => {
-      if (a.startTime) {
-        const d = new Date(a.startTime);
-        if (!oldest || d < oldest) oldest = d;
-        if (!newest || d > newest) newest = d;
-      }
-    });
-
-    const statsEl = document.getElementById('settings-stats');
-    if (statsEl) {
-      statsEl.innerHTML = `
-        Total entries: ${allActivities.length}<br>
-        Total time tracked: ${formatDuration(totalDuration)}<br>
-        Date range: ${oldest ? oldest.toLocaleDateString() : '--'} to ${newest ? newest.toLocaleDateString() : '--'}
-      `;
-    }
-
-    // Wire up data management buttons
-    const exportBtn = document.getElementById('settings-export');
-    const clearBtn = document.getElementById('settings-clear-old');
-
-    if (exportBtn && !exportBtn.dataset.wired) {
-      exportBtn.dataset.wired = 'true';
-      exportBtn.addEventListener('click', async () => {
-        try {
-          await window.lightTrackAPI.exportData();
-          showNotification('Data exported', 'success');
-        } catch (error) {
-          showNotification('Export failed', 'error');
-        }
-      });
-    }
-
-    if (clearBtn && !clearBtn.dataset.wired) {
-      clearBtn.dataset.wired = 'true';
-      clearBtn.addEventListener('click', () => {
-        openClearDataModal();
-      });
-    }
-
-    // Wire up backup/restore buttons
-    const backupBtn = document.getElementById('backup-data-btn');
-    const restoreBtn = document.getElementById('restore-data-btn');
-    const restoreInput = document.getElementById('restore-file-input');
-    const backupStatus = document.getElementById('backup-status');
-
-    if (backupBtn && !backupBtn.dataset.wired) {
-      backupBtn.dataset.wired = 'true';
-      backupBtn.addEventListener('click', async () => {
-        await createBackup(backupStatus);
-      });
-    }
-
-    if (restoreBtn && !restoreBtn.dataset.wired) {
-      restoreBtn.dataset.wired = 'true';
-      restoreBtn.addEventListener('click', () => {
-        restoreInput?.click();
-      });
-    }
-
-    if (restoreInput && !restoreInput.dataset.wired) {
-      restoreInput.dataset.wired = 'true';
-      restoreInput.addEventListener('change', async (e) => {
-        const file = e.target.files?.[0];
-        if (file) {
-          await restoreFromBackup(file, backupStatus);
-          e.target.value = ''; // Reset input
-        }
-      });
-    }
-
-    // Load tag manager section
-    await loadTagManager();
-
-    // Load project manager section
-    await loadProjectManager();
-
-    // Load activity type manager section
-    await loadActivityTypeManager();
-
-    // Load calendar sync settings
-    await loadCalendarSettings();
-
-    // Initialize collapsible settings groups
-    initSettingsGroups();
-
-  } catch (error) {
-    console.error('Failed to load settings:', error);
-  }
+function loadSettingsView() {
+  return window.LightTrack.SettingsView?.loadSettingsView?.();
 }
 
-/**
- * Initialize settings group expand/collapse state
- */
 function initSettingsGroups() {
-  const groups = document.querySelectorAll('.settings-group');
-
-  // Load saved state from localStorage
-  let savedState = {};
-  try {
-    savedState = JSON.parse(localStorage.getItem(CONSTANTS.STORAGE_KEYS.SETTINGS_GROUPS) || '{}');
-  } catch {
-    savedState = {};
-  }
-
-  groups.forEach(group => {
-    const groupName = group.dataset.group;
-    if (!groupName) return;
-
-    // Restore saved state (default to closed except 'tracking' which is open by default)
-    if (savedState[groupName] !== undefined) {
-      group.open = savedState[groupName];
-    }
-
-    // Save state on toggle (only wire once, store handler for potential cleanup)
-    if (!group.dataset.listenerAttached) {
-      group.dataset.listenerAttached = 'true';
-      const toggleHandler = () => {
-        try {
-          const currentState = JSON.parse(localStorage.getItem(CONSTANTS.STORAGE_KEYS.SETTINGS_GROUPS) || '{}');
-          currentState[groupName] = group.open;
-          safeLocalStorageSet(CONSTANTS.STORAGE_KEYS.SETTINGS_GROUPS, JSON.stringify(currentState));
-        } catch {
-          // Ignore localStorage errors
-        }
-      };
-      group.addEventListener('toggle', toggleHandler);
-      group._toggleHandler = toggleHandler; // Store for potential cleanup
-    }
-  });
+  return window.LightTrack.SettingsView?.initSettingsGroups?.();
 }
 
-// ============= Backup & Restore Functions =============
+// ============= Backup & Restore (delegated to SettingsView module) =============
 
-/**
- * Create a full backup of all data
- */
-async function createBackup(statusEl) {
-  try {
-    if (statusEl) {
-      statusEl.style.display = 'block';
-      statusEl.textContent = 'Creating backup...';
-    }
-
-    // Gather all data (fetch mappings in parallel using shared helper)
-    const [activities, settings, mappings, tags, projects, activityTypes] = await Promise.all([
-      window.lightTrackAPI.getActivities() || [],
-      window.lightTrackAPI.getSettings() || {},
-      fetchAllMappings(),
-      window.lightTrackAPI.getTags?.() || [],
-      window.lightTrackAPI.getProjects?.() || [],
-      window.lightTrackAPI.getActivityTypes?.() || []
-    ]);
-
-    const backupData = {
-      version: '3.0.0',
-      backupDate: new Date().toISOString(),
-      data: {
-        activities,
-        settings,
-        mappings: {
-          app: mappings.app,
-          url: mappings.url,
-          jira: mappings.jira,
-          meeting: mappings.meeting
-        },
-        tags,
-        projects,
-        activityTypes
-      },
-      stats: {
-        activitiesCount: activities.length,
-        projectsCount: projects.length,
-        tagsCount: tags.length
-      }
-    };
-
-    // Create blob and trigger download
-    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const dateStr = new Date().toISOString().split('T')[0];
-    a.href = url;
-    a.download = `lighttrack-backup-${dateStr}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    if (statusEl) {
-      statusEl.textContent = `Backup created: ${activities.length} activities, ${projects.length} projects`;
-    }
-    showNotification('Backup created successfully', 'success');
-  } catch (error) {
-    console.error('Backup failed:', error);
-    if (statusEl) {
-      statusEl.textContent = 'Backup failed: ' + error.message;
-    }
-    showNotification('Backup failed', 'error');
-  }
+function createBackup(statusEl) {
+  return window.LightTrack.SettingsView?.createBackup?.(statusEl);
 }
 
-/**
- * Restore from a backup file
- */
-async function restoreFromBackup(file, statusEl) {
-  try {
-    if (statusEl) {
-      statusEl.style.display = 'block';
-      statusEl.textContent = 'Validating backup file...';
-    }
-
-    // Security: Check file size before processing
-    const maxSize = CONSTANTS.MAX_BACKUP_SIZE_MB * 1024 * 1024;
-    if (file.size > maxSize) {
-      throw new Error(ERRORS.RESTORE_SIZE + ` (max ${CONSTANTS.MAX_BACKUP_SIZE_MB}MB)`);
-    }
-
-    const text = await file.text();
-    let backupData;
-
-    try {
-      backupData = JSON.parse(text);
-    } catch {
-      throw new Error(ERRORS.RESTORE_FORMAT);
-    }
-
-    // Validate backup structure
-    if (!backupData.version || !backupData.data) {
-      throw new Error(ERRORS.RESTORE_FORMAT);
-    }
-
-    // Version compatibility check
-    if (!backupData.version.startsWith('3.')) {
-      throw new Error(ERRORS.RESTORE_VERSION + ` (found v${backupData.version})`);
-    }
-
-    // Structure validation for activities
-    if (backupData.data.activities && !Array.isArray(backupData.data.activities)) {
-      throw new Error(ERRORS.RESTORE_FORMAT + ': activities must be an array');
-    }
-
-    // Prototype pollution prevention
-    const sanitizeObject = (obj) => {
-      if (obj && typeof obj === 'object') {
-        delete obj.__proto__;
-        delete obj.constructor;
-        delete obj.prototype;
-      }
-      return obj;
-    };
-    backupData.data = sanitizeObject(backupData.data);
-    if (backupData.data.settings) {
-      backupData.data.settings = sanitizeObject(backupData.data.settings);
-    }
-
-    if (statusEl) statusEl.textContent = 'Reading backup file...';
-
-    // Show confirmation
-    const stats = backupData.stats || {};
-    const confirmMsg = `This will restore:\n` +
-      `• ${stats.activitiesCount || 0} activities\n` +
-      `• ${stats.projectsCount || 0} projects\n` +
-      `• ${stats.tagsCount || 0} tags\n\n` +
-      `Existing data will be merged. Continue?`;
-
-    if (!confirm(confirmMsg)) {
-      if (statusEl) statusEl.textContent = 'Restore cancelled';
-      return;
-    }
-
-    if (statusEl) statusEl.textContent = 'Restoring data...';
-
-    const data = backupData.data;
-
-    // Restore settings
-    if (data.settings && window.lightTrackAPI.saveSettings) {
-      await window.lightTrackAPI.saveSettings(data.settings);
-    }
-
-    // Restore project mappings
-    if (data.mappings?.app && window.lightTrackAPI.setProjectMappings) {
-      await window.lightTrackAPI.setProjectMappings(data.mappings.app);
-    }
-    if (data.mappings?.url && window.lightTrackAPI.setUrlMappings) {
-      await window.lightTrackAPI.setUrlMappings(data.mappings.url);
-    }
-    if (data.mappings?.jira && window.lightTrackAPI.setJiraMappings) {
-      await window.lightTrackAPI.setJiraMappings(data.mappings.jira);
-    }
-    if (data.mappings?.meeting && window.lightTrackAPI.setMeetingMappings) {
-      await window.lightTrackAPI.setMeetingMappings(data.mappings.meeting);
-    }
-
-    // Restore tags
-    if (data.tags && window.lightTrackAPI.restoreTags) {
-      await window.lightTrackAPI.restoreTags(data.tags);
-    }
-
-    // Restore projects
-    if (data.projects && window.lightTrackAPI.restoreProjects) {
-      await window.lightTrackAPI.restoreProjects(data.projects);
-    }
-
-    // Restore activity types
-    if (data.activityTypes && window.lightTrackAPI.restoreActivityTypes) {
-      await window.lightTrackAPI.restoreActivityTypes(data.activityTypes);
-    }
-
-    // Restore activities (merge with existing)
-    if (data.activities && window.lightTrackAPI.importActivities) {
-      await window.lightTrackAPI.importActivities(data.activities);
-    }
-
-    if (statusEl) {
-      statusEl.textContent = `Restored from backup (${backupData.backupDate?.split('T')[0] || 'unknown date'})`;
-    }
-    showNotification('Data restored successfully', 'success');
-
-    // Reload settings view
-    await loadSettingsView();
-
-    // Reload activities
-    await loadActivities();
-
-  } catch (error) {
-    console.error('Restore failed:', error);
-    if (statusEl) {
-      statusEl.textContent = 'Restore failed: ' + error.message;
-    }
-    showNotification('Restore failed: ' + error.message, 'error');
-  }
+function restoreFromBackup(file, statusEl) {
+  return window.LightTrack.SettingsView?.restoreFromBackup?.(file, statusEl);
 }
 
-// ============= Calendar Sync Functions =============
+// ============= Calendar Sync (delegated to SettingsView module) =============
 
-/**
- * Load calendar sync settings UI
- */
-async function loadCalendarSettings() {
-  const calendarUrlInput = document.getElementById('settings-calendar-url');
-  const syncBtn = document.getElementById('calendar-sync-btn');
-  const statusEl = document.getElementById('calendar-sync-status');
-  const helpLink = document.getElementById('calendar-help-link');
-
-  if (!calendarUrlInput || !window.lightTrackAPI?.calendar) return;
-
-  // Load current URL
-  try {
-    const currentUrl = await window.lightTrackAPI.calendar.getUrl();
-    if (currentUrl) {
-      calendarUrlInput.value = currentUrl;
-    }
-
-    // Show last sync time
-    const lastSync = await window.lightTrackAPI.calendar.getLastSyncTime();
-    if (lastSync && statusEl) {
-      statusEl.style.display = 'block';
-      statusEl.textContent = `Last synced: ${new Date(lastSync).toLocaleString()}`;
-    }
-  } catch (error) {
-    console.error('Failed to load calendar settings:', error);
-  }
-
-  // Wire up URL change handler
-  if (!calendarUrlInput.dataset.wired) {
-    calendarUrlInput.dataset.wired = 'true';
-
-    // Save URL on blur (when user leaves the input)
-    calendarUrlInput.addEventListener('blur', async () => {
-      const url = calendarUrlInput.value.trim();
-      if (!url) return;
-
-      statusEl.style.display = 'block';
-      statusEl.textContent = 'Saving...';
-
-      try {
-        const result = await window.lightTrackAPI.calendar.setUrl(url);
-        if (result.success) {
-          statusEl.textContent = result.meetingCount !== undefined
-            ? `Synced ${result.meetingCount} meetings`
-            : 'Calendar URL saved';
-          showNotification('Calendar configured', 'success');
-          // Refresh upcoming meetings on dashboard
-          loadUpcomingMeetings();
-        } else {
-          statusEl.textContent = `Error: ${result.error}`;
-          showNotification(result.error || 'Failed to sync', 'error');
-        }
-      } catch (error) {
-        statusEl.textContent = `Error: ${error.message}`;
-        showNotification('Failed to save calendar URL', 'error');
-      }
-    });
-  }
-
-  // Wire up sync button
-  if (syncBtn && !syncBtn.dataset.wired) {
-    syncBtn.dataset.wired = 'true';
-    syncBtn.addEventListener('click', async () => {
-      const url = calendarUrlInput.value.trim();
-
-      if (!url) {
-        showNotification('Please enter a calendar URL first', 'error');
-        return;
-      }
-
-      syncBtn.disabled = true;
-      syncBtn.textContent = 'Syncing...';
-      statusEl.style.display = 'block';
-      statusEl.textContent = 'Syncing calendar...';
-
-      try {
-        // First save the URL if it changed
-        await window.lightTrackAPI.calendar.setUrl(url);
-        // Then sync
-        const result = await window.lightTrackAPI.calendar.sync();
-
-        if (result.success) {
-          statusEl.textContent = `Synced ${result.meetingCount} meetings at ${new Date().toLocaleTimeString()}`;
-          showNotification(`Synced ${result.meetingCount} meetings`, 'success');
-          // Refresh upcoming meetings on dashboard
-          loadUpcomingMeetings();
-        } else {
-          statusEl.textContent = `Error: ${result.error}`;
-          showNotification(result.error || 'Sync failed', 'error');
-        }
-      } catch (error) {
-        statusEl.textContent = `Error: ${error.message}`;
-        showNotification('Calendar sync failed', 'error');
-      } finally {
-        syncBtn.disabled = false;
-        syncBtn.textContent = 'Sync Now';
-      }
-    });
-  }
-
-  // Wire up help link
-  if (helpLink && !helpLink.dataset.wired) {
-    helpLink.dataset.wired = 'true';
-    helpLink.addEventListener('click', (e) => {
-      e.preventDefault();
-      showCalendarHelpModal();
-    });
-  }
+function loadCalendarSettings() {
+  return window.LightTrack.SettingsView?.loadCalendarSettings?.();
 }
 
-/**
- * Load upcoming meetings for dashboard display
- */
-async function loadUpcomingMeetings() {
-  const card = document.getElementById('upcoming-meetings-card');
-  const listEl = document.getElementById('upcoming-meetings-list');
-  const infoEl = document.getElementById('calendar-sync-info');
-
-  if (!listEl || !window.lightTrackAPI?.calendar) return;
-
-  try {
-    // Get today's meetings
-    const meetings = await window.lightTrackAPI.calendar.getTodaysMeetings();
-
-    if (!meetings || meetings.length === 0) {
-      // Hide the card if no meetings
-      if (card) card.style.display = 'none';
-      return;
-    }
-
-    // Show the card
-    if (card) card.style.display = 'block';
-
-    // Filter to upcoming meetings (not yet ended)
-    const now = new Date();
-    const upcoming = meetings.filter(m => new Date(m.endTime) > now);
-
-    if (upcoming.length === 0) {
-      listEl.innerHTML = '<div class="meta-line">No more meetings today</div>';
-    } else {
-      listEl.innerHTML = upcoming.slice(0, 4).map(m => {
-        const start = new Date(m.startTime);
-        const isNow = start <= now && new Date(m.endTime) > now;
-        const timeStr = start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-        const durationStr = `${m.duration}m`;
-
-        return `
-          <div class="meeting-item">
-            <div class="meeting-item-content">
-              <div class="meeting-item-title${isNow ? ' is-now' : ''}">${escapeHtml(m.subject)}</div>
-              <div class="meeting-item-meta">${timeStr} · ${durationStr}${m.location ? ' · ' + escapeHtml(m.location) : ''}</div>
-            </div>
-            ${isNow ? '<span class="meeting-item-badge">NOW</span>' : ''}
-          </div>
-        `;
-      }).join('');
-    }
-
-    // Show sync info
-    if (infoEl) {
-      const lastSync = await window.lightTrackAPI.calendar.getLastSyncTime();
-      if (lastSync) {
-        const syncTime = new Date(lastSync);
-        infoEl.textContent = `Synced ${syncTime.toLocaleTimeString()}`;
-      }
-    }
-
-  } catch (error) {
-    console.error('Failed to load upcoming meetings:', error);
-    if (card) card.style.display = 'none';
-  }
+function loadUpcomingMeetings() {
+  return window.LightTrack.SettingsView?.loadUpcomingMeetings?.();
 }
 
-/**
- * Show help modal for getting calendar URL
- */
 function showCalendarHelpModal() {
-  // Remove existing modal if present
-  const existingModal = document.getElementById('calendar-help-modal-overlay');
-  if (existingModal) {
-    existingModal.remove();
-  }
-
-  const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay';
-  overlay.id = 'calendar-help-modal-overlay';
-  overlay.innerHTML = `
-    <div class="modal modal-small" style="max-width: 500px;">
-      <div class="modal-header">
-        <h3>How to Get Your Calendar ICS URL</h3>
-        <button class="modal-close" id="calendar-help-modal-close">&times;</button>
-      </div>
-      <div class="modal-body">
-        <h4>Outlook Web (Office 365)</h4>
-        <ol style="margin-left: 20px; line-height: 1.6;">
-          <li>Go to <strong>outlook.office.com</strong></li>
-          <li>Click the <strong>Settings</strong> gear icon</li>
-          <li>Click <strong>View all Outlook settings</strong></li>
-          <li>Go to <strong>Calendar</strong> &gt; <strong>Shared calendars</strong></li>
-          <li>Under <strong>Publish a calendar</strong>, select your calendar</li>
-          <li>Choose <strong>Can view all details</strong></li>
-          <li>Click <strong>Publish</strong></li>
-          <li>Copy the <strong>ICS</strong> link</li>
-        </ol>
-
-        <h4 style="margin-top: 16px;">Google Calendar</h4>
-        <ol style="margin-left: 20px; line-height: 1.6;">
-          <li>Go to <strong>calendar.google.com</strong></li>
-          <li>Click the three dots next to your calendar</li>
-          <li>Select <strong>Settings and sharing</strong></li>
-          <li>Scroll to <strong>Integrate calendar</strong></li>
-          <li>Copy the <strong>Secret address in iCal format</strong></li>
-        </ol>
-
-        <div style="margin-top: 16px; padding: 12px; background: var(--surface-raised); border-radius: 8px;">
-          <strong>Privacy Note:</strong> The ICS URL is typically accessible to anyone with the link. Keep it private and do not share it.
-        </div>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(overlay);
-
-  // Add active class after a brief delay for animation
-  requestAnimationFrame(() => {
-    overlay.classList.add('active');
-    const modal = overlay.querySelector('.modal');
-    if (modal) modal.classList.add('active');
-  });
-
-  // Close button handler
-  const closeBtn = document.getElementById('calendar-help-modal-close');
-  if (closeBtn) {
-    closeBtn.addEventListener('click', closeCalendarHelpModal);
-  }
-
-  // Close on overlay click (outside modal)
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) {
-      closeCalendarHelpModal();
-    }
-  });
-
-  // Close on Escape key
-  const escHandler = (e) => {
-    if (e.key === 'Escape') {
-      closeCalendarHelpModal();
-      document.removeEventListener('keydown', escHandler);
-    }
-  };
-  document.addEventListener('keydown', escHandler);
+  return window.LightTrack.SettingsView?.showCalendarHelpModal?.();
 }
 
-/**
- * Close the calendar help modal
- */
 function closeCalendarHelpModal() {
-  const overlay = document.getElementById('calendar-help-modal-overlay');
-  if (overlay) {
-    overlay.classList.remove('active');
-    const modal = overlay.querySelector('.modal');
-    if (modal) modal.classList.remove('active');
-    // Remove after animation completes
-    setTimeout(() => overlay.remove(), 300);
-  }
+  return window.LightTrack.SettingsView?.closeCalendarHelpModal?.();
 }
 
 // ============= Snake Game =============
@@ -6889,511 +3374,88 @@ const SnakeGame = {
   }
 };
 
-/**
- * Open the Snake game modal
- */
+// ============= Snake Game (delegated to Modals module) =============
+
 function openSnakeGame() {
-  // Remove existing modal if present
-  const existingModal = document.getElementById('snake-modal-overlay');
-  if (existingModal) {
-    existingModal.remove();
-  }
-
-  const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay';
-  overlay.id = 'snake-modal-overlay';
-  overlay.innerHTML = `
-    <div class="modal" style="max-width: 480px; width: 100%;">
-      <div class="modal-header">
-        <h3>🐍 Snake - Take a Break!</h3>
-        <button class="modal-close" id="snake-modal-close">&times;</button>
-      </div>
-      <div class="modal-body" style="padding: 16px; text-align: center;">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px;">
-          <span>Score: <strong id="snake-score">0</strong></span>
-          <span>High Score: <strong id="snake-highscore">0</strong></span>
-        </div>
-        <div style="position: relative; display: inline-block;">
-          <canvas id="snake-canvas" width="400" height="400" style="border: 2px solid var(--border-default); border-radius: 8px; display: block;"></canvas>
-          <div id="snake-game-over" style="display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); border-radius: 8px; flex-direction: column; align-items: center; justify-content: center; color: white;">
-            <div style="font-size: 24px; font-weight: bold; margin-bottom: 8px;">Game Over!</div>
-            <div style="margin-bottom: 16px;">Final Score: <strong id="snake-final-score">0</strong></div>
-            <button class="solid primary" id="snake-restart-btn">Play Again</button>
-          </div>
-        </div>
-        <div style="margin-top: 12px; display: flex; gap: 8px; justify-content: center;">
-          <button class="solid primary" id="snake-start-btn">Start</button>
-          <button class="ghost" id="snake-pause-btn" disabled>Pause</button>
-        </div>
-        <div style="margin-top: 12px; font-size: 12px; color: var(--ink-muted);">
-          Use arrow keys or WASD to move
-        </div>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(overlay);
-
-  // Add active class after a brief delay for animation
-  requestAnimationFrame(() => {
-    overlay.classList.add('active');
-    const modal = overlay.querySelector('.modal');
-    if (modal) modal.classList.add('active');
-  });
-
-  // Initialize game
-  const canvas = document.getElementById('snake-canvas');
-  SnakeGame.init(canvas);
-  SnakeGame.draw();
-
-  // Button handlers
-  const closeBtn = document.getElementById('snake-modal-close');
-  const startBtn = document.getElementById('snake-start-btn');
-  const pauseBtn = document.getElementById('snake-pause-btn');
-  const restartBtn = document.getElementById('snake-restart-btn');
-
-  if (closeBtn) {
-    closeBtn.addEventListener('click', closeSnakeGame);
-  }
-
-  if (startBtn) {
-    startBtn.addEventListener('click', () => {
-      SnakeGame.start();
-      startBtn.disabled = true;
-      pauseBtn.disabled = false;
-    });
-  }
-
-  if (pauseBtn) {
-    pauseBtn.addEventListener('click', () => {
-      SnakeGame.pause();
-    });
-  }
-
-  if (restartBtn) {
-    restartBtn.addEventListener('click', () => {
-      const gameOverEl = document.getElementById('snake-game-over');
-      if (gameOverEl) gameOverEl.style.display = 'none';
-      SnakeGame.reset();
-      SnakeGame.draw();
-      SnakeGame.start();
-      startBtn.disabled = true;
-      pauseBtn.disabled = false;
-      pauseBtn.textContent = 'Pause';
-    });
-  }
-
-  // Keyboard handler
-  const keyHandler = (e) => {
-    if (e.key === 'Escape') {
-      closeSnakeGame();
-    } else if (e.key === ' ') {
-      e.preventDefault();
-      if (SnakeGame.isRunning) {
-        SnakeGame.pause();
-      }
-    } else {
-      SnakeGame.handleKeydown(e);
-    }
-  };
-  document.addEventListener('keydown', keyHandler);
-
-  // Store handler for cleanup
-  overlay.keyHandler = keyHandler;
-
-  // Close on overlay click
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) {
-      closeSnakeGame();
-    }
-  });
+  return window.LightTrack.Modals?.openSnakeGame?.();
 }
 
-/**
- * Close the Snake game modal
- */
 function closeSnakeGame() {
-  const overlay = document.getElementById('snake-modal-overlay');
-  if (overlay) {
-    SnakeGame.stop();
-    if (overlay.keyHandler) {
-      document.removeEventListener('keydown', overlay.keyHandler);
-    }
-    overlay.classList.remove('active');
-    const modal = overlay.querySelector('.modal');
-    if (modal) modal.classList.remove('active');
-    setTimeout(() => overlay.remove(), 300);
-  }
+  return window.LightTrack.Modals?.closeSnakeGame?.();
 }
 
-// ============= Modal Functions =============
+// ============= Modal Functions (delegated to Modals module) =============
 
-/**
- * Add ESC key handler to close a modal
- * @param {string} overlayId - ID of the modal overlay element
- * @param {Function} closeFunction - Function to call when ESC is pressed
- * @returns {Function} The ESC handler function (for cleanup)
- */
 function addModalEscHandler(overlayId, closeFunction) {
-  const escHandler = (e) => {
-    if (e.key === 'Escape') {
-      closeFunction();
-      document.removeEventListener('keydown', escHandler);
-    }
-  };
-  document.addEventListener('keydown', escHandler);
-
-  // Store handler on overlay for cleanup
-  const overlay = document.getElementById(overlayId);
-  if (overlay) overlay._escHandler = escHandler;
-  return escHandler;
+  return window.LightTrack.Modals?.addModalEscHandler?.(overlayId, closeFunction);
 }
 
-/**
- * Remove ESC key handler from a modal
- * @param {string} overlayId - ID of the modal overlay element
- */
 function removeModalEscHandler(overlayId) {
-  const overlay = document.getElementById(overlayId);
-  if (overlay?._escHandler) {
-    document.removeEventListener('keydown', overlay._escHandler);
-    delete overlay._escHandler;
-  }
+  return window.LightTrack.Modals?.removeModalEscHandler?.(overlayId);
 }
 
-/**
- * Open manual entry modal (new entry)
- * @param {string} [dateOverride] - Optional date to pre-fill (YYYY-MM-DD format)
- */
 function openManualEntryModal(dateOverride) {
-  AppState.editingActivityId = null;
-  if (Elements.modalTitle) Elements.modalTitle.textContent = 'Add Manual Entry';
-  if (Elements.editActivityId) Elements.editActivityId.value = '';
-
-  // Set defaults
-  const now = new Date();
-  const timeStr = now.toTimeString().slice(0, 5);
-  if (Elements.entryProject) Elements.entryProject.value = AppState.settings.defaultProject;
-  if (Elements.entryApp) Elements.entryApp.value = '';
-  if (Elements.entryStart) Elements.entryStart.value = timeStr;
-  if (Elements.entryEnd) Elements.entryEnd.value = timeStr;
-  if (Elements.entryDate) Elements.entryDate.value = dateOverride || AppState.filterDate;
-  if (Elements.entryBillable) Elements.entryBillable.checked = true;
-
-  if (Elements.modalOverlay) Elements.modalOverlay.classList.add('active');
-  addModalEscHandler('modal-overlay', closeModal);
+  return window.LightTrack.Modals?.openManualEntryModal?.(dateOverride);
 }
 
-/**
- * Open edit modal for existing activity
- */
 function openEditModal(activityId) {
-  // Convert to string to handle both string and number IDs
-  const id = String(activityId);
-  const activity = AppState.activities.find(a => String(a.id) === id);
-  if (!activity) {
-    console.error('Activity not found:', activityId, 'Available IDs:', AppState.activities.map(a => a.id));
-    showNotification('Activity not found', 'error');
-    return;
-  }
-
-  AppState.editingActivityId = activityId;
-  if (Elements.modalTitle) Elements.modalTitle.textContent = 'Edit Entry';
-  if (Elements.editActivityId) Elements.editActivityId.value = activityId;
-
-  // Find and display matched rule
-  findAndDisplayMatchedRule(activity);
-
-  // Populate form with activity data
-  if (Elements.entryProject) Elements.entryProject.value = activity.project || 'General';
-  if (Elements.entryApp) Elements.entryApp.value = activity.app || activity.title || '';
-
-  // Parse times
-  if (activity.startTime) {
-    const start = new Date(activity.startTime);
-    if (Elements.entryStart) Elements.entryStart.value = start.toTimeString().slice(0, 5);
-    if (Elements.entryDate) Elements.entryDate.value = start.toISOString().split('T')[0];
-  }
-  if (activity.endTime) {
-    const end = new Date(activity.endTime);
-    if (Elements.entryEnd) Elements.entryEnd.value = end.toTimeString().slice(0, 5);
-  }
-
-  if (Elements.entryBillable) Elements.entryBillable.checked = activity.billable !== false;
-
-  if (Elements.modalOverlay) Elements.modalOverlay.classList.add('active');
-  addModalEscHandler('modal-overlay', closeModal);
+  return window.LightTrack.Modals?.openEditModal?.(activityId);
 }
 
-/**
- * Close the entry modal
- */
 function closeModal() {
-  removeModalEscHandler('modal-overlay');
-  if (Elements.modalOverlay) Elements.modalOverlay.classList.remove('active');
-  AppState.editingActivityId = null;
+  return window.LightTrack.Modals?.closeModal?.();
 }
 
-/**
- * Save activity (new or edited)
- */
-async function saveActivity() {
-  if (!window.lightTrackAPI) {
-    showNotification('API not available', 'error');
-    return;
-  }
-
-  const project = Elements.entryProject?.value || AppState.settings.defaultProject;
-  const app = Elements.entryApp?.value || 'Manual entry';
-  const startTime = Elements.entryStart?.value;
-  const endTime = Elements.entryEnd?.value;
-  const date = Elements.entryDate?.value || AppState.filterDate;
-  const billable = Elements.entryBillable?.checked ?? true;
-
-  if (!startTime || !endTime) {
-    showNotification('Please enter start and end times', 'error');
-    return;
-  }
-
-  // Build full timestamps
-  const startDateTime = new Date(`${date}T${startTime}:00`);
-  const endDateTime = new Date(`${date}T${endTime}:00`);
-
-  if (endDateTime <= startDateTime) {
-    showNotification('End time must be after start time', 'error');
-    return;
-  }
-
-  const duration = Math.floor((endDateTime - startDateTime) / 1000);
-
-  try {
-    if (AppState.editingActivityId) {
-      // Update existing
-      await window.lightTrackAPI.updateActivity(AppState.editingActivityId, {
-        project,
-        app,
-        title: app,
-        startTime: startDateTime.toISOString(),
-        endTime: endDateTime.toISOString(),
-        duration,
-        billable
-      });
-      showNotification('Entry updated', 'success');
-    } else {
-      // Create new
-      await window.lightTrackAPI.addManualEntry({
-        project,
-        app,
-        title: app,
-        startTime: startDateTime.toISOString(),
-        endTime: endDateTime.toISOString(),
-        duration,
-        billable,
-        isManual: true
-      });
-      showNotification('Entry added', 'success');
-    }
-
-    invalidateAnalyticsCache(); // Clear cache so analytics refreshes
-    closeModal();
-    loadActivities();
-  } catch (error) {
-    console.error('Failed to save activity:', error);
-    showNotification('Failed to save: ' + error.message, 'error');
-  }
+function saveActivity() {
+  return window.LightTrack.Modals?.saveActivity?.();
 }
 
-/**
- * Open delete confirmation modal
- */
 function openDeleteModal(activityId) {
-  if (Elements.deleteActivityId) Elements.deleteActivityId.value = activityId;
-  if (Elements.deleteModalOverlay) Elements.deleteModalOverlay.classList.add('active');
-  addModalEscHandler('delete-modal-overlay', closeDeleteModal);
+  return window.LightTrack.Modals?.openDeleteModal?.(activityId);
 }
 
-/**
- * Close delete modal
- */
 function closeDeleteModal() {
-  removeModalEscHandler('delete-modal-overlay');
-  if (Elements.deleteModalOverlay) Elements.deleteModalOverlay.classList.remove('active');
+  return window.LightTrack.Modals?.closeDeleteModal?.();
 }
 
-/**
- * Confirm and execute delete
- */
-async function confirmDelete() {
-  const activityId = Elements.deleteActivityId?.value;
-  if (!activityId) {
-    closeDeleteModal();
-    return;
-  }
-
-  try {
-    if (!window.lightTrackAPI) throw new Error('API not available');
-
-    await window.lightTrackAPI.deleteActivity(activityId);
-    showNotification('Entry deleted', 'success');
-    invalidateAnalyticsCache(); // Clear cache so analytics refreshes
-    closeDeleteModal();
-    loadActivities();
-  } catch (error) {
-    console.error('Failed to delete activity:', error);
-    showNotification('Failed to delete: ' + error.message, 'error');
-  }
+function confirmDelete() {
+  return window.LightTrack.Modals?.confirmDelete?.();
 }
 
-// ============= Clear Data Modal =============
+// ============= Clear Data Modal (delegated to Modals module) =============
 
-/**
- * Open clear data confirmation modal
- */
-async function openClearDataModal() {
-  // Get count of activities to be deleted
-  try {
-    const activities = await window.lightTrackAPI.getActivities() || [];
-    const cutoffDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const oldActivities = activities.filter(a => {
-      const date = new Date(a.timestamp || a.startTime);
-      return date < cutoffDate;
-    });
-    if (Elements.clearDataCount) {
-      Elements.clearDataCount.textContent = `${oldActivities.length} activities will be deleted.`;
-    }
-  } catch (error) {
-    if (Elements.clearDataCount) {
-      Elements.clearDataCount.textContent = '';
-    }
-  }
-  if (Elements.clearDataModalOverlay) {
-    Elements.clearDataModalOverlay.classList.add('active');
-    addModalEscHandler('clear-data-modal-overlay', closeClearDataModal);
-  }
+function openClearDataModal() {
+  return window.LightTrack.Modals?.openClearDataModal?.();
 }
 
-/**
- * Close clear data modal
- */
 function closeClearDataModal() {
-  removeModalEscHandler('clear-data-modal-overlay');
-  if (Elements.clearDataModalOverlay) Elements.clearDataModalOverlay.classList.remove('active');
+  return window.LightTrack.Modals?.closeClearDataModal?.();
 }
 
-/**
- * Confirm and execute clear data
- */
-async function confirmClearData() {
-  try {
-    await window.lightTrackAPI.clearOldActivities(30);
-    showNotification('Old data cleared', 'success');
-    closeClearDataModal();
-    loadSettingsView();
-    loadActivities();
-  } catch (error) {
-    console.error('Failed to clear data:', error);
-    showNotification('Failed to clear data', 'error');
-  }
+function confirmClearData() {
+  return window.LightTrack.Modals?.confirmClearData?.();
 }
 
-// ============= Tag System =============
+// ============= Tag System (delegated to Modals module) =============
 
-/**
- * Load tags from backend and render in sidebar
- */
-async function loadTags() {
-  try {
-    if (!window.lightTrackAPI?.getTags) {
-      console.warn('Tags API not available');
-      return;
-    }
-
-    // Fetch all tags and used tags
-    const [tagsResult, usedTags] = await Promise.all([
-      window.lightTrackAPI.getTags(),
-      window.lightTrackAPI.getUsedTags()
-    ]);
-
-    AppState.tags = {
-      system: tagsResult.system || [],
-      custom: tagsResult.custom || [],
-      all: tagsResult.all || [],
-      used: usedTags || []
-    };
-
-    renderTagPills();
-  } catch (error) {
-    console.error('Failed to load tags:', error);
-  }
+function loadTags() {
+  return window.LightTrack.Modals?.loadTags?.();
 }
 
-/**
- * Render tag pills in the sidebar filter section
- */
 function renderTagPills() {
-  const container = document.getElementById('tag-filter-pills');
-  if (!container) return;
-  if (!container) return;
-
-  // Combine all available tags, prioritize used tags
-  const allTags = [...new Set([...AppState.tags.used, ...AppState.tags.all])];
-
-  if (allTags.length === 0) {
-    container.innerHTML = '<span class="meta-line">No tags yet</span>';
-    return;
-  }
-
-  container.innerHTML = allTags.map(tag => {
-    const isActive = AppState.filters.tags.includes(tag);
-    const isSystem = AppState.tags.system.includes(tag);
-    const tagClass = isSystem ? 'system' : 'custom';
-    const activeClass = isActive ? 'active' : '';
-    const count = getTagCount(tag);
-
-    return `
-      <button class="pill tag-pill ${tagClass} ${activeClass}" data-tag="${escapeAttr(tag)}">
-        ${escapeHtml(tag)}
-        ${count > 0 ? `<span class="tag-count">${count}</span>` : ''}
-      </button>
-    `;
-  }).join('');
-
-  // Attach click handlers
-  container.querySelectorAll('.tag-pill').forEach(pill => {
-    pill.addEventListener('click', () => toggleTagFilter(pill.dataset.tag));
-  });
+  return window.LightTrack.Modals?.renderTagPills?.();
 }
 
-/**
- * Get count of activities with a specific tag
- */
 function getTagCount(tagName) {
-  return AppState.activities.filter(a =>
-    a.tags && a.tags.includes(tagName)
-  ).length;
+  return window.LightTrack.Modals?.getTagCount?.(tagName);
 }
 
-/**
- * Toggle a tag in the filter selection (multi-select)
- */
 function toggleTagFilter(tagName) {
-  const idx = AppState.filters.tags.indexOf(tagName);
-  if (idx >= 0) {
-    AppState.filters.tags.splice(idx, 1);
-  } else {
-    AppState.filters.tags.push(tagName);
-  }
-
-  renderTagPills();
-  applyFilters();
+  return window.LightTrack.Modals?.toggleTagFilter?.(tagName);
 }
 
-/**
- * Clear all tag filters
- */
 function clearTagFilters() {
-  AppState.filters.tags = [];
-  renderTagPills();
-  applyFilters();
+  return window.LightTrack.Modals?.clearTagFilters?.();
 }
 
 /**
@@ -7506,15 +3568,7 @@ function renderFilteredActivityList() {
  * Render tags for an activity item
  */
 function renderActivityTags(activity) {
-  if (!activity.tags || activity.tags.length === 0) return '';
-
-  const tagsHtml = activity.tags.map(tag => {
-    const isSystem = AppState.tags.system.includes(tag);
-    const tagClass = isSystem ? 'system' : 'custom';
-    return `<span class="activity-tag ${tagClass}">${escapeHtml(tag)}</span>`;
-  }).join('');
-
-  return `<div class="activity-tags">${tagsHtml}</div>`;
+  return window.LightTrack.Timeline?.renderActivityTags?.(activity);
 }
 
 /**
@@ -7541,644 +3595,76 @@ function updateFilteredStats() {
   }
 }
 
-// ============= Tag Editor =============
+// ============= Tag Editor (delegated to Modals module) =============
 
-/**
- * Open tag editor dropdown for an activity
- */
 function openTagEditor(activityId) {
-  // Close any existing editor
-  closeTagEditor();
-
-  // Convert to string to handle both string and number IDs
-  const id = String(activityId);
-  const activity = AppState.activities.find(a => String(a.id) === id);
-  if (!activity) {
-    console.error('Activity not found for tags:', activityId);
-    showNotification('Activity not found', 'error');
-    return;
-  }
-
-  const activityEl = document.querySelector(`.activity[data-id="${activityId}"]`);
-  if (!activityEl) return;
-
-  // Create tag editor dropdown
-  const editor = document.createElement('div');
-  editor.className = 'tag-editor-dropdown';
-  editor.id = 'tag-editor';
-  editor.dataset.activityId = activityId;
-
-  const currentTags = activity.tags || [];
-  const allTags = [...new Set([...AppState.tags.all, ...AppState.tags.used])];
-
-  editor.innerHTML = `
-    <div class="tag-editor-header">
-      <span>Edit Tags</span>
-      <button onclick="closeTagEditor()" class="tag-editor-close">×</button>
-    </div>
-    <div class="tag-editor-list">
-      ${allTags.map(tag => {
-        const isChecked = currentTags.includes(tag);
-        const isSystem = AppState.tags.system.includes(tag);
-        return `
-          <label class="tag-editor-item ${isSystem ? 'system' : 'custom'}">
-            <input type="checkbox" value="${escapeHtml(tag)}" ${isChecked ? 'checked' : ''}>
-            <span>${escapeHtml(tag)}</span>
-          </label>
-        `;
-      }).join('')}
-    </div>
-    <div class="tag-editor-actions">
-      <input type="text" id="new-tag-input" placeholder="Add new tag..." class="tag-editor-input">
-      <button onclick="addNewTag('${activityId}')" class="btn-small">Add</button>
-    </div>
-    <div class="tag-editor-footer">
-      <button onclick="saveActivityTags('${activityId}')" class="btn-small primary">Save</button>
-    </div>
-  `;
-
-  activityEl.appendChild(editor);
-
-  // Handle enter key in new tag input
-  const newTagInput = editor.querySelector('#new-tag-input');
-  if (newTagInput) {
-    newTagInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        addNewTag(activityId);
-      }
-    });
-    newTagInput.focus();
-  }
+  return window.LightTrack.Modals?.openTagEditor?.(activityId);
 }
 
-/**
- * Close tag editor dropdown
- */
 function closeTagEditor() {
-  const existing = document.getElementById('tag-editor');
-  if (existing) {
-    existing.remove();
-  }
+  return window.LightTrack.Modals?.closeTagEditor?.();
 }
 
-/**
- * Add a new custom tag
- */
-async function addNewTag(activityId) {
-  const input = document.getElementById('new-tag-input');
-  const tagName = input?.value?.trim().toLowerCase();
-
-  if (!tagName) return;
-
-  // Validate tag name
-  if (tagName.length < 2 || tagName.length > 30) {
-    showNotification('Tag must be 2-30 characters', 'error');
-    return;
-  }
-
-  if (!/^[a-z0-9-]+$/.test(tagName)) {
-    showNotification('Tags can only contain letters, numbers, and hyphens', 'error');
-    return;
-  }
-
-  try {
-    // Add to custom tags if not already present
-    if (!AppState.tags.all.includes(tagName)) {
-      await window.lightTrackAPI.addTag(tagName);
-      AppState.tags.custom.push(tagName);
-      AppState.tags.all.push(tagName);
-    }
-
-    // Add checkbox for the new tag in the editor
-    const editor = document.getElementById('tag-editor');
-    const list = editor?.querySelector('.tag-editor-list');
-    if (list && !list.querySelector(`input[value="${tagName}"]`)) {
-      const label = document.createElement('label');
-      label.className = 'tag-editor-item custom';
-      label.innerHTML = `
-        <input type="checkbox" value="${escapeHtml(tagName)}" checked>
-        <span>${escapeHtml(tagName)}</span>
-      `;
-      list.appendChild(label);
-    }
-
-    // Clear input
-    if (input) input.value = '';
-
-  } catch (error) {
-    console.error('Failed to add tag:', error);
-    showNotification('Failed to add tag', 'error');
-  }
+function addNewTag(activityId) {
+  return window.LightTrack.Modals?.addNewTag?.(activityId);
 }
 
-/**
- * Save tags for an activity
- */
-async function saveActivityTags(activityId) {
-  const editor = document.getElementById('tag-editor');
-  if (!editor) return;
-
-  const checkboxes = editor.querySelectorAll('.tag-editor-list input[type="checkbox"]');
-  const selectedTags = Array.from(checkboxes)
-    .filter(cb => cb.checked)
-    .map(cb => cb.value);
-
-  try {
-    await window.lightTrackAPI.updateActivityTags(activityId, selectedTags);
-
-    // Update local state
-    const id = String(activityId);
-    const activity = AppState.activities.find(a => String(a.id) === id);
-    if (activity) {
-      activity.tags = selectedTags;
-    }
-
-    invalidateAnalyticsCache(); // Clear cache so analytics refreshes
-    closeTagEditor();
-    renderTagPills(); // Refresh tag counts
-    applyFilters(); // Re-render activity list
-    showNotification('Tags updated', 'success');
-
-  } catch (error) {
-    console.error('Failed to save activity tags:', error);
-    showNotification('Failed to save tags', 'error');
-  }
+function saveActivityTags(activityId) {
+  return window.LightTrack.Modals?.saveActivityTags?.(activityId);
 }
 
-// ============= Tag Manager (Settings) =============
+// ============= Tag Manager (delegated to Modals module) =============
 
-/**
- * Load tag manager in settings view
- */
-async function loadTagManager() {
-  const container = document.getElementById('tag-manager');
-  if (!container) return;
-
-  await loadTags();
-
-  const customTags = AppState.tags.custom || [];
-  const systemTags = AppState.tags.system || [];
-
-  container.innerHTML = `
-    <div class="tag-manager-section">
-      <h4>System Tags</h4>
-      <div class="tag-manager-list system">
-        ${systemTags.map(tag => `
-          <span class="tag-manager-item system">${escapeHtml(tag)}</span>
-        `).join('')}
-      </div>
-      <p class="meta-line">System tags are auto-detected from activity titles</p>
-    </div>
-    <div class="tag-manager-section">
-      <h4>Custom Tags</h4>
-      <div class="tag-manager-list custom" id="custom-tags-list">
-        ${customTags.length === 0 ? '<span class="meta-line">No custom tags yet</span>' :
-          customTags.map(tag => `
-            <span class="tag-manager-item custom">
-              ${escapeHtml(tag)}
-              <button data-action="remove-tag" data-tag="${escapeAttr(tag)}" title="Remove tag">×</button>
-            </span>
-          `).join('')}
-      </div>
-      <div class="tag-manager-add">
-        <input type="text" id="new-custom-tag" placeholder="New tag name...">
-        <button data-action="add-tag" class="btn-small">Add Tag</button>
-      </div>
-    </div>
-  `;
-
-  // Event delegation for tag actions
-  container.addEventListener('click', (e) => {
-    const action = e.target.dataset.action;
-    if (action === 'remove-tag') {
-      const tag = e.target.dataset.tag;
-      if (tag) removeCustomTag(tag);
-    } else if (action === 'add-tag') {
-      addCustomTag();
-    }
-  });
-
-  // Handle enter key
-  const input = container.querySelector('#new-custom-tag');
-  if (input) {
-    input.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        addCustomTag();
-      }
-    });
-  }
+function loadTagManager() {
+  return window.LightTrack.Modals?.loadTagManager?.();
 }
 
-/**
- * Add a custom tag via the tag manager
- */
-async function addCustomTag() {
-  const input = document.getElementById('new-custom-tag');
-  const tagName = input?.value?.trim().toLowerCase();
-
-  if (!tagName) return;
-
-  if (tagName.length < 2 || tagName.length > 30) {
-    showNotification('Tag must be 2-30 characters', 'error');
-    return;
-  }
-
-  if (!/^[a-z0-9-]+$/.test(tagName)) {
-    showNotification('Tags can only contain letters, numbers, and hyphens', 'error');
-    return;
-  }
-
-  if (AppState.tags.all.includes(tagName)) {
-    showNotification('Tag already exists', 'error');
-    return;
-  }
-
-  try {
-    await window.lightTrackAPI.addTag(tagName);
-    showNotification(`Tag "${tagName}" added`, 'success');
-    await loadTagManager();
-    renderTagPills();
-  } catch (error) {
-    console.error('Failed to add tag:', error);
-    showNotification('Failed to add tag', 'error');
-  }
+function addCustomTag() {
+  return window.LightTrack.Modals?.addCustomTag?.();
 }
 
-/**
- * Remove a custom tag
- */
-async function removeCustomTag(tagName) {
-  if (!confirm(`Remove tag "${tagName}"? This won't remove it from existing activities.`)) {
-    return;
-  }
-
-  try {
-    await window.lightTrackAPI.removeTag(tagName);
-    showNotification(`Tag "${tagName}" removed`, 'success');
-    await loadTagManager();
-    renderTagPills();
-  } catch (error) {
-    console.error('Failed to remove tag:', error);
-    showNotification('Failed to remove tag', 'error');
-  }
+function removeCustomTag(tagName) {
+  return window.LightTrack.Modals?.removeCustomTag?.(tagName);
 }
 
-// ============= Project Management Functions =============
+// ============= Project Management (delegated to Modals module) =============
 
-/**
- * Load projects from storage
- */
-async function loadProjects() {
-  try {
-    if (!window.lightTrackAPI?.getProjects) return;
-
-    const projectsResult = await window.lightTrackAPI.getProjects();
-
-    AppState.projects = {
-      system: projectsResult.system || [],
-      custom: projectsResult.custom || [],
-      all: projectsResult.all || []
-    };
-  } catch (error) {
-    console.error('Failed to load projects:', error);
-  }
+function loadProjects() {
+  return window.LightTrack.Modals?.loadProjects?.();
 }
 
-/**
- * Load project manager in settings view
- */
-async function loadProjectManager() {
-  const container = document.getElementById('project-manager');
-  if (!container) return;
-
-  await loadProjects();
-
-  const systemProjects = AppState.projects.system || [];
-  const customProjects = AppState.projects.custom || [];
-
-  container.innerHTML = `
-    <div class="tag-manager-section">
-      <h4>System Projects</h4>
-      <div class="tag-manager-list system">
-        ${systemProjects.map(project => `
-          <span class="tag-manager-item system" title="SAP: ${escapeHtml(project.sapCode || 'Not set')}">${escapeHtml(project.name)}</span>
-        `).join('')}
-      </div>
-      <p class="meta-line">System projects cannot be removed</p>
-    </div>
-    <div class="tag-manager-section">
-      <h4>Custom Projects</h4>
-      <div class="project-list" id="custom-projects-list">
-        ${customProjects.length === 0 ? '<span class="meta-line">No custom projects yet</span>' :
-          customProjects.map(project => `
-            <div class="project-list-item">
-              <div class="project-info">
-                <span class="project-name">${escapeHtml(project.name)}</span>
-                <span class="project-sap-info">
-                  ${project.sapCode ? `SAP: ${escapeHtml(project.sapCode)}` : ''}
-                  ${project.costCenter ? ` | CC: ${escapeHtml(project.costCenter)}` : ''}
-                  ${project.wbsElement ? ` | WBS: ${escapeHtml(project.wbsElement)}` : ''}
-                </span>
-              </div>
-              <div class="project-actions">
-                <button data-action="edit-project" data-project-id="${escapeHtml(project.id)}" class="btn-small ghost" title="Edit project">Edit</button>
-                <button data-action="remove-project" data-project-id="${escapeHtml(project.id)}" class="btn-small ghost" title="Remove project">&times;</button>
-              </div>
-            </div>
-          `).join('')}
-      </div>
-    </div>
-    <div class="tag-manager-section">
-      <h4>Add New Project</h4>
-      <div class="project-form">
-        <div class="project-form-row">
-          <input type="text" id="new-project-name" placeholder="Project name *" style="flex: 2;">
-          <input type="text" id="new-project-sap" placeholder="SAP Code">
-        </div>
-        <div class="project-form-row">
-          <input type="text" id="new-project-cc" placeholder="Cost Center">
-          <input type="text" id="new-project-wbs" placeholder="WBS Element">
-        </div>
-        <button data-action="add-project" class="solid primary">Add Project</button>
-      </div>
-    </div>
-  `;
-
-  if (!container.dataset.wired) {
-    container.dataset.wired = 'true';
-    // Event delegation for project actions
-    container.addEventListener('click', (e) => {
-      const action = e.target.dataset.action;
-      const projectId = e.target.dataset.projectId;
-      if (action === 'edit-project' && projectId) {
-        editProject(projectId);
-      } else if (action === 'remove-project' && projectId) {
-        removeCustomProject(projectId);
-      } else if (action === 'add-project') {
-        addCustomProject();
-      }
-    });
-
-    // Handle enter key on name field
-    container.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter' && e.target && e.target.id === 'new-project-name') {
-        e.preventDefault();
-        addCustomProject();
-      }
-    });
-  }
+function loadProjectManager() {
+  return window.LightTrack.Modals?.loadProjectManager?.();
 }
 
-/**
- * Add a custom project via the project manager
- */
-async function addCustomProject() {
-  const nameInput = document.getElementById('new-project-name');
-  const sapInput = document.getElementById('new-project-sap');
-  const ccInput = document.getElementById('new-project-cc');
-  const wbsInput = document.getElementById('new-project-wbs');
-
-  const projectName = nameInput?.value?.trim();
-
-  if (!projectName) {
-    showNotification('Project name is required', 'error');
-    return;
-  }
-
-  if (projectName.length < 2 || projectName.length > 50) {
-    showNotification('Project name must be 2-50 characters', 'error');
-    return;
-  }
-
-  // Check for duplicates
-  if (AppState.projects.all.some(p => p.name.toLowerCase() === projectName.toLowerCase())) {
-    showNotification('A project with this name already exists', 'error');
-    return;
-  }
-
-  try {
-    await window.lightTrackAPI.addProject({
-      name: projectName,
-      sapCode: sapInput?.value?.trim() || '',
-      costCenter: ccInput?.value?.trim() || '',
-      wbsElement: wbsInput?.value?.trim() || ''
-    });
-    showNotification(`Project "${projectName}" added`, 'success');
-
-    // Clear inputs
-    if (nameInput) nameInput.value = '';
-    if (sapInput) sapInput.value = '';
-    if (ccInput) ccInput.value = '';
-    if (wbsInput) wbsInput.value = '';
-
-    await loadProjectManager();
-  } catch (error) {
-    console.error('Failed to add project:', error);
-    showNotification('Failed to add project', 'error');
-  }
+function addCustomProject() {
+  return window.LightTrack.Modals?.addCustomProject?.();
 }
 
-/**
- * Edit a project (opens inline editing)
- */
-async function editProject(projectId) {
-  const project = AppState.projects.all.find(p => p.id === projectId);
-  if (!project) {
-    showNotification('Project not found', 'error');
-    return;
-  }
-
-  // For simplicity, use prompts for editing
-  const newName = project.isSystem ? project.name : prompt('Project name:', project.name);
-  if (newName === null) return; // Cancelled
-
-  const newSap = prompt('SAP Code:', project.sapCode || '');
-  if (newSap === null) return;
-
-  const newCc = prompt('Cost Center:', project.costCenter || '');
-  if (newCc === null) return;
-
-  const newWbs = prompt('WBS Element:', project.wbsElement || '');
-  if (newWbs === null) return;
-
-  try {
-    await window.lightTrackAPI.updateProject(projectId, {
-      name: newName,
-      sapCode: newSap,
-      costCenter: newCc,
-      wbsElement: newWbs
-    });
-    showNotification('Project updated', 'success');
-    await loadProjectManager();
-  } catch (error) {
-    console.error('Failed to update project:', error);
-    showNotification('Failed to update project', 'error');
-  }
+function editProject(projectId) {
+  return window.LightTrack.Modals?.editProject?.(projectId);
 }
 
-/**
- * Remove a custom project
- */
-async function removeCustomProject(projectId) {
-  const project = AppState.projects.custom.find(p => p.id === projectId);
-  if (!project) {
-    showNotification('Project not found or is a system project', 'error');
-    return;
-  }
-
-  if (!confirm(`Remove project "${project.name}"? This won't affect existing activities.`)) {
-    return;
-  }
-
-  try {
-    await window.lightTrackAPI.removeProject(projectId);
-    showNotification(`Project "${project.name}" removed`, 'success');
-    await loadProjectManager();
-  } catch (error) {
-    console.error('Failed to remove project:', error);
-    showNotification('Failed to remove project', 'error');
-  }
+function removeCustomProject(projectId) {
+  return window.LightTrack.Modals?.removeCustomProject?.(projectId);
 }
 
-// ============= Activity Type Management Functions =============
+// ============= Activity Type Management (delegated to Modals module) =============
 
-/**
- * Load activity types from storage
- */
-async function loadActivityTypes() {
-  try {
-    if (!window.lightTrackAPI?.getActivityTypes) return;
-
-    const typesResult = await window.lightTrackAPI.getActivityTypes();
-
-    AppState.activityTypes = {
-      system: typesResult.system || [],
-      custom: typesResult.custom || [],
-      all: typesResult.all || []
-    };
-  } catch (error) {
-    console.error('Failed to load activity types:', error);
-  }
+function loadActivityTypes() {
+  return window.LightTrack.Modals?.loadActivityTypes?.();
 }
 
-/**
- * Load activity type manager in settings view
- */
-async function loadActivityTypeManager() {
-  const container = document.getElementById('activity-type-manager');
-  if (!container) return;
-
-  await loadActivityTypes();
-
-  const systemTypes = AppState.activityTypes.system || [];
-  const customTypes = AppState.activityTypes.custom || [];
-
-  container.innerHTML = `
-    <div class="tag-manager-section">
-      <h4>System Types</h4>
-      <div class="tag-manager-list system">
-        ${systemTypes.map(type => `
-          <span class="tag-manager-item system">${escapeHtml(type.name)}</span>
-        `).join('')}
-      </div>
-      <p class="meta-line">System activity types cannot be removed</p>
-    </div>
-    <div class="tag-manager-section">
-      <h4>Custom Types</h4>
-      <div class="tag-manager-list custom" id="custom-activity-types-list">
-        ${customTypes.length === 0 ? '<span class="meta-line">No custom activity types yet</span>' :
-          customTypes.map(type => `
-            <span class="tag-manager-item custom">
-              ${escapeHtml(type.name)}
-              <button data-action="remove-activity-type" data-type-id="${escapeHtml(type.id)}" title="Remove activity type">&times;</button>
-            </span>
-          `).join('')}
-      </div>
-      <div class="tag-manager-add">
-        <input type="text" id="new-activity-type" placeholder="New activity type...">
-        <button data-action="add-activity-type" class="btn-small">Add Type</button>
-      </div>
-    </div>
-  `;
-
-  // Event delegation for activity type actions
-  container.addEventListener('click', (e) => {
-    const action = e.target.dataset.action;
-    if (action === 'remove-activity-type') {
-      const typeId = e.target.dataset.typeId;
-      if (typeId) removeCustomActivityType(typeId);
-    } else if (action === 'add-activity-type') {
-      addCustomActivityType();
-    }
-  });
-
-  // Handle enter key
-  const input = container.querySelector('#new-activity-type');
-  if (input) {
-    input.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        addCustomActivityType();
-      }
-    });
-  }
+function loadActivityTypeManager() {
+  return window.LightTrack.Modals?.loadActivityTypeManager?.();
 }
 
-/**
- * Add a custom activity type
- */
-async function addCustomActivityType() {
-  const input = document.getElementById('new-activity-type');
-  const typeName = input?.value?.trim();
-
-  if (!typeName) return;
-
-  if (typeName.length < 2 || typeName.length > 30) {
-    showNotification('Activity type must be 2-30 characters', 'error');
-    return;
-  }
-
-  // Check for duplicates
-  if (AppState.activityTypes.all.some(t => t.name.toLowerCase() === typeName.toLowerCase())) {
-    showNotification('An activity type with this name already exists', 'error');
-    return;
-  }
-
-  try {
-    await window.lightTrackAPI.addActivityType(typeName);
-    showNotification(`Activity type "${typeName}" added`, 'success');
-    if (input) input.value = '';
-    await loadActivityTypeManager();
-  } catch (error) {
-    console.error('Failed to add activity type:', error);
-    showNotification('Failed to add activity type', 'error');
-  }
+function addCustomActivityType() {
+  return window.LightTrack.Modals?.addCustomActivityType?.();
 }
 
-/**
- * Remove a custom activity type
- */
-async function removeCustomActivityType(typeId) {
-  const type = AppState.activityTypes.custom.find(t => t.id === typeId);
-  if (!type) {
-    showNotification('Activity type not found or is a system type', 'error');
-    return;
-  }
-
-  if (!confirm(`Remove activity type "${type.name}"? This won't affect existing activities.`)) {
-    return;
-  }
-
-  try {
-    await window.lightTrackAPI.removeActivityType(typeId);
-    showNotification(`Activity type "${type.name}" removed`, 'success');
-    await loadActivityTypeManager();
-  } catch (error) {
-    console.error('Failed to remove activity type:', error);
-    showNotification('Failed to remove activity type', 'error');
-  }
+function removeCustomActivityType(typeId) {
+  return window.LightTrack.Modals?.removeCustomActivityType?.(typeId);
 }
 
 // Start initialization

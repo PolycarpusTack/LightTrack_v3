@@ -57,6 +57,15 @@ class BrowserExtensionServer {
     const now = Date.now();
     const key = endpoint;
 
+    // Cleanup stale entries when map grows too large
+    if (this.requestCounts.size > 100) {
+      for (const [entryKey, entryData] of this.requestCounts) {
+        if (now - entryData.windowStart > RATE_WINDOW_MS) {
+          this.requestCounts.delete(entryKey);
+        }
+      }
+    }
+
     if (!this.requestCounts.has(key)) {
       this.requestCounts.set(key, { count: 1, windowStart: now });
       return false;
@@ -182,10 +191,9 @@ class BrowserExtensionServer {
       tracking: isTracking
     };
 
-    // Only provide token to browser extensions (not web pages)
-    // Web pages have an origin like https://example.com
-    // Extensions have chrome-extension://, moz-extension://, etc.
-    if (this.isOriginAllowed(origin)) {
+    // Only provide token to browser extensions (not web pages or originless requests)
+    // Require an actual extension origin — no origin means any local process could steal the token
+    if (origin && this.isOriginAllowed(origin)) {
       response.token = this.sessionToken;
     }
 

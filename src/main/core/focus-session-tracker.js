@@ -3,6 +3,7 @@
  * Extracted from ActivityTracker to improve maintainability and testability
  */
 const logger = require('../logger');
+const { generateId } = require('../../shared/generate-id');
 const {
   MIN_FOCUS_SESSION_DURATION_SECONDS,
   FOCUS_SESSION_RETENTION_DAYS,
@@ -77,7 +78,7 @@ class FocusSessionTracker {
     const quality = this.calculateQuality();
 
     focusSessions.push({
-      id: Date.now().toString(),
+      id: generateId(),
       date: new Date(this.session.startTime).toISOString(),
       project: this.session.project,
       duration: this.session.duration,
