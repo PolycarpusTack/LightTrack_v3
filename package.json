@@ -12,10 +12,10 @@
     "test": "npm run test:baseline",
     "test:baseline": "jest --config jest.baseline.config.js --runInBand",
     "test:legacy": "jest --runInBand",
-    "test:smoke": "jest test/integration/smoke.test.js --runInBand --coverage=false",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "test:ci": "npm run test:baseline && npm run test:smoke",
+    "test:ci": "npm run test:baseline",
+    "test:app": "playwright test",
     "lint": "eslint src browser-extension --ext .js",
     "lint:fix": "eslint src browser-extension --ext .js --fix",
     "lint:ci": "eslint src browser-extension --ext .js --format json --output-file lint-results.json",
@@ -39,6 +39,7 @@
     "npm": ">=10.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "commander": "^14.0.2",
     "electron": "^44.5.1",
     "electron-builder": "^26.0.12",
@@ -51,7 +52,8 @@
     "electron-log": "^5.4.3",
     "electron-store": "^8.2.0",
     "electron-updater": "^6.6.2",
-    "node-ical": "^0.22.1"
+    "node-ical": "^0.22.1",
+    "sql.js": "^1.14.2"
   },
   "build": {
     "appId": "com.lightsuite.lighttrack",
@@ -63,7 +65,13 @@
       "src/**/*",
       "assets/**/*",
       "!src/**/*.test.js",
-      "!src/**/*.map"
+      "!src/**/*.map",
+      "!node_modules/sql.js/dist/*debug*",
+      "!node_modules/sql.js/dist/*browser*",
+      "!node_modules/sql.js/dist/*worker*",
+      "!node_modules/sql.js/dist/*.zip",
+      "!node_modules/sql.js/dist/*.mjs",
+      "!node_modules/sql.js/dist/sql-asm*"
     ],
     "win": {
       "target": "nsis",

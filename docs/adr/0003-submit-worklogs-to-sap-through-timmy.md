@@ -7,7 +7,7 @@
 
 The development plan assumed SAP would be fed by a file export whose format was still unknown (LT3-304 was blocked on a specification).
 
-Mediagenix already runs Timmy (`mgx-tools_timesheets`), a hosted weekly timesheet application behind company sign-in. Timmy books time directly in SAP ByDesign through the `ManageEmployeeTimeIn` SOAP service. Each entry carries an employee ID, an item type code (the employee's company code), a project element ID (booking code), a service product ID (activity type), a date, an ISO 8601 duration and a work description. SAP returns a UUID, and approval status can be queried back. Timmy also enforces read, edit and send-to-SAP rights per user and keeps the SAP credentials server-side.
+Mediagenix already runs Timmy (`bitbucket.org/mediagenix/mgx-tools_timesheets`), a hosted weekly timesheet application behind company sign-in. Timmy books time directly in SAP ByDesign through the `ManageEmployeeTimeIn` SOAP service. Each entry carries an employee ID, an item type code (the employee's company code), a project element ID (booking code), a service product ID (activity type), a date, an ISO 8601 duration and a work description. SAP returns a UUID; Timmy can then release the entry for approval and track rejections. Timmy also enforces read, edit and send-to-SAP rights per user and keeps the SAP credentials server-side.
 
 Timmy is owned by another team.
 

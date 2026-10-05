@@ -1,4 +1,8 @@
 const { app, ipcMain, globalShortcut, shell, dialog } = require('electron');
+const { applyHarnessMode, isHarness } = require('./harness-mode');
+
+// Test harness (LT3-005): isolate userData before anything reads it.
+applyHarnessMode(app);
 const logger = require('./logger');
 
 // Import core modules
@@ -174,7 +178,9 @@ class LightTrackApp {
         pairing: this.extensionPairing,
         log: logger
       });
-      this.browserExtensionServer.start();
+      if (!isHarness()) {
+        this.browserExtensionServer.start();
+      }
 
       // Initialize TrayManager
       this.trayManager = new TrayManager({
@@ -231,7 +237,7 @@ class LightTrackApp {
   async checkAutoStartTracking() {
     try {
       const settings = this.storage.getSettings();
-      if (settings.autoStartTracking) {
+      if (settings.autoStartTracking && !isHarness()) {
         logger.info('Auto-start tracking enabled, starting tracker...');
         await this.tracker.start();
         this.appState.tracking.isActive = true;
@@ -396,8 +402,10 @@ class LightTrackApp {
       this.calendarHandler = new CalendarHandlerMain(this.calendarSyncService);
       this.calendarHandler.registerHandlers();
 
-      // Initialize calendar sync after handlers are ready
-      this.calendarSyncService.initialize();
+      // Initialize calendar sync after handlers are ready (no network in harness runs)
+      if (!isHarness()) {
+        this.calendarSyncService.initialize();
+      }
 
       // Register Updater IPC handlers
       if (this.updaterHandler) {

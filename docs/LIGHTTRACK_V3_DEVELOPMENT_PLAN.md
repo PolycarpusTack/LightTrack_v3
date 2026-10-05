@@ -67,8 +67,7 @@ Every item below exists only as uncommitted working-tree changes (CI workflows, 
 
 ### In progress / not yet done
 
-- [ ] Packaged application launch check. No script, CI job or test launches the packaged application (LT3-005).
-- [ ] Application smoke test. `test/integration/smoke.test.js` exercises Jest mocks only and never imports application code; LT3-005 replaces it.
+- [x] Packaged application launch check and application test (LT3-005): CI launches the packaged app in an isolated profile and drives a manual entry through SAP export and restart. The mock-only smoke test was removed.
 - [x] Windows-only packaging and scripts (LT3-009): macOS/Linux targets and dead scripts removed, `dev` and `build:prod` work in cmd and PowerShell via `scripts/with-env.js`, `.nvmrc` pins Node 22.
 
 ### Known baseline debt
@@ -235,6 +234,8 @@ Acceptance criteria:
 
 #### LT3-005 — Replace the synthetic smoke test with an application harness
 
+**Status:** done. `test/app/packaged-app.spec.js` (Playwright for Electron, `npm run test:app`) runs in CI after packaging. Harness mode (`LIGHTTRACK_HARNESS=1` with `LIGHTTRACK_USER_DATA`) isolates the profile and turns off the extension server, calendar sync and auto-tracking. Capture is not started; a manual entry is the stored raw event. The draft-worklog step follows LT3-202.
+
 **Outcome:** CI verifies real application components.
 
 The current `test/integration/smoke.test.js` exercises Jest mocks only and never imports application code.
@@ -308,9 +309,11 @@ The application currently persists everything through `electron-store` (`core/li
 
 #### LT3-100 — SQLite/Electron packaging spike
 
+**Status:** done. Decision: `sql.js` with atomic saves ([ADR 0004](adr/0004-sqlite-via-sqljs.md)); the packaged app opens, writes and reads a database in CI.
+
 **Outcome:** a documented choice of SQLite driver that packages and runs on Windows.
 
-**First candidate:** `sql.js` (SQLite compiled to WebAssembly, no native module), as used by Timmy. Writes must be atomic (temporary file, then rename), unlike Timmy's in-place rewrite. `better-sqlite3` is evaluated only if `sql.js` falls short on size, write latency or durability.
+**First candidate:** `sql.js` (SQLite compiled to WebAssembly, no native module). Writes must be atomic (temporary file, then rename). `better-sqlite3` is evaluated only if `sql.js` falls short on size, write latency or durability.
 
 This is the largest packaging risk in the plan and is scheduled in Increment A, before any schema work.
 
@@ -450,12 +453,12 @@ Acceptance criteria:
 
 Acceptance criteria:
 
-- Approved worklogs are sent to Timmy's `POST /api/timesheets` as `initial` entries with date, duration (hours and minutes), booking code, service product ID, Jira key and description, plus `external_id` (the worklog ID).
+- Approved worklogs are sent to Timmy's `POST /api/timesheets` as `initial` booking lines (date, duration in hours and minutes, booking code, service product ID, `external_id` = the worklog ID), followed by one `POST /api/timesheets/:id/jira-entries` per Jira key with its comment; Timmy builds the SAP description from those.
 - Retries never create duplicates: the same `external_id` returns the existing Timmy entry.
 - Each submission is recorded immutably (payload, Timmy entry ID, time, result). A submitted worklog cannot be edited in place; corrections follow the superseding flow (LT3-202).
 - The Timmy token is stored with Windows data protection, can be revoked from Settings and is never logged.
 - Without a connection, approved worklogs stay queued and LightTrack keeps working.
-- Where Timmy offers it, Timmy and SAP status are shown next to each submitted worklog.
+- Where Timmy offers it, Timmy status (`initial`, `sentToSAP`, released) and SAP rejections are shown next to each submitted worklog.
 - Contract tests run against a fake Timmy server.
 
 ### P2 — capture review and RDP

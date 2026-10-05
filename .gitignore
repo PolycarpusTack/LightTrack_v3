@@ -97,3 +97,4 @@ complete-setup.bat
 package-extension.bat
 uninstall-helper.bat
 start-ultra.bat
+test-results/
