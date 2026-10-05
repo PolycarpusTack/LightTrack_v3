@@ -67,8 +67,7 @@ Every item below exists only as uncommitted working-tree changes (CI workflows, 
 
 ### In progress / not yet done
 
-- [ ] Packaged application launch check. No script, CI job or test launches the packaged application (LT3-005).
-- [ ] Application smoke test. `test/integration/smoke.test.js` exercises Jest mocks only and never imports application code; LT3-005 replaces it.
+- [x] Packaged application launch check and application test (LT3-005): CI launches the packaged app in an isolated profile and drives a manual entry through SAP export and restart. The mock-only smoke test was removed.
 - [x] Windows-only packaging and scripts (LT3-009): macOS/Linux targets and dead scripts removed, `dev` and `build:prod` work in cmd and PowerShell via `scripts/with-env.js`, `.nvmrc` pins Node 22.
 
 ### Known baseline debt
@@ -232,6 +231,8 @@ Acceptance criteria:
 - Automated tests cover unpaired, forged-origin, wrong-token, wrong-content-type, oversized and schema-invalid requests.
 
 #### LT3-005 — Replace the synthetic smoke test with an application harness
+
+**Status:** done. `test/app/packaged-app.spec.js` (Playwright for Electron, `npm run test:app`) runs in CI after packaging. Harness mode (`LIGHTTRACK_HARNESS=1` with `LIGHTTRACK_USER_DATA`) isolates the profile and turns off the extension server, calendar sync and auto-tracking. Capture is not started; a manual entry is the stored raw event. The draft-worklog step follows LT3-202.
 
 **Outcome:** CI verifies real application components.
 
