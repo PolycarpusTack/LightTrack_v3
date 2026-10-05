@@ -156,6 +156,20 @@
             font-size: 12px;
         }
         
+        .pair-text, .pair-message {
+            font-size: 12px;
+            color: #94a3b8;
+            margin: 0 0 8px 0;
+        }
+
+        .pair-message:empty {
+            display: none;
+        }
+
+        [hidden] {
+            display: none !important;
+        }
+
         .credits {
             font-size: 11px;
             color: #475569;
@@ -177,6 +191,17 @@
         <span id="status-text">Checking connection...</span>
     </div>
     
+    <div class="settings" id="pairing" hidden>
+        <h3>Pair with LightTrack</h3>
+        <p class="pair-text" id="pair-text">This browser is not paired yet. LightTrack only accepts data from paired browsers.</p>
+        <button id="pair-start">Pair</button>
+        <div class="setting-row" id="pair-code-row" hidden>
+            <input type="text" id="pair-code" inputmode="numeric" autocomplete="off" maxlength="7" placeholder="123 456" aria-label="Pairing code">
+            <button id="pair-confirm" class="btn-small">Confirm</button>
+        </div>
+        <p class="pair-message" id="pair-message"></p>
+    </div>
+
     <div class="current-tab" id="current-tab" style="display: none;">
         <h3>Currently Tracking</h3>
         <p id="tab-title"></p>

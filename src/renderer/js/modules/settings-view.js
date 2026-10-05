@@ -1119,6 +1119,7 @@
 
       // Load calendar sync settings
       await loadCalendarSettings();
+      await loadBrowserExtensionSettings();
 
       // Initialize collapsible settings groups
       initSettingsGroups();
@@ -1376,6 +1377,41 @@
   /**
    * Load calendar sync settings UI
    */
+  /**
+   * Browser extension pairing status and revocation (LT3-004)
+   */
+  async function loadBrowserExtensionSettings() {
+    const statusEl = document.getElementById('browser-extension-status');
+    const revokeBtn = document.getElementById('browser-extension-revoke');
+    const api = window.lightTrackAPI?.browserExtension;
+    if (!statusEl || !api) return;
+
+    const render = paired => {
+      statusEl.textContent = paired === 0
+        ? 'No extensions paired.'
+        : `${paired} extension${paired === 1 ? '' : 's'} paired.`;
+      if (revokeBtn) revokeBtn.disabled = paired === 0;
+    };
+
+    try {
+      render((await api.getStatus()).paired);
+    } catch (error) {
+      statusEl.textContent = 'Status unavailable.';
+    }
+
+    if (revokeBtn && !revokeBtn.dataset.wired) {
+      revokeBtn.dataset.wired = 'true';
+      revokeBtn.addEventListener('click', async () => {
+        try {
+          render((await api.revokeAll()).paired);
+          showNotification('Browser extensions disconnected', 'success');
+        } catch (error) {
+          showNotification('Failed to disconnect extensions', 'error');
+        }
+      });
+    }
+  }
+
   async function loadCalendarSettings() {
     const calendarUrlInput = document.getElementById('settings-calendar-url');
     const syncBtn = document.getElementById('calendar-sync-btn');

@@ -4,13 +4,14 @@
 // Default port - can be configured via extension settings
 const DEFAULT_PORT = 41417;
 let lighttrackPort = DEFAULT_PORT;
-let lighttrackUrl = `http://localhost:${lighttrackPort}`;
+// The desktop app listens on the IPv4 loopback address only.
+let lighttrackUrl = `http://127.0.0.1:${lighttrackPort}`;
 
 // Load saved port from storage
 chrome.storage.sync.get(['lighttrackPort'], (result) => {
     if (result.lighttrackPort) {
         lighttrackPort = result.lighttrackPort;
-        lighttrackUrl = `http://localhost:${lighttrackPort}`;
+        lighttrackUrl = `http://127.0.0.1:${lighttrackPort}`;
     }
 });
 
@@ -18,7 +19,7 @@ chrome.storage.sync.get(['lighttrackPort'], (result) => {
 chrome.storage.onChanged.addListener((changes, namespace) => {
     if (namespace === 'sync' && changes.lighttrackPort) {
         lighttrackPort = changes.lighttrackPort.newValue || DEFAULT_PORT;
-        lighttrackUrl = `http://localhost:${lighttrackPort}`;
+        lighttrackUrl = `http://127.0.0.1:${lighttrackPort}`;
         isConnected = false; // Force reconnection check
         checkConnection();
     }
@@ -26,72 +27,91 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
 
 // State
 let isConnected = false;
+let isPaired = false;
 let currentTab = null;
 let lastActivityTime = Date.now();
-let sessionToken = null; // Auth token from LightTrack server
+// Token issued by LightTrack after pairing (LT3-004). Kept in local (not synced) storage.
+let sessionToken = null;
+const tokenReady = new Promise(resolve => {
+    chrome.storage.local.get(['lighttrackToken'], (result) => {
+        sessionToken = result.lighttrackToken || null;
+        resolve();
+    });
+});
 
-// Check connection to LightTrack and get session token
+function authHeaders() {
+    return sessionToken ? { 'Authorization': `Bearer ${sessionToken}` } : {};
+}
+
+function forgetToken() {
+    sessionToken = null;
+    isPaired = false;
+    chrome.storage.local.remove('lighttrackToken');
+}
+
+// Check that LightTrack is running and whether this extension is paired
 async function checkConnection() {
+    await tokenReady;
     try {
-        const response = await fetch(`${lighttrackUrl}/status`, {
-            method: 'GET',
-            mode: 'cors'
-        });
+        const response = await fetch(`${lighttrackUrl}/status`, { method: 'GET', mode: 'cors', headers: authHeaders() });
         isConnected = response.ok;
-
-        // Get session token from response
         if (response.ok) {
             const data = await response.json();
-            if (data.token) {
-                sessionToken = data.token;
-            }
+            isPaired = Boolean(data.paired);
+            if (sessionToken && !isPaired) forgetToken(); // revoked in LightTrack
         }
-
         return isConnected;
     } catch (error) {
         isConnected = false;
-        sessionToken = null;
         return false;
     }
 }
 
-// Send activity to LightTrack
+async function postJson(path, body) {
+    const response = await fetch(`${lighttrackUrl}${path}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify(body),
+        mode: 'cors'
+    });
+    let data = {};
+    try { data = await response.json(); } catch (e) { /* empty body */ }
+    return { status: response.status, ok: response.ok, data };
+}
+
+// Pairing: LightTrack shows a code on the desktop; the user types it in the popup.
+async function startPairing() {
+    const { ok, data } = await postJson('/pair/start', {});
+    if (!ok) throw new Error(data.error || 'Could not start pairing');
+    return data.pairingId;
+}
+
+async function completePairing(pairingId, code) {
+    const { ok, data } = await postJson('/pair/complete', { pairingId, code });
+    if (!ok) throw new Error(data.error || 'Pairing failed');
+    sessionToken = data.token;
+    isPaired = true;
+    await chrome.storage.local.set({ lighttrackToken: data.token });
+}
+
+// Send activity to LightTrack (only once paired)
 async function sendActivity(tabInfo) {
-    if (!isConnected || !sessionToken) {
-        const connected = await checkConnection();
-        if (!connected || !sessionToken) return;
+    if (!isConnected || !isPaired) {
+        await checkConnection();
+        if (!isConnected || !isPaired) return;
     }
 
     try {
-        const activity = {
+        const { status } = await postJson('/browser-activity', {
             url: tabInfo.url,
             title: tabInfo.title,
             timestamp: new Date().toISOString(),
             browser: getBrowserName()
-        };
-
-        const response = await fetch(`${lighttrackUrl}/browser-activity`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${sessionToken}`
-            },
-            body: JSON.stringify(activity),
-            mode: 'cors'
         });
-
-        // If unauthorized, try to refresh token
-        if (response.status === 401) {
-            sessionToken = null;
-            await checkConnection();
-            return;
-        }
-
+        if (status === 401) forgetToken();
         lastActivityTime = Date.now();
     } catch (error) {
-        console.error('Failed to send activity:', error);
         isConnected = false;
-        sessionToken = null;
     }
 }
 
@@ -161,32 +181,17 @@ setInterval(async () => {
 // Initial connection check
 checkConnection();
 
-// Send page context to LightTrack
+// Send page context to LightTrack (only once paired)
 async function sendPageContext(contextData) {
-    if (!isConnected || !sessionToken) {
-        const connected = await checkConnection();
-        if (!connected || !sessionToken) return;
+    if (!isConnected || !isPaired) {
+        await checkConnection();
+        if (!isConnected || !isPaired) return;
     }
-
     try {
-        const response = await fetch(`${lighttrackUrl}/page-context`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${sessionToken}`
-            },
-            body: JSON.stringify(contextData),
-            mode: 'cors'
-        });
-
-        // If unauthorized, try to refresh token
-        if (response.status === 401) {
-            sessionToken = null;
-            await checkConnection();
-        }
+        const { status } = await postJson('/page-context', contextData);
+        if (status === 401) forgetToken();
     } catch (error) {
-        console.error('Failed to send page context:', error);
-        sessionToken = null;
+        isConnected = false;
     }
 }
 
@@ -195,8 +200,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'getStatus') {
         sendResponse({
             connected: isConnected,
+            paired: isPaired,
             currentTab: currentTab
         });
+    } else if (request.action === 'startPairing') {
+        startPairing()
+            .then(pairingId => sendResponse({ pairingId }))
+            .catch(error => sendResponse({ error: error.message }));
+        return true;
+    } else if (request.action === 'completePairing') {
+        completePairing(request.pairingId, request.code)
+            .then(() => sendResponse({ paired: true }))
+            .catch(error => sendResponse({ error: error.message }));
+        return true;
     } else if (request.action === 'checkConnection') {
         checkConnection().then(connected => {
             sendResponse({ connected });

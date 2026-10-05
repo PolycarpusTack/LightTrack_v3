@@ -215,6 +215,8 @@ Acceptance criteria:
 
 #### LT3-004 — Harden the browser-extension endpoint
 
+**Status:** done. Pairing with a desktop-shown code (`src/main/integrations/browser/extension-pairing.js`), hashed origin-bound tokens, timing-safe comparison, JSON content-type and schema checks, no titles/URLs/tokens in logs, revocation in Settings, `browser-extension/` linted. Tests: `test/baseline/extension-pairing.test.js`.
+
 **Outcome:** only a paired browser extension can supply browser context.
 
 The endpoint already binds to `127.0.0.1`, requires a bearer token and applies an origin allowlist, rate limiting and size limits. The token is generated per launch and returned by `GET /status` to any request with an extension-style `Origin` header, which any local process can forge.
