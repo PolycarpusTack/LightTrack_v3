@@ -17,7 +17,7 @@ LightTrack does not talk to SAP. Approved LightTrack worklogs are submitted to T
 
 LightTrack adopts the SAP booking model that Timmy uses: a worklog is booked against a project element ID and a service product ID. The reference lists (activity types and booking codes) are read from Timmy, not copied into this repository.
 
-The CSV export remains as an offline fallback. It is not the primary route.
+The CSV export remains as an offline fallback. It is not the primary route, but it is the hand-off for the first release, until Timmy offers desktop authentication and idempotent creation (owner decision, 2026-10-05).
 
 ## Consequences
 

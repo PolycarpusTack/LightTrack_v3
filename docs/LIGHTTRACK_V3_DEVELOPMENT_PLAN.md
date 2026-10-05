@@ -60,6 +60,7 @@ Work proceeds incrementally. A big-bang rewrite would put working capture and ex
 | TypeScript | Full adoption, main process and renderer | 6.1, LT3-006 |
 | Raw-evidence retention | Chosen by the user at first run, default 1 year | LT3-601 |
 | Code signing | Releases stay unsigned; in-app updates stay off; manual installs from GitHub releases | LT3-603 |
+| First release hand-off | CSV export of approved booking lines (LT3-302/303); Timmy submission follows after the first release | First release scope, LT3-304 |
 | Jira | Outbound worklogs allowed, always with review | LT3-501 |
 | RDP clients | `mstsc.exe` and Windows App | LT3-402 |
 | Salesforce | Kept, after Jira | LT3-502 |
@@ -447,7 +448,7 @@ Acceptance criteria:
 
 #### LT3-302 — Implement configurable export profiles
 
-**Scope (ADR 0003):** applies to the CSV fallback only. Lower priority than LT3-304.
+**Scope:** the hand-off for the first release (owner decision, 2026-10-05). Exports approved booking lines (ADR 0005), not raw activity.
 
 Acceptance criteria:
 
@@ -458,7 +459,7 @@ Acceptance criteria:
 
 #### LT3-303 — Implement immutable export runs
 
-**Scope (ADR 0003):** applies to the CSV fallback only; submissions to Timmy are recorded by LT3-304.
+**Scope:** part of the first release, recording each CSV hand-off. Submissions to Timmy are recorded by LT3-304 later.
 
 Acceptance criteria:
 
@@ -468,6 +469,8 @@ Acceptance criteria:
 - Recreating an unchanged export produces the same logical rows.
 
 #### LT3-304 — Submit approved worklogs to Timmy
+
+**Timing:** after the first release; it waits for the Timmy changes. Timmy's maintainer, judging by its commit history, is Pieter Jan De Keyzer.
 
 **Dependency:** Timmy changes listed in `docs/integrations/timmy-integration-request.md`: desktop authentication and idempotent creation (blocking), reference data, entry status.
 
@@ -749,14 +752,29 @@ There is no defensible calendar forecast yet: team capacity, historical throughp
 | Code-signing certificate and release policy | LT3-603 | Release/security owner |
 | Team availability and historical throughput | Iteration planning | Delivery team |
 
-## 16. Immediate next actions
+## 16. First release scope
+
+The first release ships with the CSV export as the hand-off (owner decision, 2026-10-05). GitHub issues in scope carry the `first-release` label.
+
+| Area | Items |
+|---|---|
+| Foundation | LT3-003 typed IPC contract |
+| Durable data | LT3-101 to LT3-105 |
+| Approvable worklogs | LT3-201 to LT3-204, LT3-301 |
+| Hand-off | LT3-302, LT3-303 (CSV of approved booking lines) |
+| RDP | LT3-402, LT3-403 |
+| Release basics | LT3-601 (retention chosen at first run), LT3-603 (unsigned release process) |
+
+After the first release: LT3-304 (Timmy), LT3-401, LT3-501 to LT3-503, LT3-602.
+
+## 17. Immediate next actions
 
 1. Commit the working-tree baseline (CI, `test/baseline`, policies, ADRs, `package.json` changes) so CI runs against it.
 2. Create GitHub issues in this repository for LT3-002 through LT3-009 and LT3-100 through LT3-105; this completes LT3-001.
 3. Refine LT3-002, LT3-005, LT3-007 and LT3-008 to Ready. No packaged-app launch check exists yet; LT3-005 establishes it.
 4. Run the LT3-100 SQLite/Electron packaging spike in Increment A before selecting a database driver.
 5. Obtain an anonymised v3 export and document every observed source data shape.
-6. Send `docs/integrations/timmy-integration-request.md` to the Timmy team; LT3-304 waits for desktop authentication and idempotent creation.
+6. Send `docs/integrations/timmy-integration-request.md` to the Timmy team (maintainer: Pieter Jan De Keyzer, per the commit history); LT3-304 follows the first release.
 7. Begin measuring throughput and cycle time so later release forecasts can be evidence-based.
 
-The first usable release is achieved when a Windows user can install LightTrack, distinguish local and RDP evidence, allocate time to a valid SAP-coded project, review and approve a weekly worklog, and submit it to Timmy for SAP booking (or export a validated CSV when Timmy is unavailable) while capture and review remain fully functional offline.
+The first usable release is achieved when a Windows user can install LightTrack, distinguish local and RDP evidence, allocate time to a valid SAP-coded project, review and approve a weekly worklog, and export the approved booking lines as a validated, recorded CSV, while capture and review remain fully functional offline. Submission to Timmy follows in a later release.
