@@ -275,7 +275,7 @@ Acceptance criteria:
 
 #### LT3-008 — Secrets at rest and update safety
 
-**Status:** done except the encryption decision. Calendar URL protected, derived-key fallback replaced by fail-closed handling with one-time migration, in-app updates switched off entirely (the feed URL is not one this project controls). Open: installed builds never set `NODE_ENV=production`, so their data file has never been encrypted; whether to turn encryption on for installed builds is undecided. Tests: `test/baseline/secrets.test.js`.
+**Status:** done. Calendar URL protected, derived-key fallback replaced by fail-closed handling with one-time migration, in-app updates switched off entirely (the feed URL is not one this project controls). Installed builds now encrypt the data file (`app.isPackaged`); development runs do not (owner decision, 2026-10-05). Verified with a packaged build migrating an unencrypted profile. Tests: `test/baseline/secrets.test.js`.
 
 **Outcome:** secrets are protected by the operating system and unsigned builds are not installed automatically.
 
