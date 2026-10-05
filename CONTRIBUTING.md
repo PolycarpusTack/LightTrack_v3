@@ -14,7 +14,18 @@ npm run lint
 npm run test:ci
 npm run security:audit
 npm run electron:build:win
+npm run test:app
 ```
+
+## Building and running
+
+The app runs from `out/`, not `src/`. `npm run build` compiles the main process and preload with TypeScript (`tsconfig.main.json`, JavaScript and TypeScript side by side), type-checks the renderer (`tsconfig.renderer.json`), copies renderer files and bundles `src/renderer/ts` with esbuild into `out/renderer/js/bundle.js`. Type errors fail the build.
+
+- `npm start` and `npm run dev` build first, then launch Electron.
+- `npm run electron:build:win` makes a production build and then packages `out/`.
+- `npm run test:app` runs the packaged-application harness against `dist/win-unpacked`.
+
+New code is TypeScript. When you migrate a JavaScript module, replace it rather than keeping both versions. Renderer modules move into `src/renderer/ts` and are published on `window.LightTrack` from `src/renderer/ts/index.ts` until their legacy callers are migrated too.
 
 `npm run test:legacy` exposes the archived broad test suite. It contains tests for removed modules and is not the supported release gate; do not conceal new failures by adding more tests to that quarantine.
 

@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "node16",
+    "moduleResolution": "node16",
+    "rootDir": "src",
+    "outDir": "out",
+    "allowJs": true,
+    "checkJs": false,
+    "noEmitOnError": true,
+    "sourceMap": true,
+    "types": ["node"]
+  },
+  "include": ["src/main/**/*", "src/shared/**/*", "src/preload.js"],
+  "exclude": ["**/*.test.js", "**/*.test.ts"]
+}

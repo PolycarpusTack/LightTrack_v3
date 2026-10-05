@@ -2,13 +2,13 @@
   "name": "lighttrack",
   "version": "3.0.0",
   "description": "Local-first Windows timesheet assistance and work-evidence capture",
-  "main": "src/main/index.js",
+  "main": "out/main/index.js",
   "scripts": {
-    "start": "electron .",
-    "dev": "node scripts/with-env.js NODE_ENV=development electron .",
+    "start": "npm run build && electron .",
+    "dev": "npm run build && node scripts/with-env.js NODE_ENV=development electron .",
     "build": "node scripts/build.js",
-    "build:prod": "node scripts/with-env.js NODE_ENV=production node scripts/build.js",
-    "electron:build:win": "electron-builder --win --publish never",
+    "build:prod": "node scripts/build.js --production",
+    "electron:build:win": "npm run build:prod && electron-builder --win --publish never",
     "test": "npm run test:baseline",
     "test:baseline": "jest --config jest.baseline.config.js --runInBand",
     "test:legacy": "jest --runInBand",
@@ -16,15 +16,16 @@
     "test:coverage": "jest --coverage",
     "test:ci": "npm run test:baseline",
     "test:app": "playwright test",
-    "lint": "eslint src browser-extension --ext .js",
-    "lint:fix": "eslint src browser-extension --ext .js --fix",
-    "lint:ci": "eslint src browser-extension --ext .js --format json --output-file lint-results.json",
+    "lint": "eslint src browser-extension --ext .js,.ts",
+    "lint:fix": "eslint src browser-extension --ext .js,.ts --fix",
+    "lint:ci": "eslint src browser-extension --ext .js,.ts --format json --output-file lint-results.json",
     "clean": "node -e \"for (const d of ['dist', 'coverage']) require('fs').rmSync(d, { recursive: true, force: true })\"",
     "prerelease": "npm run test:ci && npm run lint:ci",
-    "release": "npm run build:prod && npm run electron:build:win",
+    "release": "npm run electron:build:win",
     "update-manifest": "node scripts/update-manifest.js",
     "security:audit": "npm audit --audit-level=moderate",
-    "security:fix": "npm audit fix"
+    "security:fix": "npm audit fix",
+    "typecheck": "tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.renderer.json"
   },
   "keywords": [
     "time-tracking",
@@ -40,12 +41,18 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
+    "@types/node": "^26.6.4",
+    "@typescript-eslint/eslint-plugin": "^8.71.0",
+    "@typescript-eslint/parser": "^8.71.0",
     "commander": "^14.0.2",
     "electron": "^44.5.1",
     "electron-builder": "^26.0.12",
+    "esbuild": "^0.28.2",
     "eslint": "^8.57.0",
     "jest": "^30.5.2",
-    "jest-environment-jsdom": "^30.5.2"
+    "jest-environment-jsdom": "^30.5.2",
+    "ts-jest": "^29.4.14",
+    "typescript": "^6.0.3"
   },
   "dependencies": {
     "active-win": "^7.7.2",
@@ -62,10 +69,9 @@
       "output": "dist"
     },
     "files": [
-      "src/**/*",
+      "out/**/*",
       "assets/**/*",
-      "!src/**/*.test.js",
-      "!src/**/*.map",
+      "!out/**/*.map",
       "!node_modules/sql.js/dist/*debug*",
       "!node_modules/sql.js/dist/*browser*",
       "!node_modules/sql.js/dist/*worker*",

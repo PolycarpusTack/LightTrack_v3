@@ -51,6 +51,13 @@ test.describe('packaged application', () => {
   test('stores a manual entry, exports it to SAP CSV and keeps it after restart', async () => {
     const { app, page, errors } = await launch(userData);
 
+    // The renderer TypeScript bundle (LT3-006) loaded and published its module.
+    const bundle = await page.evaluate(() => ({
+      icon: typeof window.LightTrack?.Utils?.icon,
+      svg: window.LightTrack.Utils.icon('inbox').startsWith('<svg')
+    }));
+    expect(bundle).toEqual({ icon: 'function', svg: true });
+
     // Harness mode uses the isolated profile, not the user's real one.
     const appUserData = await app.evaluate(({ app: electronApp }) => electronApp.getPath('userData'));
     expect(path.resolve(appUserData)).toBe(path.resolve(userData));
