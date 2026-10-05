@@ -54,10 +54,9 @@ The following work, previously assigned to `PolycarpusTack/lighttrack`, is now p
 
 ## Inputs still required
 
-- An anonymised SAP target file or exact column-level import specification.
-- The authoritative project-master source and applicable SAP identifiers.
-- The RDP clients used in practice and whether IT can deploy a remote-side collector.
-- Jira outbound-worklog policy and Salesforce connected-app/privacy approvals.
+- Timmy changes for SAP submission (ADR 0003): desktop authentication, idempotent creation, reference-data and status endpoints. See `docs/integrations/timmy-integration-request.md`.
+- Whether IT can deploy a remote-side collector for RDP sessions (clients in use: `mstsc.exe`, Windows App).
+- Salesforce connected-app and privacy approvals. (Jira: outbound worklogs with review, decided.)
 - A code-signing certificate and release-channel policy.
 
 GitHub P0/P1 issues are created in this repository.
