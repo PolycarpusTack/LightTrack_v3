@@ -3,6 +3,9 @@
 const { ipcMain } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const logger = require('../../logger');
+const { UPDATES_ENABLED, DISABLED_REASON } = require('../../update-policy');
+
+const disabled = () => ({ status: 'disabled', message: DISABLED_REASON });
 
 class UpdaterHandlerMain {
   constructor(appState) {
@@ -25,9 +28,10 @@ class UpdaterHandlerMain {
       const storedPreferences = this.appState.store.get('updaterPreferences', {});
       this.updateStatus.preferences = { ...this.updateStatus.preferences, ...storedPreferences };
       autoUpdater.channel = this.updateStatus.preferences.updateChannel;
-      autoUpdater.autoDownload = this.updateStatus.preferences.autoDownload;
-      autoUpdater.autoInstallOnAppQuit = this.updateStatus.preferences.autoInstall;
+      autoUpdater.autoDownload = UPDATES_ENABLED && this.updateStatus.preferences.autoDownload;
+      autoUpdater.autoInstallOnAppQuit = UPDATES_ENABLED && this.updateStatus.preferences.autoInstall;
     }
+    this.updateStatus.updatesEnabled = UPDATES_ENABLED;
 
     this.setupAutoUpdaterEvents();
   }
@@ -87,6 +91,7 @@ class UpdaterHandlerMain {
     this.updateStatus.currentVersion = this.appState.app.getVersion();
 
     ipcMain.handle('updater-check-for-updates', async () => {
+      if (!UPDATES_ENABLED) return disabled();
       try {
         if (process.env.NODE_ENV === 'development' && !process.env.FORCE_DEV_UPDATE_CONFIG) {
           logger.warn('Skip checkForUpdates because application is not packed and dev update config is not forced');
@@ -101,6 +106,7 @@ class UpdaterHandlerMain {
     });
 
     ipcMain.handle('updater-download-update', async () => {
+      if (!UPDATES_ENABLED) return disabled();
       try {
         await autoUpdater.downloadUpdate();
         return { status: 'success' };
@@ -111,6 +117,7 @@ class UpdaterHandlerMain {
     });
 
     ipcMain.handle('updater-install-update', async () => {
+      if (!UPDATES_ENABLED) return disabled();
       try {
         autoUpdater.quitAndInstall();
         return { status: 'success' };
@@ -134,8 +141,8 @@ class UpdaterHandlerMain {
         this.appState.store.set('updaterPreferences', this.updateStatus.preferences);
       }
       autoUpdater.channel = this.updateStatus.preferences.updateChannel;
-      autoUpdater.autoDownload = this.updateStatus.preferences.autoDownload;
-      autoUpdater.autoInstallOnAppQuit = this.updateStatus.preferences.autoInstall;
+      autoUpdater.autoDownload = UPDATES_ENABLED && this.updateStatus.preferences.autoDownload;
+      autoUpdater.autoInstallOnAppQuit = UPDATES_ENABLED && this.updateStatus.preferences.autoInstall;
       return { status: 'success', preferences: this.updateStatus.preferences };
     });
 

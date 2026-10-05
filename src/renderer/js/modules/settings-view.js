@@ -1386,9 +1386,12 @@
 
     // Load current URL
     try {
-      const currentUrl = await window.lightTrackAPI.calendar.getUrl();
-      if (currentUrl) {
-        calendarUrlInput.value = currentUrl;
+      // Main only returns a masked URL (the feed token stays protected); show it as a hint.
+      const maskedUrl = await window.lightTrackAPI.calendar.getUrl();
+      calendarUrlInput.dataset.configured = maskedUrl ? 'true' : '';
+      if (maskedUrl) {
+        calendarUrlInput.value = '';
+        calendarUrlInput.placeholder = `Saved: ${maskedUrl} (paste a new URL to replace it)`;
       }
 
       // Show last sync time
@@ -1439,7 +1442,7 @@
       syncBtn.addEventListener('click', async () => {
         const url = calendarUrlInput.value.trim();
 
-        if (!url) {
+        if (!url && !calendarUrlInput.dataset.configured) {
           showNotification('Please enter a calendar URL first', 'error');
           return;
         }
@@ -1450,8 +1453,8 @@
         statusEl.textContent = 'Syncing calendar...';
 
         try {
-          // First save the URL if it changed
-          await window.lightTrackAPI.calendar.setUrl(url);
+          // Save a newly typed URL first; otherwise sync the saved one
+          if (url) await window.lightTrackAPI.calendar.setUrl(url);
           // Then sync
           const result = await window.lightTrackAPI.calendar.sync();
 

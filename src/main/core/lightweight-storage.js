@@ -3,9 +3,7 @@
 
 const Store = require('electron-store');
 const { safeStorage, app } = require('electron');
-const crypto = require('crypto');
-const fs = require('fs');
-const path = require('path');
+const { resolveStorageKey } = require('./storage-key');
 const {
   MAX_ACTIVITIES,
   COMPRESSION_THRESHOLD,
@@ -13,42 +11,16 @@ const {
 } = require('../../shared/constants');
 
 /**
- * Get or create a per-machine encryption key using OS keychain where available
+ * Store encryption key: random, protected by Windows data protection, no guessable
+ * fallback. See storage-key.js (LT3-008).
  */
 function getEncryptionKey() {
-  // Skip encryption in development for easier debugging
-  if (process.env.NODE_ENV !== 'production') {
-    return undefined;
-  }
-
-  const keyFile = path.join(app.getPath('userData'), '.keyref');
-
-  try {
-    // Check if safeStorage is available (OS keychain)
-    if (safeStorage.isEncryptionAvailable()) {
-      // Try to load existing encrypted key reference
-      if (fs.existsSync(keyFile)) {
-        const encryptedKey = fs.readFileSync(keyFile);
-        const decryptedKey = safeStorage.decryptString(encryptedKey);
-        return decryptedKey;
-      }
-
-      // Generate a new random key and store it securely
-      const newKey = crypto.randomBytes(32).toString('hex');
-      const encryptedKey = safeStorage.encryptString(newKey);
-      fs.writeFileSync(keyFile, encryptedKey);
-      return newKey;
-    }
-
-    // Fallback: Use machine-specific derived key (less secure but better than hardcoded)
-    const machineId = `${process.platform}-${process.arch}-${app.getPath('userData')}`;
-    return crypto.createHash('sha256').update(machineId).digest('hex').substring(0, 32);
-  } catch (error) {
-    console.error('Failed to get encryption key, falling back to derived key:', error.message);
-    // Ultimate fallback
-    const fallbackId = `lighttrack-${process.platform}-${app.getPath('userData')}`;
-    return crypto.createHash('sha256').update(fallbackId).digest('hex').substring(0, 32);
-  }
+  return resolveStorageKey({
+    safeStorage,
+    userDataPath: app.getPath('userData'),
+    StoreClass: Store,
+    production: process.env.NODE_ENV === 'production'
+  });
 }
 
 class LightweightStorage {
