@@ -311,7 +311,7 @@ The application currently persists everything through `electron-store` (`core/li
 
 **Outcome:** a documented choice of SQLite driver that packages and runs on Windows.
 
-**First candidate:** `sql.js` (SQLite compiled to WebAssembly, no native module), as used by Timmy. Writes must be atomic (temporary file, then rename), unlike Timmy's in-place rewrite. `better-sqlite3` is evaluated only if `sql.js` falls short on size, write latency or durability.
+**First candidate:** `sql.js` (SQLite compiled to WebAssembly, no native module). Writes must be atomic (temporary file, then rename). `better-sqlite3` is evaluated only if `sql.js` falls short on size, write latency or durability.
 
 This is the largest packaging risk in the plan and is scheduled in Increment A, before any schema work.
 
@@ -451,12 +451,12 @@ Acceptance criteria:
 
 Acceptance criteria:
 
-- Approved worklogs are sent to Timmy's `POST /api/timesheets` as `initial` entries with date, duration (hours and minutes), booking code, service product ID, Jira key and description, plus `external_id` (the worklog ID).
+- Approved worklogs are sent to Timmy's `POST /api/timesheets` as `initial` booking lines (date, duration in hours and minutes, booking code, service product ID, `external_id` = the worklog ID), followed by one `POST /api/timesheets/:id/jira-entries` per Jira key with its comment; Timmy builds the SAP description from those.
 - Retries never create duplicates: the same `external_id` returns the existing Timmy entry.
 - Each submission is recorded immutably (payload, Timmy entry ID, time, result). A submitted worklog cannot be edited in place; corrections follow the superseding flow (LT3-202).
 - The Timmy token is stored with Windows data protection, can be revoked from Settings and is never logged.
 - Without a connection, approved worklogs stay queued and LightTrack keeps working.
-- Where Timmy offers it, Timmy and SAP status are shown next to each submitted worklog.
+- Where Timmy offers it, Timmy status (`initial`, `sentToSAP`, released) and SAP rejections are shown next to each submitted worklog.
 - Contract tests run against a fake Timmy server.
 
 ### P2 — capture review and RDP
