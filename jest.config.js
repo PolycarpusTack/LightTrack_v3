@@ -40,10 +40,8 @@ module.exports = {
     }
   },
   
-  // Transform files
-  transform: {
-    '^.+\\.js$': 'babel-jest'
-  },
+  // Source and tests are CommonJS and run directly on the supported Node baseline.
+  transform: {},
   
   // Ignore patterns
   testPathIgnorePatterns: [
@@ -51,6 +49,7 @@ module.exports = {
     '/dist/',
     '/archive/'
   ],
+  modulePathIgnorePatterns: ['<rootDir>/dist/'],
   
   // Module file extensions
   moduleFileExtensions: ['js', 'json'],

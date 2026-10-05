@@ -41,5 +41,62 @@
     "node_modules/",
     "*.min.js",
     "browser-extension/"
+  ],
+  "overrides": [
+    {
+      "files": ["src/renderer/js/modules/*.js"],
+      "rules": {
+        "no-shadow": "off"
+      },
+      "globals": {
+        "AppState": "readonly",
+        "CONSTANTS": "readonly",
+        "ERRORS": "readonly",
+        "Elements": "readonly",
+        "SnakeGame": "readonly",
+        "applyFilters": "readonly",
+        "debounce": "readonly",
+        "escapeAttr": "readonly",
+        "escapeHtml": "readonly",
+        "fetchAllMappings": "readonly",
+        "findAndDisplayMatchedRule": "readonly",
+        "formatDuration": "readonly",
+        "getLocalDateString": "readonly",
+        "getWorkDayEndMinutes": "readonly",
+        "getWorkDayStartMinutes": "readonly",
+        "initBreakReminder": "readonly",
+        "invalidateAnalyticsCache": "readonly",
+        "loadActivities": "readonly",
+        "loadActivityTypeManager": "readonly",
+        "loadAnalyticsView": "readonly",
+        "loadProjectManager": "readonly",
+        "loadSettingsView": "readonly",
+        "loadTagManager": "readonly",
+        "markBreak": "readonly",
+        "openClearDataModal": "readonly",
+        "openDeleteModal": "readonly",
+        "openEditModal": "readonly",
+        "openManualEntryModal": "readonly",
+        "openTagEditor": "readonly",
+        "parseLocalDateString": "readonly",
+        "safeLocalStorageSet": "readonly",
+        "showNotification": "readonly",
+        "switchView": "readonly",
+        "toggleTracking": "readonly"
+      }
+    },
+    {
+      "files": ["src/renderer/js/app.js"],
+      "rules": {
+        "no-unused-vars": "off",
+        "no-shadow": "off"
+      }
+    },
+    {
+      "files": ["src/shared/sanitize.js"],
+      "rules": {
+        "no-control-regex": "off"
+      }
+    }
   ]
 }

@@ -1,5 +1,5 @@
 // windowManager.js - Window Management Service
-const { BrowserWindow, Tray, Menu, screen, Notification } = require('electron');
+const { BrowserWindow, Tray, Menu, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
 

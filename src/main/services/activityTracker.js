@@ -94,13 +94,13 @@ class ActivityTracker {
    */
   clearAllTimers() {
     // Clear all intervals
-    this.intervals.forEach((intervalId, name) => {
+    this.intervals.forEach((intervalId, _name) => {
       clearInterval(intervalId);
     });
     this.intervals.clear();
 
     // Clear all timeouts
-    this.timeouts.forEach((timeoutId, name) => {
+    this.timeouts.forEach((timeoutId, _name) => {
       clearTimeout(timeoutId);
     });
     this.timeouts.clear();

@@ -18,7 +18,7 @@ const CalendarSyncService = require('./services/calendarSyncService');
 const CalendarHandlerMain = require('./ipc/handlers/calendarHandlerMain');
 const BrowserExtensionServer = require('./core/browser-extension-server');
 const UpgradeManager = require('./core/upgrade-manager');
-const { validateAndSanitizeActivity, sanitizeString } = require('../shared/sanitize');
+const { validateAndSanitizeActivity } = require('../shared/sanitize');
 
 
 class LightTrackApp {

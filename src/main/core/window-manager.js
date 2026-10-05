@@ -160,7 +160,7 @@ class WindowManager {
 
       // Log renderer console messages in development
       if (process.env.NODE_ENV === 'development') {
-        this.mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+        this.mainWindow.webContents.on('console-message', (event, level, message, _line, _sourceId) => {
           logger.debug(`Renderer console: [${level}] ${message}`);
         });
       }

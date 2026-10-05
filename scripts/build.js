@@ -53,9 +53,6 @@ class Builder {
       // Generate package.json for distribution
       await this.generateDistPackageJson();
       
-      // Copy node_modules (production only)
-      await this.copyNodeModules();
-      
       // Generate build info
       await this.generateBuildInfo();
       
@@ -262,23 +259,6 @@ class Builder {
     const lockFile = path.join(this.rootDir, 'package-lock.json');
     if (fs.existsSync(lockFile)) {
       fs.copyFileSync(lockFile, path.join(this.distDir, 'package-lock.json'));
-    }
-  }
-  
-  /**
-   * Copy production node_modules
-   */
-  async copyNodeModules() {
-    console.log('📚 Copying production dependencies...');
-    
-    try {
-      // Install production dependencies in dist
-      execSync('npm ci --only=production', {
-        cwd: this.distDir,
-        stdio: 'inherit'
-      });
-    } catch (error) {
-      console.warn('⚠️  Failed to install production dependencies:', error.message);
     }
   }
   
