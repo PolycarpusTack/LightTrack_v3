@@ -57,7 +57,6 @@ The following work, previously assigned to `PolycarpusTack/lighttrack`, is now p
 - Timmy changes for SAP submission (ADR 0003): desktop authentication, idempotent creation, reference-data and status endpoints. See `docs/integrations/timmy-integration-request.md`.
 - Whether IT can deploy a remote-side collector for RDP sessions (clients in use: `mstsc.exe`, Windows App).
 - Salesforce connected-app and privacy approvals. (Jira: outbound worklogs with review, decided.)
-- Whether installed builds should encrypt the data file (LT3-008).
 - A code-signing certificate and release-channel policy.
 
 GitHub P0/P1 issues are created in this repository.
