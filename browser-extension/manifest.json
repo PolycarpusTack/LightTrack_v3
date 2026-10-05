@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LightTrack Browser Extension",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Track web browsing time in LightTrack",
   "author": "2LS - Yannick Verrydt",
   
@@ -12,7 +12,7 @@
   ],
   
   "host_permissions": [
-    "http://localhost/*"
+    "http://127.0.0.1/*"
   ],
   
   "background": {

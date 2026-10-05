@@ -17,6 +17,7 @@ const ActivityTypesHandlerMain = require('./ipc/handlers/activityTypesHandlerMai
 const CalendarSyncService = require('./integrations/calendar/calendar-sync-service');
 const CalendarHandlerMain = require('./ipc/handlers/calendarHandlerMain');
 const BrowserExtensionServer = require('./core/browser-extension-server');
+const { ExtensionPairing } = require('./integrations/browser/extension-pairing');
 const UpgradeManager = require('./core/upgrade-manager');
 const { validateAndSanitizeActivity } = require('../shared/sanitize');
 
@@ -164,7 +165,15 @@ class LightTrackApp {
       this.tracker = new ActivityTracker(this.storage, this.mainWindow);
 
       // Initialize browser extension server for web browser integration
-      this.browserExtensionServer = new BrowserExtensionServer(this.tracker, this.storage);
+      // Pairing (LT3-004): the code is shown here, in the desktop app, never sent to the browser.
+      this.extensionPairing = new ExtensionPairing({
+        store: this.storage.store,
+        showCode: (code, pairingId) => this.showExtensionPairingCode(code, pairingId)
+      });
+      this.browserExtensionServer = new BrowserExtensionServer(this.tracker, this.storage, {
+        pairing: this.extensionPairing,
+        log: logger
+      });
       this.browserExtensionServer.start();
 
       // Initialize TrayManager
@@ -239,6 +248,33 @@ class LightTrackApp {
       logger.error('Failed to check auto-start tracking:', error);
     }
   }
+  /**
+   * Show a browser-extension pairing code to the person at this computer (LT3-004).
+   * Choosing Deny cancels the pairing request.
+   */
+  showExtensionPairingCode(code, pairingId) {
+    const parent = this.mainWindow && !this.mainWindow.isDestroyed() ? this.mainWindow : undefined;
+    if (parent) {
+      if (parent.isMinimized()) parent.restore();
+      parent.show();
+      parent.focus();
+    }
+    const spaced = `${code.slice(0, 3)} ${code.slice(3)}`;
+    dialog.showMessageBox(parent, {
+      type: 'info',
+      title: 'Pair browser extension',
+      message: `Pairing code: ${spaced}`,
+      detail: 'Type this code in the LightTrack browser extension to connect it. The code expires in two minutes. ' +
+        'If you did not start pairing from the extension, choose Deny.',
+      buttons: ['OK', 'Deny'],
+      defaultId: 0,
+      cancelId: 0,
+      noLink: true
+    }).then(({ response }) => {
+      if (response === 1) this.extensionPairing?.cancel(pairingId);
+    }).catch(() => {});
+  }
+
   setupIPC() {
     try {
       // Create safe handler wrapper with validation and structured errors
@@ -369,6 +405,15 @@ class LightTrackApp {
       }
 
       // Register shell:open-external handler with URL validation
+      ipcMain.handle('browser-extension:get-status', () => ({
+        paired: this.extensionPairing ? this.extensionPairing.pairedCount() : 0
+      }));
+      ipcMain.handle('browser-extension:revoke-all', () => {
+        this.extensionPairing?.revokeAll();
+        logger.info('Browser extension pairings revoked');
+        return { paired: 0 };
+      });
+
       ipcMain.handle('shell:open-external', (event, url) => {
         if (typeof url !== 'string') {
           throw new Error('URL must be a string');

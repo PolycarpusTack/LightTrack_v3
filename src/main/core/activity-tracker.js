@@ -847,7 +847,7 @@ class ActivityTracker {
         }
       }
 
-      logger.debug('Browser activity processed', { url: activity.url, parsed });
+      logger.debug('Browser activity processed', { project: parsed?.project || null });
     } catch (error) {
       logger.error('Error processing browser activity:', error);
     }
@@ -891,7 +891,7 @@ class ActivityTracker {
         }
       }
 
-      logger.debug('Page context processed', { type: context.type, data: context.data });
+      logger.debug('Page context processed', { type: context.type });
     } catch (error) {
       logger.error('Error processing page context:', error);
     }

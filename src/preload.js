@@ -407,6 +407,12 @@ contextBridge.exposeInMainWorld('lightTrackAPI', {
   },
 
   // SAP export errors keep the main-process message (e.g. a validation error) without Electron's prefix.
+  // Browser extension pairing (LT3-004)
+  browserExtension: {
+    getStatus: () => ipcRenderer.invoke('browser-extension:get-status'),
+    revokeAll: () => ipcRenderer.invoke('browser-extension:revoke-all')
+  },
+
   previewSAPExport: async (options) => {
     try {
       return await ipcRenderer.invoke('activities:preview-sap', options);

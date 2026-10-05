@@ -1,316 +1,256 @@
-// browser-extension-server.js - HTTP API server for browser extension
-// Handles communication between browser extension and LightTrack desktop app
+// browser-extension-server.js - HTTP API for the LightTrack browser extension
+//
+// Loopback only (127.0.0.1). Requests are authenticated with a token obtained by
+// pairing (see integrations/browser/extension-pairing.js, LT3-004):
+//   GET  /status          - liveness; reports whether the caller's token is paired
+//   POST /pair/start      - begin pairing; LightTrack shows a code to the user
+//   POST /pair/complete   - exchange pairing ID + code for a token
+//   POST /browser-activity, POST /page-context - require "Authorization: Bearer <token>"
+// POST bodies must be application/json and pass schema validation. Titles, URLs and
+// tokens are never logged.
 
 const http = require('http');
-const crypto = require('crypto');
 const { BROWSER_EXTENSION_PORT } = require('../../shared/constants');
+const { PairingError } = require('../integrations/browser/extension-pairing');
+const { validateBrowserActivity, validatePageContext } = require('../integrations/browser/extension-payloads');
 
-// Rate limiting: max requests per minute per endpoint
-const RATE_LIMIT = 60;
+const RATE_LIMIT = 60;            // requests per minute per endpoint
+const PAIR_RATE_LIMIT = 10;       // pairing requests per minute
 const RATE_WINDOW_MS = 60000;
+const MAX_BODY = { '/browser-activity': 10000, '/page-context': 50000, '/pair/start': 1000, '/pair/complete': 1000 };
+
+const EXTENSION_ORIGIN = /^(chrome-extension|moz-extension):\/\/[a-z0-9-]+\/?$/i;
 
 class BrowserExtensionServer {
-  constructor(activityTracker, storage) {
+  /**
+   * @param {object} activityTracker
+   * @param {object} storage
+   * @param {object} options
+   * @param {import('../integrations/browser/extension-pairing').ExtensionPairing} options.pairing
+   * @param {number} [options.port]
+   * @param {object} [options.log] - logger with info/warn/error
+   */
+  constructor(activityTracker, storage, { pairing, port = BROWSER_EXTENSION_PORT, log = console } = {}) {
     this.activityTracker = activityTracker;
     this.storage = storage;
+    this.pairing = pairing;
+    this.port = port;
+    this.log = log;
     this.server = null;
     this.isRunning = false;
-
-    // Security: session token for authenticated requests
-    this.sessionToken = crypto.randomBytes(32).toString('hex');
-
-    // Rate limiting state
     this.requestCounts = new Map();
   }
 
-  /**
-   * Check if request origin is allowed
-   * Only allow: browser extensions (chrome-extension://, moz-extension://)
-   * or no origin (direct requests from CLI tools, Electron, etc.)
-   */
-  isOriginAllowed(origin) {
-    if (!origin) return true; // No origin = direct request, allowed
-    if (origin.startsWith('chrome-extension://')) return true;
-    if (origin.startsWith('moz-extension://')) return true;
-    if (origin.startsWith('safari-extension://')) return true;
-    return false;
+  /** Extension origins only; web pages and origin-less callers are not extensions. */
+  static isExtensionOrigin(origin) {
+    return typeof origin === 'string' && EXTENSION_ORIGIN.test(origin);
   }
 
-  /**
-   * Validate session token from Authorization header
-   * Token format: "Bearer <token>"
-   */
-  validateToken(req) {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return false;
-
-    const parts = authHeader.split(' ');
-    if (parts.length !== 2 || parts[0] !== 'Bearer') return false;
-
-    return parts[1] === this.sessionToken;
+  bearerToken(req) {
+    const header = req.headers.authorization;
+    if (typeof header !== 'string') return null;
+    const match = /^Bearer ([A-Za-z0-9_-]{20,200})$/.exec(header);
+    return match ? match[1] : null;
   }
 
-  /**
-   * Check rate limit for endpoint
-   */
-  isRateLimited(endpoint) {
+  isAuthorized(req) {
+    return this.pairing.verify(this.bearerToken(req), req.headers.origin);
+  }
+
+  isRateLimited(key, limit) {
     const now = Date.now();
-    const key = endpoint;
-
-    // Cleanup stale entries when map grows too large
     if (this.requestCounts.size > 100) {
-      for (const [entryKey, entryData] of this.requestCounts) {
-        if (now - entryData.windowStart > RATE_WINDOW_MS) {
-          this.requestCounts.delete(entryKey);
-        }
+      for (const [k, v] of this.requestCounts) {
+        if (now - v.windowStart > RATE_WINDOW_MS) this.requestCounts.delete(k);
       }
     }
-
-    if (!this.requestCounts.has(key)) {
+    const entry = this.requestCounts.get(key);
+    if (!entry || now - entry.windowStart > RATE_WINDOW_MS) {
       this.requestCounts.set(key, { count: 1, windowStart: now });
       return false;
     }
-
-    const data = this.requestCounts.get(key);
-    if (now - data.windowStart > RATE_WINDOW_MS) {
-      // Reset window
-      data.count = 1;
-      data.windowStart = now;
-      return false;
-    }
-
-    data.count++;
-    return data.count > RATE_LIMIT;
+    entry.count += 1;
+    return entry.count > limit;
   }
 
-  /**
-   * Start the HTTP server for browser extension communication
-   */
-  start() {
-    if (this.isRunning) {
-      console.log('Browser extension server already running');
+  send(res, status, body) {
+    res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify(body));
+  }
+
+  /** Read and parse a JSON body with a size limit. Resolves to the parsed value. */
+  readJson(req, limit) {
+    return new Promise((resolve, reject) => {
+      const type = String(req.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
+      if (type !== 'application/json') {
+        reject(Object.assign(new Error('Content-Type must be application/json'), { status: 415 }));
+        return;
+      }
+      let size = 0;
+      const chunks = [];
+      req.on('data', chunk => {
+        size += chunk.length;
+        if (size > limit) {
+          // Stop reading; the 413 is sent with Connection: close and the socket closed after it.
+          req.pause();
+          reject(Object.assign(new Error('Request too large'), { status: 413 }));
+          return;
+        }
+        chunks.push(chunk);
+      });
+      req.on('end', () => {
+        try {
+          resolve(JSON.parse(Buffer.concat(chunks).toString('utf8')));
+        } catch {
+          reject(Object.assign(new Error('Invalid JSON'), { status: 400 }));
+        }
+      });
+      req.on('error', reject);
+    });
+  }
+
+  async handle(req, res) {
+    const origin = req.headers.origin;
+    const path = (req.url || '').split('?')[0];
+    const isExtension = BrowserExtensionServer.isExtensionOrigin(origin);
+
+    // CORS only for extension origins
+    if (isExtension) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Vary', 'Origin');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    }
+    if (req.method === 'OPTIONS') {
+      res.writeHead(isExtension ? 204 : 403);
+      res.end();
       return;
     }
 
-    this.server = http.createServer((req, res) => {
-      const origin = req.headers.origin;
+    const isPairing = path.startsWith('/pair/');
+    if (this.isRateLimited(isPairing ? 'pair' : path, isPairing ? PAIR_RATE_LIMIT : RATE_LIMIT)) {
+      this.send(res, 429, { error: 'Too many requests' });
+      return;
+    }
 
-      // Security: Check origin for non-GET requests
-      if (req.method !== 'GET' && req.method !== 'OPTIONS') {
-        if (!this.isOriginAllowed(origin)) {
-          console.warn(`Rejected request from disallowed origin: ${origin}`);
-          res.writeHead(403, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Forbidden: Invalid origin' }));
-          return;
-        }
-      }
-
-      // Rate limiting
-      if (this.isRateLimited(req.url)) {
-        res.writeHead(429, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Too many requests' }));
-        return;
-      }
-
-      // Set CORS headers - only for allowed origins
-      if (origin && this.isOriginAllowed(origin)) {
-        res.setHeader('Access-Control-Allow-Origin', origin);
-      }
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-      // Handle preflight requests
-      if (req.method === 'OPTIONS') {
-        res.writeHead(200);
-        res.end();
-        return;
-      }
-
-      // Route requests
-      if (req.method === 'GET' && req.url === '/status') {
-        this.handleStatus(req, res);
-      } else if (req.method === 'POST' && req.url === '/browser-activity') {
-        // Validate session token for POST requests
-        if (!this.validateToken(req)) {
-          res.writeHead(401, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Unauthorized: Invalid or missing token' }));
-          return;
-        }
-        this.handleBrowserActivity(req, res);
-      } else if (req.method === 'POST' && req.url === '/page-context') {
-        // Validate session token for POST requests
-        if (!this.validateToken(req)) {
-          res.writeHead(401, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Unauthorized: Invalid or missing token' }));
-          return;
-        }
-        this.handlePageContext(req, res);
-      } else {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Not found' }));
-      }
-    });
-
-    this.server.on('error', (err) => {
-      if (err.code === 'EADDRINUSE') {
-        console.error(`Port ${BROWSER_EXTENSION_PORT} is already in use. Browser extension server not started.`);
-      } else {
-        console.error('Browser extension server error:', err);
-      }
-    });
-
-    this.server.listen(BROWSER_EXTENSION_PORT, '127.0.0.1', () => {
-      console.log(`Browser extension server listening on http://127.0.0.1:${BROWSER_EXTENSION_PORT}`);
-      this.isRunning = true;
-    });
-  }
-
-  /**
-   * Stop the HTTP server
-   */
-  stop() {
-    if (this.server) {
-      this.server.close(() => {
-        console.log('Browser extension server stopped');
-        this.isRunning = false;
+    if (req.method === 'GET' && path === '/status') {
+      this.send(res, 200, {
+        status: 'ok',
+        tracking: Boolean(this.activityTracker?.isTracking),
+        paired: this.isAuthorized(req)
       });
-    }
-  }
-
-  /**
-   * Handle GET /status - Check if LightTrack is running
-   * Returns session token only to allowed origins (browser extensions)
-   */
-  handleStatus(req, res) {
-    const origin = req.headers.origin;
-    const isTracking = this.activityTracker?.isTracking || false;
-
-    const response = {
-      status: 'ok',
-      version: '3.0.0',
-      tracking: isTracking
-    };
-
-    // Only provide token to browser extensions (not web pages or originless requests)
-    // Require an actual extension origin — no origin means any local process could steal the token
-    if (origin && this.isOriginAllowed(origin)) {
-      response.token = this.sessionToken;
+      return;
     }
 
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(response));
-  }
+    if (req.method !== 'POST' || !(path in MAX_BODY)) {
+      this.send(res, 404, { error: 'Not found' });
+      return;
+    }
 
-  /**
-   * Handle POST /browser-activity - Receive activity from browser extension
-   */
-  handleBrowserActivity(req, res) {
-    let body = '';
+    if (!isExtension) {
+      this.send(res, 403, { error: 'Forbidden: extension origin required' });
+      return;
+    }
 
-    req.on('data', chunk => {
-      body += chunk.toString();
-      // Limit body size to prevent abuse
-      if (body.length > 10000) {
-        req.destroy();
-        res.writeHead(413, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Request too large' }));
+    let body;
+    try {
+      body = await this.readJson(req, MAX_BODY[path]);
+    } catch (error) {
+      if (error.status === 413) {
+        res.writeHead(413, { 'Content-Type': 'application/json', 'Connection': 'close' });
+        res.end(JSON.stringify({ error: error.message }), () => req.destroy());
         return;
       }
-    });
+      this.send(res, error.status || 400, { error: error.message });
+      return;
+    }
 
-    req.on('end', () => {
-      try {
-        const activity = JSON.parse(body);
+    try {
+      if (path === '/pair/start') {
+        const { pairingId, expiresAt } = this.pairing.start(origin);
+        this.log.info('Browser extension pairing started');
+        this.send(res, 200, { pairingId, expiresAt });
+        return;
+      }
 
-        // Validate required fields
-        if (!activity.url || !activity.title) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Missing required fields: url, title' }));
+      if (path === '/pair/complete') {
+        const pairingId = typeof body?.pairingId === 'string' ? body.pairingId : '';
+        const code = typeof body?.code === 'string' ? body.code.replace(/\s/g, '') : '';
+        const token = this.pairing.complete(pairingId, code, origin);
+        this.log.info('Browser extension paired');
+        this.send(res, 200, { token });
+        return;
+      }
+
+      if (!this.isAuthorized(req)) {
+        this.send(res, 401, { error: 'Unauthorized: pair the extension with LightTrack' });
+        return;
+      }
+
+      if (path === '/browser-activity') {
+        const { value, error } = validateBrowserActivity(body);
+        if (error) {
+          this.send(res, 400, { error });
           return;
         }
-
-        // Sanitize and process the activity
-        const sanitizedActivity = {
-          url: String(activity.url).substring(0, 2000),
-          title: String(activity.title).substring(0, 500),
-          browser: String(activity.browser || 'Unknown').substring(0, 50),
-          timestamp: activity.timestamp || new Date().toISOString()
-        };
-
-        // Forward to activity tracker if available
-        if (this.activityTracker && this.activityTracker.processBrowserActivity) {
-          this.activityTracker.processBrowserActivity(sanitizedActivity);
-        } else {
-          // Store activity reference for when tracker is available
-          console.log('Browser activity received:', sanitizedActivity.title);
-        }
-
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true }));
-      } catch (error) {
-        console.error('Error processing browser activity:', error);
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Invalid JSON' }));
+        this.activityTracker?.processBrowserActivity?.(value);
+        this.send(res, 200, { success: true });
+        return;
       }
+
+      if (path === '/page-context') {
+        const { value, error } = validatePageContext(body);
+        if (error) {
+          this.send(res, 400, { error });
+          return;
+        }
+        this.activityTracker?.processPageContext?.(value);
+        this.send(res, 200, { success: true });
+      }
+    } catch (error) {
+      if (error instanceof PairingError) {
+        this.send(res, error.status, { error: error.message });
+        return;
+      }
+      this.log.error('Browser extension request failed:', error.name);
+      this.send(res, 500, { error: 'Internal error' });
+    }
+  }
+
+  start() {
+    if (this.isRunning) return Promise.resolve();
+    this.server = http.createServer((req, res) => {
+      this.handle(req, res).catch(() => this.send(res, 500, { error: 'Internal error' }));
+    });
+    return new Promise(resolve => {
+      this.server.on('error', err => {
+        if (err.code === 'EADDRINUSE') {
+          this.log.error(`Port ${this.port} is already in use. Browser extension server not started.`);
+        } else {
+          this.log.error('Browser extension server error:', err.code || err.name);
+        }
+        resolve();
+      });
+      this.server.listen(this.port, '127.0.0.1', () => {
+        this.isRunning = true;
+        this.log.info(`Browser extension server listening on http://127.0.0.1:${this.server.address().port}`);
+        resolve();
+      });
     });
   }
 
-  /**
-   * Handle POST /page-context - Receive page context (JIRA/GitHub metadata)
-   */
-  handlePageContext(req, res) {
-    let body = '';
+  /** Port actually bound (useful when started on port 0 in tests). */
+  boundPort() {
+    return this.server?.address()?.port;
+  }
 
-    req.on('data', chunk => {
-      body += chunk.toString();
-      if (body.length > 50000) {
-        req.destroy();
-        res.writeHead(413, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Request too large' }));
-        return;
-      }
-    });
-
-    req.on('end', () => {
-      try {
-        const context = JSON.parse(body);
-
-        // Validate and sanitize
-        const sanitizedContext = {
-          url: String(context.url || '').substring(0, 2000),
-          type: String(context.type || '').substring(0, 50),
-          data: {}
-        };
-
-        // Process based on type
-        if (context.type === 'jira' && context.data) {
-          sanitizedContext.data = {
-            issueKey: String(context.data.issueKey || '').substring(0, 50),
-            summary: String(context.data.summary || '').substring(0, 500),
-            projectKey: String(context.data.projectKey || '').substring(0, 50),
-            status: String(context.data.status || '').substring(0, 50)
-          };
-        } else if (context.type === 'github' && context.data) {
-          sanitizedContext.data = {
-            repo: String(context.data.repo || '').substring(0, 200),
-            owner: String(context.data.owner || '').substring(0, 100),
-            type: String(context.data.type || '').substring(0, 50),
-            number: context.data.number ? Number(context.data.number) : null
-          };
-        }
-
-        // Forward to activity tracker if available
-        if (this.activityTracker && this.activityTracker.processPageContext) {
-          this.activityTracker.processPageContext(sanitizedContext);
-        }
-
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true }));
-      } catch (error) {
-        console.error('Error processing page context:', error);
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Invalid JSON' }));
-      }
+  stop() {
+    if (!this.server) return Promise.resolve();
+    return new Promise(resolve => {
+      this.server.close(() => {
+        this.isRunning = false;
+        resolve();
+      });
     });
   }
 }
