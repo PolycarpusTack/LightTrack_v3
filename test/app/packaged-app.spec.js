@@ -111,4 +111,28 @@ test.describe('packaged application', () => {
     expect(second.errors).toEqual([]);
     await second.app.close();
   });
+
+  // LT3-100 spike: sql.js (WebAssembly) must load from inside the packaged app.
+  test('packaged app opens, writes and reads a SQLite database', async () => {
+    const { app } = await launch(userData);
+    const dbFile = path.join(userData, 'spike.db');
+
+    const rows = await app.evaluate(async (_electron, file) => {
+      // eslint-disable-next-line no-undef
+      const { SqliteDb } = process.mainModule.require('./persistence/sqlite-db');
+      const db = await SqliteDb.open(file);
+      db.run('CREATE TABLE IF NOT EXISTS probe (id INTEGER PRIMARY KEY, label TEXT NOT NULL)');
+      db.transaction(tx => tx.run('INSERT INTO probe (label) VALUES (?)', ['written in packaged app']));
+      db.save();
+      db.close();
+      const reopened = await SqliteDb.open(file);
+      const result = reopened.all('SELECT label FROM probe');
+      reopened.close();
+      return result;
+    }, dbFile);
+
+    expect(rows).toEqual([{ label: 'written in packaged app' }]);
+    expect(fs.statSync(dbFile).size).toBeGreaterThan(0);
+    await app.close();
+  });
 });

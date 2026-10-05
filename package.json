@@ -52,7 +52,8 @@
     "electron-log": "^5.4.3",
     "electron-store": "^8.2.0",
     "electron-updater": "^6.6.2",
-    "node-ical": "^0.22.1"
+    "node-ical": "^0.22.1",
+    "sql.js": "^1.14.2"
   },
   "build": {
     "appId": "com.lightsuite.lighttrack",
@@ -64,7 +65,13 @@
       "src/**/*",
       "assets/**/*",
       "!src/**/*.test.js",
-      "!src/**/*.map"
+      "!src/**/*.map",
+      "!node_modules/sql.js/dist/*debug*",
+      "!node_modules/sql.js/dist/*browser*",
+      "!node_modules/sql.js/dist/*worker*",
+      "!node_modules/sql.js/dist/*.zip",
+      "!node_modules/sql.js/dist/*.mjs",
+      "!node_modules/sql.js/dist/sql-asm*"
     ],
     "win": {
       "target": "nsis",

@@ -307,6 +307,8 @@ The application currently persists everything through `electron-store` (`core/li
 
 #### LT3-100 — SQLite/Electron packaging spike
 
+**Status:** done. Decision: `sql.js` with atomic saves ([ADR 0004](adr/0004-sqlite-via-sqljs.md)); the packaged app opens, writes and reads a database in CI.
+
 **Outcome:** a documented choice of SQLite driver that packages and runs on Windows.
 
 **First candidate:** `sql.js` (SQLite compiled to WebAssembly, no native module), as used by Timmy. Writes must be atomic (temporary file, then rename), unlike Timmy's in-place rewrite. `better-sqlite3` is evaluated only if `sql.js` falls short on size, write latency or durability.
