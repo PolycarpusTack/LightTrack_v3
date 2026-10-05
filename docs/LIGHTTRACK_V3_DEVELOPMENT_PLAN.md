@@ -48,6 +48,22 @@ Work proceeds incrementally. A big-bang rewrite would put working capture and ex
 7. Capture, review and approval continue to work offline; submissions wait until Timmy is reachable.
 8. Privacy controls are designed before integrations broaden the captured data.
 
+### Owner decisions (2026-10-05)
+
+| Topic | Decision | Where |
+|---|---|---|
+| Canonical repository | `LightTrack_v3` | ADR 0002 |
+| SAP route | Through Timmy; no SAP credentials on desktops | ADR 0003 |
+| Database | SQLite via `sql.js`, atomic saves, file encrypted with the protected key | ADR 0004 |
+| Worklog model | Time blocks; daily booking lines derived | ADR 0005 |
+| Rounding | Per-user setting, default nearest 15 minutes, applied to booking lines | ADR 0005, LT3-204 |
+| TypeScript | Full adoption, main process and renderer | 6.1, LT3-006 |
+| Raw-evidence retention | Chosen by the user at first run, default 1 year | LT3-601 |
+| Code signing | Releases stay unsigned; in-app updates stay off; manual installs from GitHub releases | LT3-603 |
+| Jira | Outbound worklogs allowed, always with review | LT3-501 |
+| RDP clients | `mstsc.exe` and Windows App | LT3-402 |
+| Salesforce | Kept, after Jira | LT3-502 |
+
 ## 4. Current baseline
 
 ### Completed
@@ -105,9 +121,9 @@ Phases 4 and 5 may overlap after the accounting domain is stable. Integration wo
 
 ## 6. Architecture target
 
-### 6.1 Incremental TypeScript adoption
+### 6.1 TypeScript adoption
 
-Keep the Electron shell operational while introducing TypeScript at module boundaries:
+The whole application moves to TypeScript, main process and renderer (owner decision, 2026-10-05). The Electron shell stays releasable throughout; modules move in vertical slices:
 
 ```text
 src/
@@ -128,7 +144,7 @@ src/
     errors/
 ```
 
-New domain and persistence code is TypeScript. Existing JavaScript is migrated only when touched or when required to remove an unsafe boundary. Runtime DTOs must be validated before crossing IPC or integration boundaries.
+New code is TypeScript from LT3-006 onwards. Existing JavaScript is migrated module by module, starting with the main process (IPC contract, persistence, domain) and then the renderer, which gets a bundler and ES modules in place of ordered global scripts. Runtime DTOs are validated before crossing IPC or integration boundaries; types alone are not trusted at runtime.
 
 ### 6.2 Active runtime path
 
@@ -253,14 +269,15 @@ Acceptance criteria:
 
 #### LT3-006 — Add a TypeScript toolchain
 
-**Outcome:** TypeScript can be introduced at module boundaries without disturbing the JavaScript application.
+**Outcome:** main process, preload and renderer can be written in TypeScript and packaged.
 
 Acceptance criteria:
 
-- A TypeScript configuration and type-check step are added to the build (`scripts/build.js`) and to CI.
-- Compiled output is included in the packaged application; existing JavaScript keeps working unchanged.
+- TypeScript configurations for main/preload (CommonJS, Node) and renderer (bundled ES modules) with `strict` on; type-check and build steps in `scripts/build.js` and CI.
+- The renderer is bundled (for example with Vite or esbuild) so modules replace the ordered global `<script>` tags; the CSP stays `script-src 'self'`.
+- JavaScript and TypeScript modules coexist during migration; compiled output is what gets packaged.
 - ESLint covers TypeScript files.
-- One small module is compiled, packaged and loaded at runtime to prove the path.
+- One main-process module and one renderer module are migrated, packaged and exercised by the app harness to prove the path.
 
 #### LT3-007 — SAP export hygiene
 
@@ -412,6 +429,7 @@ Acceptance criteria:
 - Daily, weekly and inbox views share the same underlying worklog data.
 - Bulk edits and copy-previous-week actions show a preview before saving.
 - Billable/non-billable and internal/client classifications are accounting fields, not performance scores.
+- Booking lines are derived per day, booking code and activity type (ADR 0005) and rounded by a per-user setting (default nearest 15 minutes); review shows rounded and unrounded totals.
 
 ### P1 — mapping and SAP export
 
@@ -528,7 +546,7 @@ Acceptance criteria:
 
 Acceptance criteria:
 
-- Users configure raw-evidence retention independently from export history.
+- Users configure raw-evidence retention independently from export history. First run asks for a retention period (default 1 year); it can be changed later in Settings.
 - Full data export and delete actions show scope and require confirmation.
 - Deletion is auditable without retaining the deleted sensitive content.
 
@@ -540,12 +558,14 @@ Acceptance criteria:
 - A support bundle preview shows exactly what will be included.
 - Users explicitly approve bundle creation.
 
-#### LT3-603 — Signed release and rollback
+#### LT3-603 — Release and rollback
+
+**Decision (2026-10-05):** releases stay unsigned. In-app updates stay off (`src/main/update-policy.js`); users install new versions from GitHub releases. Revisit if a signing certificate becomes available.
 
 Acceptance criteria:
 
-- Windows binaries and installers are signed in the release workflow.
-- Stable/beta channels and update policy are documented.
+- The release workflow publishes the unsigned installer to GitHub releases with checksums (SHA-256) and release notes.
+- The update policy (manual installs, how to verify the checksum, SmartScreen warning) is documented.
 - Rollback guidance covers application and schema compatibility.
 - CI continues to produce clearly labelled unsigned test installers for pull requests.
 
