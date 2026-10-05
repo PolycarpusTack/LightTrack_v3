@@ -25,7 +25,7 @@
     "update-manifest": "node scripts/update-manifest.js",
     "security:audit": "npm audit --audit-level=moderate",
     "security:fix": "npm audit fix",
-    "typecheck": "tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.renderer.json"
+    "typecheck": "tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.preload.json && tsc -p tsconfig.renderer.json"
   },
   "keywords": [
     "time-tracking",
@@ -60,7 +60,8 @@
     "electron-store": "^8.2.0",
     "electron-updater": "^6.6.2",
     "node-ical": "^0.22.1",
-    "sql.js": "^1.14.2"
+    "sql.js": "^1.14.2",
+    "zod": "^4.6.5"
   },
   "build": {
     "appId": "com.lightsuite.lighttrack",

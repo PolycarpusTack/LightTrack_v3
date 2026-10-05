@@ -2,7 +2,8 @@
 /**
  * Build LightTrack into out/ (LT3-006).
  *
- *   out/main, out/shared, out/preload.js  - tsc (TypeScript and JavaScript side by side)
+ *   out/main, out/shared                  - tsc (TypeScript and JavaScript side by side)
+ *   out/preload.js                        - esbuild bundle of src/preload (sandboxed preloads cannot require local files)
  *   out/renderer                          - static renderer files copied as they are
  *   out/renderer/js/bundle.js             - esbuild bundle of src/renderer/ts (one classic script)
  *
@@ -38,6 +39,20 @@ function copyRenderer() {
   });
 }
 
+function bundlePreload() {
+  require('esbuild').buildSync({
+    entryPoints: [path.join(root, 'src', 'preload', 'index.ts')],
+    outfile: path.join(outDir, 'preload.js'),
+    bundle: true,
+    format: 'cjs',
+    platform: 'node',
+    target: 'node22',
+    external: ['electron'],
+    sourcemap: production ? false : 'linked',
+    logLevel: 'warning'
+  });
+}
+
 function bundleRenderer() {
   require('esbuild').buildSync({
     entryPoints: [path.join(root, 'src', 'renderer', 'ts', 'index.ts')],
@@ -55,7 +70,9 @@ function bundleRenderer() {
 console.log(`Building LightTrack (${production ? 'production' : 'development'})`);
 step('clean out/', () => fs.rmSync(outDir, { recursive: true, force: true }));
 step('compile main process (tsc)', () => runBin('tsc', ['-p', 'tsconfig.main.json']));
+step('type-check preload (tsc)', () => runBin('tsc', ['-p', 'tsconfig.preload.json']));
 step('type-check renderer (tsc)', () => runBin('tsc', ['-p', 'tsconfig.renderer.json']));
+step('bundle preload (esbuild)', bundlePreload);
 step('copy renderer files', copyRenderer);
 step('bundle renderer TypeScript (esbuild)', bundleRenderer);
 console.log('Build complete: out/');
