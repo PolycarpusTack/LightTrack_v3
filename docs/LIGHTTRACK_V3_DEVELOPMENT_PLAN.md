@@ -8,10 +8,10 @@
 
 ## 1. Purpose
 
-This plan turns `LightTrack_v3` into the implementation repository for a local-first timesheet-assistance product. It covers the migration from raw local activity to reviewable worklogs and reproducible SAP exports while preserving the product's privacy boundary:
+This plan turns `LightTrack_v3` into the implementation repository for a local-first timesheet-assistance product. It covers the migration from raw local activity to reviewable worklogs that are booked in SAP through Timmy ([ADR 0003](adr/0003-submit-worklogs-to-sap-through-timmy.md)), while preserving the product's privacy boundary:
 
 ```text
-raw activity -> mapping / enrichment -> draft worklog -> user approval -> SAP export run
+raw activity -> mapping / enrichment -> draft worklog -> user approval -> submission to Timmy -> SAP booking (in Timmy)
 ```
 
 LightTrack is not a productivity-scoring or employee-surveillance product. Screenshots, OCR, keystroke logging, leaderboards and unsupported claims about work inside an RDP session are outside scope.
@@ -43,9 +43,9 @@ Work proceeds incrementally. A big-bang rewrite would put working capture and ex
 2. Users review and approve every submitted allocation.
 3. Original evidence is immutable; corrections create allocations and audit records.
 4. RDP is represented honestly as a lower-confidence `remote_session`.
-5. SAP output is driven by versioned profiles, not hard-coded assumptions.
+5. SAP bookings go through Timmy. LightTrack never holds SAP credentials; the CSV export is an offline fallback.
 6. Jira and Salesforce provide context; LightTrack does not duplicate their workflows.
-7. Capture, review and export continue to work offline.
+7. Capture, review and approval continue to work offline; submissions wait until Timmy is reachable.
 8. Privacy controls are designed before integrations broaden the captured data.
 
 ## 4. Current baseline
@@ -156,13 +156,14 @@ Required database properties:
 | `raw_activity` | Immutable captured or manually supplied source evidence |
 | `activity_revision` | Redaction or metadata changes without overwriting original evidence |
 | `project` | Client/project identity, status, validity and presentation |
-| `project_code_version` | Historical SAP code set with effective dates |
+| `project_code_version` | Historical SAP booking reference (project element ID, service product ID) with effective dates |
 | `mapping_rule` | Ordered, explainable attribution conditions and result |
 | `worklog` | User-reviewed time entry and lifecycle state |
 | `allocation` | Links one or more worklogs to portions of raw evidence |
 | `worklog_audit` | Actor, timestamp, before/after values and reason |
 | `export_profile` | Versioned field, format, grouping and validation rules |
-| `export_run` | Immutable profile version, selection, hash and generated rows |
+| `export_run` | Immutable profile version, selection, hash and generated rows (CSV fallback) |
+| `submission` | Immutable record of worklogs sent to Timmy: payload, `external_id`, Timmy entry ID and status |
 | `integration_link` | Jira/Salesforce context selected by the user |
 | `rdp_default` | Per-connection default project/activity configuration |
 
@@ -307,6 +308,8 @@ The application currently persists everything through `electron-store` (`core/li
 
 **Outcome:** a documented choice of SQLite driver that packages and runs on Windows.
 
+**First candidate:** `sql.js` (SQLite compiled to WebAssembly, no native module), as used by Timmy. Writes must be atomic (temporary file, then rename), unlike Timmy's in-place rewrite. `better-sqlite3` is evaluated only if `sql.js` falls short on size, write latency or durability.
+
 This is the largest packaging risk in the plan and is scheduled in Increment A, before any schema work.
 
 Acceptance criteria:
@@ -367,13 +370,15 @@ Acceptance criteria:
 
 #### LT3-201 — Implement project and SAP reference master
 
+**Model (ADR 0003):** a booking reference is a project element ID (Timmy `booking_code`, e.g. `PRD178-…`) plus a service product ID (Timmy `serviceId`, e.g. `P0940003` = Development). WBS element, cost centre and similar fields from the current export are not part of the SAP booking and are retired.
+
 Acceptance criteria:
 
-- Projects support client, name, status, validity dates and colour.
-- Code versions support WBS element, internal order, network, network activity, cost centre, activity type, billing flag and organisation-specific codes.
-- CSV import provides a preview and row-level validation errors.
-- Inactive, missing or expired required codes prevent approval/export.
-- Approved/exported worklogs retain historical code values.
+- Projects support client, name, status, validity dates and colour, and map to a project element ID and a default service product ID.
+- Activity types are the SAP service products; booking codes and activity types are read from Timmy (request item 3) and cached for offline use. They are not copied into this repository.
+- Code versions keep effective dates so approved and submitted worklogs retain the values they were booked with.
+- Unknown, inactive or expired booking codes prevent approval and submission.
+- Until Timmy provides the reference endpoints, codes can be entered manually with the same validation.
 
 #### LT3-202 — Implement worklog lifecycle
 
@@ -417,6 +422,8 @@ Acceptance criteria:
 
 #### LT3-302 — Implement configurable export profiles
 
+**Scope (ADR 0003):** applies to the CSV fallback only. Lower priority than LT3-304.
+
 Acceptance criteria:
 
 - A profile versions ordered fields, constants, source mappings, date format, decimal separator, delimiter, encoding, line endings, rounding and grouping.
@@ -426,6 +433,8 @@ Acceptance criteria:
 
 #### LT3-303 — Implement immutable export runs
 
+**Scope (ADR 0003):** applies to the CSV fallback only; submissions to Timmy are recorded by LT3-304.
+
 Acceptance criteria:
 
 - Export creation stores profile version, filters, worklog IDs, row count, generated time and SHA-256 file hash.
@@ -433,16 +442,19 @@ Acceptance criteria:
 - Changes after export require an explicit corrected-export flow.
 - Recreating an unchanged export produces the same logical rows.
 
-#### LT3-304 — Configure the first real SAP profile
+#### LT3-304 — Submit approved worklogs to Timmy
 
-**Dependency:** anonymised target file or formal column specification.
+**Dependency:** Timmy changes listed in `docs/integrations/timmy-integration-request.md`: desktop authentication and idempotent creation (blocking), reference data, entry status.
 
 Acceptance criteria:
 
-- The fixture represents the agreed SAP import format.
-- Valid approved worklogs produce exact expected rows.
-- Missing/expired codes, invalid rounding and incomplete required fields block export.
-- Decimal, date, delimiter, encoding and line-ending behavior have golden-file tests.
+- Approved worklogs are sent to Timmy's `POST /api/timesheets` as `initial` entries with date, duration (hours and minutes), booking code, service product ID, Jira key and description, plus `external_id` (the worklog ID).
+- Retries never create duplicates: the same `external_id` returns the existing Timmy entry.
+- Each submission is recorded immutably (payload, Timmy entry ID, time, result). A submitted worklog cannot be edited in place; corrections follow the superseding flow (LT3-202).
+- The Timmy token is stored with Windows data protection, can be revoked from Settings and is never logged.
+- Without a connection, approved worklogs stay queued and LightTrack keeps working.
+- Where Timmy offers it, Timmy and SAP status are shown next to each submitted worklog.
+- Contract tests run against a fake Timmy server.
 
 ### P2 — capture review and RDP
 
@@ -700,8 +712,9 @@ There is no defensible calendar forecast yet: team capacity, historical throughp
 | Input | Needed by | Proposed owner |
 |---|---|---|
 | Canonical repository decision | R0 (resolved by ADR 0002) | Repository/product owner |
-| Anonymised SAP target file or formal specification | LT3-304 | SAP process owner |
-| Project-master source, owner and refresh cadence | LT3-201 | Master-data owner |
+| Timmy: desktop authentication and idempotent create (`docs/integrations/timmy-integration-request.md`) | LT3-304 | Timmy team |
+| Timmy: reference-data and entry-status endpoints | LT3-201, LT3-304 | Timmy team |
+| Project-master source (decided: Timmy reference lists) and refresh cadence | LT3-201 | Timmy team / master-data owner |
 | Representative v3 exports | LT3-103/104 | Current LightTrack users |
 | RDP client inventory (decided: `mstsc.exe`, Windows App) and labelled examples | LT3-402 | Windows/IT owner |
 | Jira policy (decided: outbound worklogs with review) | LT3-501 | Product/Jira owner |
@@ -716,7 +729,7 @@ There is no defensible calendar forecast yet: team capacity, historical throughp
 3. Refine LT3-002, LT3-005, LT3-007 and LT3-008 to Ready. No packaged-app launch check exists yet; LT3-005 establishes it.
 4. Run the LT3-100 SQLite/Electron packaging spike in Increment A before selecting a database driver.
 5. Obtain an anonymised v3 export and document every observed source data shape.
-6. Request the exact SAP target specification; keep LT3-304 blocked until it arrives.
+6. Send `docs/integrations/timmy-integration-request.md` to the Timmy team; LT3-304 waits for desktop authentication and idempotent creation.
 7. Begin measuring throughput and cycle time so later release forecasts can be evidence-based.
 
-The first usable release is achieved when a Windows user can install LightTrack, distinguish local and RDP evidence, allocate time to a valid SAP-coded project, review and approve a weekly worklog, and generate an exact, validated, immutable SAP export while remaining fully functional offline.
+The first usable release is achieved when a Windows user can install LightTrack, distinguish local and RDP evidence, allocate time to a valid SAP-coded project, review and approve a weekly worklog, and submit it to Timmy for SAP booking (or export a validated CSV when Timmy is unavailable) while capture and review remain fully functional offline.
