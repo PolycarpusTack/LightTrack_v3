@@ -264,7 +264,7 @@ Acceptance criteria:
 
 Acceptance criteria:
 
-- Raw window titles are absent from exports by default.
+- Raw window titles are absent from exports by default. Work Description defaults to project and activity type, followed by any Jira keys detected for the row (for example `Project X – Development – PROJ-123, PROJ-456`); users can edit it per row in the preview. (Owner decision, 2026-10-05.)
 - Rows are built in the main process from activity IDs (worklog IDs once they exist); the renderer supplies only the selection and options, not aggregated rows.
 - Cells beginning with `=`, `+`, `-`, `@`, tab or carriage return are escaped against formula injection.
 - Export request input is validated and invalid requests are rejected with explicit errors.
