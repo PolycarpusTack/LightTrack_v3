@@ -5,6 +5,7 @@ const { ipcMain, dialog, app } = require('electron');
 const fs = require('fs').promises;
 const path = require('path');
 const logger = require('../../logger');
+const sapCsv = require('../../exports/sap-csv');
 
 /**
  * Activities Handler for main.js
@@ -182,52 +183,34 @@ class ActivitiesHandlerMain {
       return null;
     }));
 
-    // Export activities to SAP ByDesign format
-    ipcMain.handle('activities:export-sap', this.createSafeHandler('activities:export-sap', async (event, options = {}) => {
-      const { employeeId, data } = options;
+    // SAP ByDesign export (LT3-007): rows are built here from stored activities.
+    // The renderer sends only the period, employee ID and per-row description edits.
+    const loadSapRows = async (request) => {
+      const activities = await this.storage.getActivities();
+      return sapCsv.buildRows(activities, request);
+    };
 
-      if (!data || data.length === 0) {
-        throw new Error('No data to export');
+    ipcMain.handle('activities:preview-sap', this.createSafeHandler('activities:preview-sap', async (event, options) => {
+      const request = sapCsv.validateRequest(options);
+      const rows = await loadSapRows(request);
+      return { rows };
+    }));
+
+    ipcMain.handle('activities:export-sap', this.createSafeHandler('activities:export-sap', async (event, options) => {
+      const request = sapCsv.validateRequest(options, { requireEmployeeId: true });
+      const rows = await loadSapRows(request);
+      if (rows.length === 0) {
+        throw new sapCsv.SapExportValidationError('No data to export');
       }
 
-      // Generate SAP CSV with proper headers
-      const headers = [
-        'Employee ID',
-        'Date',
-        'Project',
-        'Activity Type',
-        'Hours',
-        'SAP Code',
-        'Cost Center',
-        'WBS Element',
-        'Work Description',
-        'Billable'
-      ];
+      const csvData = sapCsv.toCsv(rows, request.employeeId);
 
-      const rows = data.map(row => [
-        `"${(employeeId || '').replace(/"/g, '""')}"`,
-        row.date,
-        `"${(row.project || '').replace(/"/g, '""')}"`,
-        `"${(row.activityType || 'Development').replace(/"/g, '""')}"`,
-        row.hours.toFixed(2),
-        `"${(row.sapCode || '').replace(/"/g, '""')}"`,
-        `"${(row.costCenter || '').replace(/"/g, '""')}"`,
-        `"${(row.wbsElement || '').replace(/"/g, '""')}"`,
-        `"${(row.workDescription || '').replace(/"/g, '""')}"`,
-        row.billable
-      ].join(','));
-
-      const csvData = [headers.join(','), ...rows].join('\n');
-
-      // Generate filename with date range
       const today = new Date().toISOString().split('T')[0];
       const filename = `lighttrack-sap-export-${today}.csv`;
-      const documentsPath = app.getPath('documents');
-      const defaultPath = path.join(documentsPath, filename);
+      const defaultPath = path.join(app.getPath('documents'), filename);
 
-      // Show save dialog
       const result = await dialog.showSaveDialog({
-        defaultPath: defaultPath,
+        defaultPath,
         title: 'Export to SAP ByDesign',
         filters: [
           { name: 'CSV Files', extensions: ['csv'] },
@@ -237,10 +220,11 @@ class ActivitiesHandlerMain {
 
       if (!result.canceled && result.filePath) {
         await fs.writeFile(result.filePath, csvData, 'utf8');
+        logger.info('SAP export written', { rows: rows.length });
         return {
           success: true,
           filePath: result.filePath,
-          recordCount: data.length
+          recordCount: rows.length
         };
       }
 
