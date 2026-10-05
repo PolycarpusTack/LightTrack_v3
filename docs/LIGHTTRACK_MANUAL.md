@@ -987,7 +987,7 @@ await window.lightTrackAPI.addProjectMapping({
 **What it does:** Syncs meetings from Outlook/Exchange calendars via ICS subscription.
 
 **Where it lives:**
-- Service: `/src/main/services/calendarSyncService.js`
+- Service: `/src/main/integrations/calendar/calendar-sync-service.js`
 - IPC handlers: `/src/main/ipc/handlers/calendarHandlerMain.js`
 - UI: `/src/renderer/js/app.js` (Settings view)
 

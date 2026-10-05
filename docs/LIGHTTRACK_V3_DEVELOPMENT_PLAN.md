@@ -186,6 +186,8 @@ Acceptance criteria:
 
 #### LT3-002 — Remove duplicate runtime implementations
 
+**Status:** done; decisions recorded in `docs/IMPLEMENTATION_STATUS.md` (LT3-002 retirement record). The application-harness criterion follows LT3-005.
+
 **Outcome:** capture and window behavior have one code path.
 
 Acceptance criteria:

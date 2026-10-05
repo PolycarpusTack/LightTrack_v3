@@ -7,7 +7,7 @@ const ical = require('node-ical');
 const {
   CALENDAR_SYNC_INTERVAL_MS,
   FETCH_TIMEOUT_MS
-} = require('../../shared/constants');
+} = require('../../../shared/constants');
 
 // Private IP ranges to block for SSRF protection
 const PRIVATE_IP_PATTERNS = [

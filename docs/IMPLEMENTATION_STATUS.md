@@ -15,12 +15,28 @@ These changes exist in the working tree and must be committed before CI runs aga
 - `npm ci`, lint, focused baseline tests, dependency audit, application build and unsigned NSIS packaging form the release gate.
 - The stale NSIS include was removed.
 - Direct dependencies were updated; `npm audit --audit-level=moderate` reports zero vulnerabilities.
-- The active `src/main/core` activity and window path is documented; duplicate `services` implementations are not extended.
+- Duplicate `services` tracker and window manager removed; `src/main/core` is the only capture and window path (LT3-002, see below).
 - Privacy boundaries explicitly reject screenshots, OCR, keystroke logging and claims about remote RDP contents.
 
 ## Not yet done
 
 See section 4 of the development plan. In particular, no check launches the packaged application, and the existing smoke test exercises mocks rather than application code.
+
+## LT3-002 retirement record
+
+The inactive `src/main/services/activityTracker.js` and `src/main/services/windowManager.js` were removed together with their legacy tests (`test/unit/services/`). The active path is `src/main/core`. Calendar sync, which was active, moved unchanged to `src/main/integrations/calendar/calendar-sync-service.js`.
+
+Behaviour that only the removed files had, and what happened to it:
+
+| Behaviour | Decision | Reason |
+|---|---|---|
+| Splash, floating-timer, help and "character sheet" windows | Retired | Their pages (`splash.html`, `floating-timer.html`, `help.html`, `character-sheet.html`) do not exist in the repository and no IPC channel opens them. The renderer already has an in-page splash, floating timer and help dialog. |
+| Separate dialog windows (manual entry, edit activity, settings) | Retired | Their pages do not exist; the renderer uses in-page modals. |
+| Per-project `billable` flag read from project mappings | Retired | The active path marks time non-billable from title patterns and manual edits. A versioned billing flag returns with the project master (LT3-201). |
+| Structural validation of an activity before saving | Retired | Validation moves to the IPC contract (LT3-003) and the repositories (LT3-102). |
+| "Activity saved" notification with experience points | Retired | Gamification is out of scope for the product. |
+
+Project detection from Jira keys and URL mappings, non-billable patterns, activity merging, idle handling, browser context and save de-duplication are already provided by `core/activity-tracker.js` and `core/title-parser.js`.
 
 ## Planned in this repository
 
