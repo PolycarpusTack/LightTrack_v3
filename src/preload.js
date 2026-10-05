@@ -521,7 +521,7 @@ contextBridge.exposeInMainWorld('lightTrackAPI', {
       throw new TypeError('Callback must be a function');
     }
 
-    const wrappedListener = (event) => {
+    const wrappedListener = (_event) => {
       try {
         callback();
       } catch (error) {

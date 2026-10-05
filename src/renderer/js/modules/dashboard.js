@@ -373,8 +373,8 @@
     const activities = AppState.activities;
     const projectColors = {};
     const colorPalette = [
-      '#3805e3', '#b3fc4f', '#9c27b0', '#ff9800',
-      '#00bcd4', '#f44336', '#8bc34a', '#e91e63'
+      '#3805e3', '#b3fc4f', '#b8afda', '#eb652b',
+      '#3e257c', '#8c8c88', '#1e5a0a', '#a8410f'
     ];
     let colorIndex = 0;
 
@@ -399,7 +399,7 @@
         }
 
         return `<div class="mini-timeline-segment"
-                     style="left: ${leftPercent}%; width: ${Math.max(0.5, widthPercent)}%; background: ${projectColors[project]};"
+                     data-left="${leftPercent}" data-width="${Math.max(0.5, widthPercent)}" data-bg="${projectColors[project]}"
                      title="${escapeHtml(project)}: ${formatDuration(a.duration || 0)}"></div>`;
       })
       .join('');
@@ -411,10 +411,11 @@
 
     let nowIndicator = '';
     if (nowPercent >= 0 && nowPercent <= 100) {
-      nowIndicator = `<div class="mini-timeline-now" style="left: ${nowPercent}%;"></div>`;
+      nowIndicator = `<div class="mini-timeline-now" data-left="${nowPercent}"></div>`;
     }
 
     timelineBar.innerHTML = segments + nowIndicator;
+    window.LightTrack.Utils.applyDataStyles(timelineBar);
   }
 
   // ============= Goals Tracking =============

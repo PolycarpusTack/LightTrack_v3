@@ -1,9 +1,11 @@
 # LightTrack
 
-LightTrack is a desktop time tracking application for Windows that automatically monitors your active applications and categorizes your work time by project. It runs locally with no internet connection required, keeping all your data private on your computer.
+LightTrack is a local-first Windows timesheet assistant. It captures active-application evidence, proposes project attribution and leaves the user in control of review and export. It is not a productivity-scoring or employee-surveillance product.
+
+> **Repository status:** this repository is the canonical LightTrack codebase and is being modernised in place; see [ADR 0002](docs/adr/0002-adopt-lighttrack-v3-as-canonical.md) and the [development plan](docs/LIGHTTRACK_V3_DEVELOPMENT_PLAN.md). Supported platforms are listed in [docs/SUPPORTED_PLATFORMS.md](docs/SUPPORTED_PLATFORMS.md).
 
 **Version:** 3.0.0
-**Platform:** Windows 10/11
+**Platform:** Windows 11 x64
 **License:** MIT
 
 ---
@@ -30,14 +32,14 @@ LightTrack is a desktop time tracking application for Windows that automatically
 
 | Requirement | Minimum |
 |-------------|---------|
-| Operating System | Windows 10 (64-bit) |
+| Operating System | Windows 11 (x64) |
 | RAM | 4 GB |
 | Disk Space | 200 MB |
 | Display | 1280 x 720 |
 
 ### Install Steps
 
-1. Download `LightTrack-Setup-3.0.0.exe` from the releases page.
+1. Download `LightTrack Setup 3.0.0.exe` from the releases page.
 2. Run the installer and follow the on-screen prompts.
 3. Launch LightTrack from your desktop shortcut or Start Menu.
 4. The application starts minimized to the system tray.

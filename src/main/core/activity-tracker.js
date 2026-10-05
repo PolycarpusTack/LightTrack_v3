@@ -130,13 +130,8 @@ class ActivityTracker {
   scheduleNextTrack() {
     if (!this.isTracking) return;
 
-    const startTime = Date.now();
     this.trackingTimeoutId = setTimeout(async () => {
       await this.track();
-
-      // Calculate actual execution time and adjust next interval
-      const executionTime = Date.now() - startTime;
-      const drift = executionTime - this.currentCheckInterval;
 
       // Schedule next iteration, compensating for drift
       if (this.isTracking) {
@@ -250,7 +245,6 @@ class ActivityTracker {
         return;
       }
       let remainingSeconds = deltaSeconds;
-      let assignRemainingToNew = false;
 
       // Get active window with retry logic
       const window = await this.getActiveWindowWithRetry();
@@ -291,7 +285,6 @@ class ActivityTracker {
           } else {
             remainingSeconds = Math.max(0, remainingSeconds - secondsBeforeMidnight);
           }
-          assignRemainingToNew = true;
         }
       }
 
@@ -464,7 +457,7 @@ class ActivityTracker {
       // Preserve dates (2024-01-06, 2024/01/06)
       // Preserve file extensions with numbers (file2.txt)
       // Remove only isolated counters like (1), [2], #3 at end
-      .replace(/\s*[\(\[\#]\d{1,2}[\)\]]?\s*$/, '')
+      .replace(/\s*[[#(]\d{1,2}[)\]]?\s*$/, '')
       // Remove trailing timestamps like " - 14:30" or ":30:00"
       .replace(/\s*-?\s*\d{1,2}:\d{2}(:\d{2})?\s*$/, '')
       // Normalize whitespace

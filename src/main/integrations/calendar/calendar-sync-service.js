@@ -7,7 +7,7 @@ const ical = require('node-ical');
 const {
   CALENDAR_SYNC_INTERVAL_MS,
   FETCH_TIMEOUT_MS
-} = require('../../shared/constants');
+} = require('../../../shared/constants');
 
 // Private IP ranges to block for SSRF protection
 const PRIVATE_IP_PATTERNS = [
@@ -20,7 +20,7 @@ const PRIVATE_IP_PATTERNS = [
   /^::1$/,                       // IPv6 loopback
   /^fe80:/i,                     // IPv6 link-local
   /^fc00:/i,                     // IPv6 unique local
-  /^fd00:/i,                     // IPv6 unique local
+  /^fd00:/i                     // IPv6 unique local
 ];
 
 class CalendarSyncService {
@@ -45,7 +45,7 @@ class CalendarSyncService {
       // Only allow https:// and webcal:// schemes
       const allowedSchemes = ['https:', 'webcal:'];
       if (!allowedSchemes.includes(parsed.protocol)) {
-        return { valid: false, error: `Invalid URL scheme. Only HTTPS and webcal:// are allowed.` };
+        return { valid: false, error: 'Invalid URL scheme. Only HTTPS and webcal:// are allowed.' };
       }
 
       // Block private/internal hostnames

@@ -14,10 +14,10 @@ LightTrack v3.0.0 introduces significant architectural improvements including:
 ## Pre-Migration Requirements
 
 ### System Requirements
-- **Node.js**: 16.0 or higher
+- **Node.js**: 22 or higher
 - **Memory**: 4GB RAM minimum (8GB recommended)
 - **Disk Space**: 1GB free space for migration process
-- **Operating System**: Windows 10/11, macOS 10.15+, or Linux Ubuntu 18.04+
+- **Operating System**: Windows 11 x64 (see `SUPPORTED_PLATFORMS.md`)
 
 ### Data Backup
 **CRITICAL**: Always backup your data before migration.

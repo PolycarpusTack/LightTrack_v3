@@ -371,7 +371,7 @@ class AutoUpdater {
       }
 
       // Restart/stop periodic checks based on preferences
-      if (preferences.hasOwnProperty('autoCheck')) {
+      if (Object.prototype.hasOwnProperty.call(preferences, 'autoCheck')) {
         if (preferences.autoCheck) {
           this.startPeriodicChecks();
         } else {

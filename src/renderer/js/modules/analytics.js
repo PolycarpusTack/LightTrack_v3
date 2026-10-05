@@ -294,7 +294,7 @@
    */
   function updateComparisonSection(currentStats, prevStats, range) {
     const comparisonSection = document.getElementById('comparison-section');
-    if (!comparisonSection || comparisonSection.style.display === 'none') return;
+    if (!comparisonSection || getComputedStyle(comparisonSection).display === 'none') return;
 
     // Labels based on range
     const labels = {
@@ -365,10 +365,10 @@
 
       // Use cached elements
       const { analyticsWeekTotal, analyticsWeekDays, analyticsAvgDay,
-              analyticsTopProject, analyticsTopTime, analyticsFocusTime,
-              analyticsFocusPercent, analyticsBillableTime, analyticsBillableFill,
-              analyticsBillablePercent, analyticsNonbillable, dailyChart,
-              projectPieChart, analyticsProjectBreakdown, analyticsInsights } = Elements;
+        analyticsTopProject, analyticsTopTime, analyticsFocusTime,
+        analyticsFocusPercent, analyticsBillableTime, analyticsBillableFill,
+        analyticsBillablePercent, analyticsNonbillable, dailyChart,
+        projectPieChart, analyticsProjectBreakdown, analyticsInsights } = Elements;
 
       // Show loading state
       if (analyticsWeekTotal) analyticsWeekTotal.innerHTML = '<span class="loading-text">...</span>';
@@ -377,7 +377,7 @@
       // Wire up date range buttons (only once)
       const rangeBtns = document.querySelectorAll('.date-range-selector .range-btn');
       const { customRangePicker, analyticsDateFrom: dateFromInput,
-              analyticsDateTo: dateToInput, applyCustomRange: applyCustomBtn } = Elements;
+        analyticsDateTo: dateToInput, applyCustomRange: applyCustomBtn } = Elements;
 
       rangeBtns.forEach(btn => {
         if (!btn.dataset.wired) {
@@ -465,7 +465,7 @@
       if (toggleComparisonBtn && !toggleComparisonBtn.dataset.wired) {
         toggleComparisonBtn.dataset.wired = 'true';
         toggleComparisonBtn.addEventListener('click', () => {
-          const isVisible = comparisonSection.style.display !== 'none';
+          const isVisible = getComputedStyle(comparisonSection).display !== 'none';
           comparisonSection.style.display = isVisible ? 'none' : 'block';
           toggleComparisonBtn.classList.toggle('active', !isVisible);
           if (!isVisible) {
@@ -671,7 +671,7 @@
         const pieLabels = stats.sortedProjects.slice(0, ANALYTICS_MAX_PIE_SLICES).map(([name]) => name);
         const pieValues = stats.sortedProjects.slice(0, ANALYTICS_MAX_PIE_SLICES).map(([_, secs]) => secs);
         ChartRenderer.renderPieChart(projectPieChart, pieLabels, pieValues, {
-          onSliceClick: (projectName, index) => {
+          onSliceClick: (projectName, _index) => {
             // Set project filter in timeline
             AppState.filters.project = projectName;
             if (Elements.timelineProjectFilter) {
@@ -687,10 +687,10 @@
         if (stats.sortedProjects.length === 0) {
           analyticsProjectBreakdown.innerHTML = `
             <div class="empty-state-enhanced">
-              <div class="empty-icon">📊</div>
+              <div class="empty-icon">${window.LightTrack.Utils.icon('chart')}</div>
               <div class="empty-title">No project data yet</div>
               <div class="empty-description">Start tracking to see your project breakdown.</div>
-              <button class="btn btn-sm primary empty-cta" onclick="switchView('timer')">Go to Timer</button>
+              <button class="ghost empty-cta" data-goto-view="timer">Go to Timer</button>
             </div>
           `;
         } else {
@@ -730,7 +730,7 @@
         if (insights.length === 0) {
           analyticsInsights.innerHTML = `
             <div class="empty-state-enhanced">
-              <div class="empty-icon">💡</div>
+              <div class="empty-icon">${window.LightTrack.Utils.icon('lightbulb')}</div>
               <div class="empty-title">Insights will appear here</div>
               <div class="empty-description">Track at least 1 hour of work to generate personalized insights about your productivity patterns.</div>
               <div class="empty-tips">
@@ -741,7 +741,7 @@
         } else {
           analyticsInsights.innerHTML = insights.map(insight => `
             <div class="insight-item ${insight.type}">
-              <span class="insight-icon">${insight.icon}</span>
+              <span class="insight-icon">${window.LightTrack.Utils.icon(insight.icon)}</span>
               <div class="insight-content">
                 <div class="insight-title">${escapeHtml(insight.title)}</div>
                 <div class="insight-description">${escapeHtml(insight.description)}</div>
@@ -771,14 +771,14 @@
       if (billablePercent >= 80) {
         insights.push({
           type: 'positive',
-          icon: '💰',
+          icon: 'money',
           title: 'High Billable Ratio',
           description: `${Math.round(billablePercent)}% of your time is billable. Great productivity!`
         });
       } else if (billablePercent < 50 && billablePercent > 0) {
         insights.push({
           type: 'tip',
-          icon: '📊',
+          icon: 'chart',
           title: 'Billable Time Review',
           description: `Only ${Math.round(billablePercent)}% billable. Check if activities are categorized correctly.`
         });
@@ -798,21 +798,21 @@
     if (meetingPercent >= 40 && totalSeconds > 7200) {
       insights.push({
         type: 'warning',
-        icon: '📅',
+        icon: 'calendar',
         title: 'Meeting Heavy',
         description: `${Math.round(meetingPercent)}% of time in meetings (${meetingHours.toFixed(1)}h). Consider blocking focus time.`
       });
     } else if (meetingPercent >= 20 && meetingPercent < 40 && totalSeconds > 7200) {
       insights.push({
         type: 'tip',
-        icon: '🗓️',
+        icon: 'calendar',
         title: 'Meeting Balance',
         description: `${Math.round(meetingPercent)}% of time in meetings. Good balance with focus work.`
       });
     } else if (meetingPercent < 10 && meetingSeconds > 0 && daysWithData >= 3) {
       insights.push({
         type: 'positive',
-        icon: '🎉',
+        icon: 'check',
         title: 'Low Meeting Load',
         description: `Only ${Math.round(meetingPercent)}% in meetings. More time for deep work!`
       });
@@ -823,14 +823,14 @@
     if (focusPercent >= 60) {
       insights.push({
         type: 'positive',
-        icon: '🎯',
+        icon: 'target',
         title: 'Excellent Focus',
         description: `${Math.round(focusPercent)}% of your time is in focused sessions (25+ min). Great deep work!`
       });
     } else if (focusPercent < 30 && totalSeconds > 3600) {
       insights.push({
         type: 'tip',
-        icon: '💡',
+        icon: 'lightbulb',
         title: 'Increase Focus Sessions',
         description: 'Try working in longer uninterrupted blocks. Consider the Pomodoro technique.'
       });
@@ -841,14 +841,14 @@
     if (avgHoursPerDay >= 6) {
       insights.push({
         type: 'warning',
-        icon: '⚠️',
+        icon: 'warning',
         title: 'High Workload',
         description: `You're averaging ${avgHoursPerDay.toFixed(1)} hours per day. Remember to take breaks!`
       });
     } else if (avgHoursPerDay >= 4 && avgHoursPerDay < 6) {
       insights.push({
         type: 'positive',
-        icon: '✅',
+        icon: 'check',
         title: 'Healthy Work Pattern',
         description: `Averaging ${avgHoursPerDay.toFixed(1)} hours per day is a sustainable pace.`
       });
@@ -858,14 +858,14 @@
     if (sortedProjects.length === 1 && totalSeconds > 7200) {
       insights.push({
         type: 'tip',
-        icon: '📁',
+        icon: 'folder',
         title: 'Single Project Focus',
         description: `All time spent on "${sortedProjects[0][0]}". Consider categorizing by task type.`
       });
     } else if (sortedProjects.length > 5) {
       insights.push({
         type: 'tip',
-        icon: '🔄',
+        icon: 'sync',
         title: 'Many Projects',
         description: `Tracking ${sortedProjects.length} projects. Context switching may impact productivity.`
       });
@@ -877,7 +877,7 @@
       if (topPercent >= 50) {
         insights.push({
           type: 'positive',
-          icon: '🏆',
+          icon: 'target',
           title: 'Main Focus',
           description: `"${sortedProjects[0][0]}" takes ${Math.round(topPercent)}% of your time.`
         });

@@ -14,11 +14,11 @@ const TrackingHandlerMain = require('./ipc/handlers/trackingHandlerMain');
 const TagsHandlerMain = require('./ipc/handlers/tagsHandlerMain');
 const ProjectsHandlerMain = require('./ipc/handlers/projectsHandlerMain');
 const ActivityTypesHandlerMain = require('./ipc/handlers/activityTypesHandlerMain');
-const CalendarSyncService = require('./services/calendarSyncService');
+const CalendarSyncService = require('./integrations/calendar/calendar-sync-service');
 const CalendarHandlerMain = require('./ipc/handlers/calendarHandlerMain');
 const BrowserExtensionServer = require('./core/browser-extension-server');
 const UpgradeManager = require('./core/upgrade-manager');
-const { validateAndSanitizeActivity, sanitizeString } = require('../shared/sanitize');
+const { validateAndSanitizeActivity } = require('../shared/sanitize');
 
 
 class LightTrackApp {
