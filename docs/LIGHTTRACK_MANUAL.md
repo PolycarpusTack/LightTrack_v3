@@ -10,7 +10,7 @@
 |-------|-------|
 | Generation Date | January 2025 |
 | Codebase Version | 3.0.0 |
-| Platform | Windows 10/11 (Electron-based) |
+| Platform | Windows 11 x64 (Electron-based) |
 | License | MIT |
 
 ### Known Limitations of This Documentation
@@ -108,7 +108,6 @@ LightTrack is a desktop application that automatically tracks how you spend your
 | **Focus Metrics** | Measures productivity with focus scoring |
 | **System Tray** | Runs minimized with quick access controls |
 | **Break Reminders** | Configurable notifications for taking breaks |
-| **Snake Game** | Built-in break activity for short mental breaks |
 
 ### 1.3 Technology Stack
 
@@ -175,7 +174,7 @@ npm start
 ### 2.1 What You'll Need Before Starting
 
 **Hardware Requirements:**
-- Computer running Windows 10 or Windows 11
+- Computer running Windows 11 (x64)
 - At least 4 GB of RAM (8 GB recommended)
 - 200 MB of free disk space
 - Internet connection (for calendar sync feature)
@@ -1072,7 +1071,7 @@ const meetings = await window.lightTrackAPI.getTodayMeetings();
 **What it does:** Visualizes time tracking data with charts and metrics.
 
 **Where it lives:**
-- Charts: `/src/renderer/js/modules/charts.js`
+- Charts: `ChartRenderer` in `/src/renderer/js/app.js`
 - UI: `/src/renderer/js/app.js` (Analytics view)
 
 ### 9.2 Available Metrics
@@ -2381,9 +2380,6 @@ DEBUG=true npm start
 | `Space` | Toggle tracking | Timer view focused |
 | `M` | Mark break | Timer view focused |
 | `A` | Add manual entry | Timer view focused |
-| `Arrow Keys` / `WASD` | Move snake | Snake game |
-| `P` | Pause/resume | Snake game |
-| `Enter` | Restart | Snake game (game over) |
 
 ---
 
