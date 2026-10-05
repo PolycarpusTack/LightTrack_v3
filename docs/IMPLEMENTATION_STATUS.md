@@ -14,6 +14,7 @@ These changes exist in the working tree and must be committed before CI runs aga
 - CI uses Node 22 and supported GitHub Actions on `windows-latest`.
 - `npm ci`, lint, focused baseline tests, dependency audit, application build and unsigned NSIS packaging form the release gate.
 - The stale NSIS include was removed.
+- npm scripts are Windows-only and shell-independent; `.nvmrc` pins Node 22 (LT3-009).
 - Direct dependencies were updated; `npm audit --audit-level=moderate` reports zero vulnerabilities.
 - Duplicate `services` tracker and window manager removed; `src/main/core` is the only capture and window path (LT3-002, see below).
 - Privacy boundaries explicitly reject screenshots, OCR, keystroke logging and claims about remote RDP contents.

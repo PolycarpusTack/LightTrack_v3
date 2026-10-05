@@ -69,7 +69,7 @@ Every item below exists only as uncommitted working-tree changes (CI workflows, 
 
 - [ ] Packaged application launch check. No script, CI job or test launches the packaged application (LT3-005).
 - [ ] Application smoke test. `test/integration/smoke.test.js` exercises Jest mocks only and never imports application code; LT3-005 replaces it.
-- [ ] Windows-only packaging and scripts (partly done). CI is Windows-only, but there is no `.nvmrc`; `package.json` still has macOS/Linux build targets and `electron:build:all`/`release`; `dist:*`, `docs:api` and `changelog` refer to missing `scripts/dist/`, `jsdoc.conf.json` and `CHANGELOG.md`; `dev` uses Unix-only `NODE_ENV=` syntax (LT3-009).
+- [x] Windows-only packaging and scripts (LT3-009): macOS/Linux targets and dead scripts removed, `dev` and `build:prod` work in cmd and PowerShell via `scripts/with-env.js`, `.nvmrc` pins Node 22.
 
 ### Known baseline debt
 
@@ -283,6 +283,8 @@ Acceptance criteria:
 - `SECURITY.md` documents secret storage and the update policy.
 
 #### LT3-009 — Windows-only scripts and toolchain pinning
+
+**Status:** done. Unused `conventional-changelog-cli` and `jsdoc` dev dependencies were removed with their scripts; `clean` no longer deletes `node_modules`.
 
 **Outcome:** every npm script works on the supported platform.
 

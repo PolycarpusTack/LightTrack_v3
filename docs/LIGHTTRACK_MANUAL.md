@@ -316,8 +316,6 @@ cp .env.example .env
 # Start with development settings
 npm run dev
 
-# Or with explicit environment
-NODE_ENV=development npm start
 ```
 
 **Development Mode Features:**
@@ -357,13 +355,8 @@ Tests:       87 passed, 87 total
 # Build the application
 npm run build
 
-# Build for specific platform
-npm run electron:build:win    # Windows
-npm run electron:build:mac    # macOS
-npm run electron:build:linux  # Linux
-
-# Build all platforms
-npm run electron:build:all
+# Build the Windows installer (NSIS)
+npm run electron:build:win
 ```
 
 **Build Output:**
@@ -2302,10 +2295,6 @@ DEBUG=true npm start
 | `npm run lint` | Run ESLint | `npm run lint` |
 | `npm run build` | Build distributable | `npm run build` |
 | `npm run electron:build:win` | Build Windows installer | - |
-| `npm run electron:build:mac` | Build macOS installer | - |
-| `npm run electron:build:linux` | Build Linux AppImage | - |
-| `npm run electron:build:all` | Build all platforms | - |
-| `npm run docs:api` | Generate API documentation | - |
 
 ---
 
@@ -2361,11 +2350,7 @@ DEBUG=true npm start
 | `lint` | Run ESLint | `npm run lint` |
 | `lint:fix` | Auto-fix lint issues | `npm run lint:fix` |
 | `electron:build:win` | Build Windows installer | - |
-| `electron:build:mac` | Build macOS DMG | - |
-| `electron:build:linux` | Build Linux AppImage | - |
-| `electron:build:all` | Build all platforms | - |
-| `docs:api` | Generate JSDoc API docs | - |
-| `release` | Full production build | - |
+| `release` | Production build and Windows installer | - |
 
 ---
 
