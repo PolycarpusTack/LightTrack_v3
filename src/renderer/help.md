@@ -390,17 +390,6 @@ Regular breaks help maintain focus and productivity. LightTrack includes feature
 
 Click **Mark Break** in the Timer view to record a break. This creates a non-billable entry and resets your focus timer.
 
-### Snake Game
-
-Click the **Snake button (🐍)** in the toolbar to play a quick game of Snake during your break.
-
-**Controls:**
-- Arrow keys or WASD to move
-- P to pause/resume
-- Enter to restart after game over
-
-Your high score is saved locally. The game is designed for short 5-minute breaks.
-
 ### Break Reminders
 
 Enable break reminders in Settings to get notified when it's time for a break. You can configure the reminder interval (default: 60 minutes).

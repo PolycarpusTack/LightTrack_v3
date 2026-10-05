@@ -28,9 +28,9 @@
   async function loadTimelineView() {
     // Use cached elements
     const { timelineDate: timelineDateEl, timelineSummary, timelineList,
-            timelineTracked, timelineGaps, timelineBillable,
-            timelineProjects, timelineBar, timelineBarLabel,
-            timelineProjectFilter, timelineBillableFilter, timelineGroupToggle } = Elements;
+      timelineTracked, timelineGaps, timelineBillable,
+      timelineProjects, timelineBar, timelineBarLabel,
+      timelineProjectFilter, timelineBillableFilter, timelineGroupToggle } = Elements;
 
     // Show loading state
     if (timelineList) timelineList.classList.add('view-loading');
@@ -51,119 +51,126 @@
         AppState.activities = activities; // Store for edit/delete modal access
       }
 
-    // Populate project filter dropdown
-    if (timelineProjectFilter) {
-      const projectsInDay = [...new Set(activities.map(a => a.project || 'General'))].sort();
-      let currentValue = AppState.timelineFilters.project;
-      if (currentValue && !projectsInDay.includes(currentValue)) {
-        currentValue = '';
-        AppState.timelineFilters.project = '';
-      }
-      timelineProjectFilter.innerHTML = '<option value="">All Projects</option>' +
+      // Populate project filter dropdown
+      if (timelineProjectFilter) {
+        const projectsInDay = [...new Set(activities.map(a => a.project || 'General'))].sort();
+        let currentValue = AppState.timelineFilters.project;
+        if (currentValue && !projectsInDay.includes(currentValue)) {
+          currentValue = '';
+          AppState.timelineFilters.project = '';
+        }
+        timelineProjectFilter.innerHTML = '<option value="">All Projects</option>' +
         projectsInDay.map(p => `<option value="${escapeHtml(p)}"${p === currentValue ? ' selected' : ''}>${escapeHtml(p)}</option>`).join('');
-    }
-
-    // Sync filter UI state
-    if (timelineBillableFilter) {
-      timelineBillableFilter.checked = AppState.timelineFilters.billableOnly;
-    }
-    if (timelineGroupToggle) {
-      timelineGroupToggle.checked = AppState.timelineFilters.groupByProject;
-    }
-
-    // Apply filters
-    let filteredActivities = activities;
-    if (AppState.timelineFilters.project) {
-      filteredActivities = filteredActivities.filter(a => (a.project || 'General') === AppState.timelineFilters.project);
-    }
-    if (AppState.timelineFilters.billableOnly) {
-      filteredActivities = filteredActivities.filter(a => a.billable !== false);
-    }
-
-    // Check if viewing today
-    const today = getLocalDateString(new Date());
-    const isToday = AppState.timelineDate === today;
-
-    // Update date display
-    if (timelineDateEl) {
-      const date = parseLocalDateString(AppState.timelineDate);
-      const yesterdayDate = new Date();
-      yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-      const yesterday = getLocalDateString(yesterdayDate);
-
-      let dateText;
-      if (isToday) {
-        dateText = 'Today';
-      } else if (AppState.timelineDate === yesterday) {
-        dateText = 'Yesterday';
-      } else {
-        dateText = date.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
       }
-      timelineDateEl.textContent = dateText;
-    }
 
-    // Calculate stats (use filtered activities for display)
-    const totalTracked = filteredActivities.reduce((sum, a) => sum + (a.duration || 0), 0);
-    const billableTime = filteredActivities.filter(a => a.billable !== false).reduce((sum, a) => sum + (a.duration || 0), 0);
-    const uniqueProjects = new Set(filteredActivities.map(a => a.project || 'General')).size;
+      // Sync filter UI state
+      if (timelineBillableFilter) {
+        timelineBillableFilter.checked = AppState.timelineFilters.billableOnly;
+      }
+      if (timelineGroupToggle) {
+        timelineGroupToggle.checked = AppState.timelineFilters.groupByProject;
+      }
 
-    // Calculate real gaps between activities during work hours (use all activities for gaps)
-    const gapSeconds = calculateRealGaps(activities, AppState.timelineDate);
+      // Apply filters
+      let filteredActivities = activities;
+      if (AppState.timelineFilters.project) {
+        filteredActivities = filteredActivities.filter(a => (a.project || 'General') === AppState.timelineFilters.project);
+      }
+      if (AppState.timelineFilters.billableOnly) {
+        filteredActivities = filteredActivities.filter(a => a.billable !== false);
+      }
 
-    // Update stats
-    if (timelineTracked) timelineTracked.textContent = formatDuration(totalTracked);
-    if (timelineGaps) timelineGaps.textContent = formatDuration(gapSeconds);
-    if (timelineBillable) {
-      const pct = totalTracked > 0 ? Math.round((billableTime / totalTracked) * 100) : 0;
-      timelineBillable.textContent = `${pct}%`;
-    }
-    if (timelineProjects) timelineProjects.textContent = uniqueProjects;
+      // Check if viewing today
+      const today = getLocalDateString(new Date());
+      const isToday = AppState.timelineDate === today;
 
-    // Update summary (show filtered count vs total)
-    if (timelineSummary) {
-      const filterInfo = filteredActivities.length !== activities.length ? ` (${activities.length} total)` : '';
-      timelineSummary.textContent = `${filteredActivities.length} entries, ${formatDuration(totalTracked)}${filterInfo}`;
-    }
+      // Update date display
+      if (timelineDateEl) {
+        const date = parseLocalDateString(AppState.timelineDate);
+        const yesterdayDate = new Date();
+        yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+        const yesterday = getLocalDateString(yesterdayDate);
 
-    // Update timeline bar label with work day hours
-    if (timelineBarLabel) {
-      const startHour = AppState.settings.workDayStart.replace(':00', '').replace(':30', ':30');
-      const endHour = AppState.settings.workDayEnd.replace(':00', '').replace(':30', ':30');
-      timelineBarLabel.textContent = `Day overview (${startHour} - ${endHour})`;
-    }
+        let dateText;
+        if (isToday) {
+          dateText = 'Today';
+        } else if (AppState.timelineDate === yesterday) {
+          dateText = 'Yesterday';
+        } else {
+          dateText = date.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+        }
+        timelineDateEl.textContent = dateText;
+      }
 
-    // Render timeline bar with time markers and now indicator
-    if (timelineBar) {
-      renderTimelineBar(timelineBar, activities, AppState.timelineDate, isToday);
-    }
+      // Calculate stats (use filtered activities for display)
+      const totalTracked = filteredActivities.reduce((sum, a) => sum + (a.duration || 0), 0);
+      const billableTime = filteredActivities.filter(a => a.billable !== false).reduce((sum, a) => sum + (a.duration || 0), 0);
+      const uniqueProjects = new Set(filteredActivities.map(a => a.project || 'General')).size;
 
-    // Render activity list
-    if (timelineList) {
-      if (filteredActivities.length === 0) {
-        const emptyMessage = activities.length === 0 ? 'No activities for this date' : 'No activities match filters';
-        timelineList.innerHTML = `
+      // Calculate real gaps between activities during work hours (use all activities for gaps)
+      const gapSeconds = calculateRealGaps(activities, AppState.timelineDate);
+
+      // Update stats
+      if (timelineTracked) timelineTracked.textContent = formatDuration(totalTracked);
+      if (timelineGaps) timelineGaps.textContent = formatDuration(gapSeconds);
+      if (timelineBillable) {
+        const pct = totalTracked > 0 ? Math.round((billableTime / totalTracked) * 100) : 0;
+        timelineBillable.textContent = `${pct}%`;
+      }
+      if (timelineProjects) timelineProjects.textContent = uniqueProjects;
+
+      // Update summary (show filtered count vs total)
+      if (timelineSummary) {
+        const filterInfo = filteredActivities.length !== activities.length ? ` (${activities.length} total)` : '';
+        timelineSummary.textContent = `${filteredActivities.length} entries, ${formatDuration(totalTracked)}${filterInfo}`;
+      }
+
+      // Update timeline bar label with work day hours
+      if (timelineBarLabel) {
+        const startHour = AppState.settings.workDayStart.replace(':00', '').replace(':30', ':30');
+        const endHour = AppState.settings.workDayEnd.replace(':00', '').replace(':30', ':30');
+        timelineBarLabel.textContent = `Day overview (${startHour} - ${endHour})`;
+      }
+
+      // Render timeline bar with time markers and now indicator
+      if (timelineBar) {
+        renderTimelineBar(timelineBar, activities, AppState.timelineDate, isToday);
+      }
+
+      // Render activity list
+      if (timelineList) {
+        if (filteredActivities.length === 0) {
+          const emptyMessage = activities.length === 0 ? 'No activities for this date' : 'No activities match filters';
+          timelineList.innerHTML = `
           <div class="empty-state">
-            <div class="icon">📋</div>
+            <div class="icon">${window.LightTrack.Utils.icon('inbox')}</div>
             <div>${emptyMessage}</div>
           </div>
         `;
-        return;
+          return;
+        }
+
+        const sorted = [...filteredActivities].sort((a, b) =>
+          new Date(a.startTime || 0) - new Date(b.startTime || 0)
+        );
+
+        // Check if grouping is enabled
+        if (AppState.timelineFilters.groupByProject) {
+          timelineList.innerHTML = renderGroupedActivities(sorted);
+          timelineList.querySelectorAll('.project-group-header').forEach(header => {
+            const toggle = () => header.nextElementSibling?.classList.toggle('collapsed');
+            header.addEventListener('click', toggle);
+            header.addEventListener('keydown', e => {
+              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+            });
+          });
+        } else {
+          timelineList.innerHTML = sorted.map(activity => renderActivityItem(activity)).join('');
+        }
+
+        // Attach event listeners to timeline activity buttons
+        attachTimelineListeners(timelineList);
       }
-
-      const sorted = [...filteredActivities].sort((a, b) =>
-        new Date(a.startTime || 0) - new Date(b.startTime || 0)
-      );
-
-      // Check if grouping is enabled
-      if (AppState.timelineFilters.groupByProject) {
-        timelineList.innerHTML = renderGroupedActivities(sorted);
-      } else {
-        timelineList.innerHTML = sorted.map(activity => renderActivityItem(activity)).join('');
-      }
-
-      // Attach event listeners to timeline activity buttons
-      attachTimelineListeners(timelineList);
-    }
     } finally {
       // Remove loading state
       if (timelineList) timelineList.classList.remove('view-loading');
@@ -176,55 +183,55 @@
    * Render a single activity item
    */
   function renderActivityItem(activity) {
-      const appName = activity.app || 'Unknown';
-      const windowTitle = activity.title || '';
-      const project = activity.project || 'General';
-      const duration = formatDuration(activity.duration || 0);
-      const activityType = activity.activityType || activity.activity || '';
-      const tickets = activity.tickets || [];
+    const appName = activity.app || 'Unknown';
+    const windowTitle = activity.title || '';
+    const project = activity.project || 'General';
+    const duration = formatDuration(activity.duration || 0);
+    const activityType = activity.activityType || activity.activity || '';
+    const tickets = activity.tickets || [];
 
-      // Safe date parsing with validation
-      let startTime = '--';
-      let endTime = '--';
-      if (activity.startTime) {
-        const startDate = new Date(activity.startTime);
-        if (!isNaN(startDate.getTime())) {
-          startTime = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        }
+    // Safe date parsing with validation
+    let startTime = '--';
+    let endTime = '--';
+    if (activity.startTime) {
+      const startDate = new Date(activity.startTime);
+      if (!isNaN(startDate.getTime())) {
+        startTime = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       }
-      if (activity.endTime) {
-        const endDate = new Date(activity.endTime);
-        if (!isNaN(endDate.getTime())) {
-          endTime = endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        }
+    }
+    if (activity.endTime) {
+      const endDate = new Date(activity.endTime);
+      if (!isNaN(endDate.getTime())) {
+        endTime = endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       }
+    }
 
-      const billableClass = activity.billable !== false ? 'billable' : '';
-      const activityId = escapeHtml(String(activity.id));
+    const billableClass = activity.billable !== false ? 'billable' : '';
+    const activityId = escapeHtml(String(activity.id));
 
-      // Render activity tags
-      const tagsHtml = renderActivityTags(activity);
+    // Render activity tags
+    const tagsHtml = renderActivityTags(activity);
 
-      // Render JIRA tickets if present
-      const ticketsHtml = tickets.length > 0
-        ? `<div class="activity-tickets">${tickets.map(t => `<span class="ticket-badge">${escapeHtml(t)}</span>`).join('')}</div>`
-        : '';
+    // Render JIRA tickets if present
+    const ticketsHtml = tickets.length > 0
+      ? `<div class="activity-tickets">${tickets.map(t => `<span class="ticket-badge">${escapeHtml(t)}</span>`).join('')}</div>`
+      : '';
 
-      // Render activity type if present
-      const activityTypeHtml = activityType
-        ? `<span class="activity-type-badge">${escapeHtml(activityType)}</span>`
-        : '';
+    // Render activity type if present
+    const activityTypeHtml = activityType
+      ? `<span class="activity-type-badge">${escapeHtml(activityType)}</span>`
+      : '';
 
-      // Show window title if different from app name and meaningful
-      const showTitle = windowTitle && windowTitle !== appName && windowTitle.length > 0 && windowTitle.length < 100;
-      const titleHtml = showTitle
-        ? `<div class="activity-window-title">${escapeHtml(windowTitle.substring(0, 80))}${windowTitle.length > 80 ? '...' : ''}</div>`
-        : '';
+    // Show window title if different from app name and meaningful
+    const showTitle = windowTitle && windowTitle !== appName && windowTitle.length > 0 && windowTitle.length < 100;
+    const titleHtml = showTitle
+      ? `<div class="activity-window-title">${escapeHtml(windowTitle.substring(0, 80))}${windowTitle.length > 80 ? '...' : ''}</div>`
+      : '';
 
-      const isSelected = AppState.selectedActivities?.includes(activity.id) ? 'selected' : '';
-      const isChecked = isSelected ? 'checked' : '';
+    const isSelected = AppState.selectedActivities?.includes(activity.id) ? 'selected' : '';
+    const isChecked = isSelected ? 'checked' : '';
 
-      return `
+    return `
         <div class="activity ${billableClass} ${isSelected}" data-id="${activityId}">
           <div class="activity-select">
             <input type="checkbox" class="activity-checkbox" data-id="${activityId}" ${isChecked}>
@@ -277,7 +284,7 @@
 
       return `
         <div class="project-group" data-project="${escapeHtml(project)}">
-          <div class="project-group-header" onclick="this.nextElementSibling.classList.toggle('collapsed')">
+          <div class="project-group-header" role="button" tabindex="0">
             <span class="project-group-name">${escapeHtml(project)}</span>
             <span class="project-group-stats">${count} ${count === 1 ? 'entry' : 'entries'} • ${formatDuration(totalDuration)}</span>
           </div>
@@ -330,7 +337,7 @@
    * Attach event listeners to timeline activity buttons (deprecated - use event delegation)
    * Kept for backwards compatibility but now a no-op
    */
-  function attachTimelineListeners(container) {
+  function attachTimelineListeners(_container) {
     // Event delegation is now used instead - see setupTimelineEventDelegation()
   }
 
@@ -688,19 +695,20 @@
       const nowMin = now.getHours() * 60 + now.getMinutes();
       if (nowMin >= dayStart && nowMin <= dayEnd) {
         const nowLeft = ((nowMin - dayStart) / dayDuration) * 100;
-        nowIndicator = `<div class="timeline-now-indicator" style="left: ${nowLeft}%;" title="Now"></div>`;
+        nowIndicator = `<div class="timeline-now-indicator" data-left="${nowLeft}" title="Now"></div>`;
       }
     }
 
     // Generate marker HTML
     const markersHtml = markers.map(m =>
-      `<div class="timeline-marker${m.isStart ? ' start' : ''}${m.isEnd ? ' end' : ''}" style="left: ${m.left}%;">
+      `<div class="timeline-marker${m.isStart ? ' start' : ''}${m.isEnd ? ' end' : ''}" data-left="${m.left}">
         <span class="timeline-marker-label">${m.label}</span>
       </div>`
     ).join('');
 
     if (activities.length === 0) {
       container.innerHTML = `<div class="timeline-bar-content"><div class="timeline-bar-empty">No activities</div>${markersHtml}${nowIndicator}</div>`;
+      window.LightTrack.Utils.applyDataStyles(container);
       return;
     }
 
@@ -727,7 +735,7 @@
         const left = ((clampedStart - dayStart) / dayDuration) * 100;
         const width = ((clampedEnd - clampedStart) / dayDuration) * 100;
         const type = (activity.project || '').toLowerCase() === 'break' ? 'break' :
-                     activity.billable !== false ? 'billable' : 'non-billable';
+          activity.billable !== false ? 'billable' : 'non-billable';
 
         // Format times for tooltip
         const startTimeStr = effectiveStart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -779,12 +787,13 @@
     const segmentsHtml = segments.map(seg => {
       const escapedTooltip = seg.tooltip.replace(/"/g, '&quot;').replace(/\n/g, ' | ');
       const topPercent = totalRows > 1 ? (seg.row * heightPercent) : 0;
-      const heightStyle = totalRows > 1 ? `height: ${heightPercent}%; top: ${topPercent}%;` : '';
+      const rowAttrs = totalRows > 1 ? `data-height="${heightPercent}" data-top="${topPercent}"` : '';
       const dataId = seg.id ? `data-id="${escapeHtml(String(seg.id))}"` : '';
-      return `<div class="timeline-bar-segment ${seg.type}" style="left: ${seg.left}%; width: ${seg.width}%; ${heightStyle}" data-tooltip="${escapedTooltip}" data-project="${(seg.project || '').replace(/"/g, '&quot;')}" ${dataId}></div>`;
+      return `<div class="timeline-bar-segment ${seg.type}" data-left="${seg.left}" data-width="${seg.width}" ${rowAttrs} data-tooltip="${escapedTooltip}" data-project="${(seg.project || '').replace(/"/g, '&quot;')}" ${dataId}></div>`;
     }).join('');
 
     container.innerHTML = `<div class="timeline-bar-content">${segmentsHtml}${markersHtml}${nowIndicator}</div>`;
+    window.LightTrack.Utils.applyDataStyles(container);
 
     // Add click handlers for segments
     container.querySelectorAll('.timeline-bar-segment[data-id]').forEach(seg => {

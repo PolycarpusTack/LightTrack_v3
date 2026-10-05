@@ -144,7 +144,7 @@ window.LightTrack.SAPExport = (function() {
       if (state.aggregatedData.length === 0) {
         previewBody.innerHTML = `
           <tr>
-            <td colspan="8" style="padding: 20px; text-align: center; color: var(--ink-muted);">
+            <td colspan="8" class="table-empty">
               No activities found for selected period
             </td>
           </tr>
@@ -161,15 +161,15 @@ window.LightTrack.SAPExport = (function() {
 
       const displayData = state.aggregatedData.slice(0, 20);
       previewBody.innerHTML = displayData.map(row => `
-        <tr style="border-bottom: 1px solid var(--border);">
-          <td style="padding: 8px; color: var(--ink);">${row.date}</td>
-          <td style="padding: 8px; color: var(--ink);">${Utils.escapeHtml(row.project)}</td>
-          <td style="padding: 8px; color: var(--ink-muted);">${Utils.escapeHtml(row.activityType) || '-'}</td>
-          <td style="padding: 8px; text-align: right; color: var(--neon);">${row.hours.toFixed(2)}</td>
-          <td style="padding: 8px; color: var(--ink-muted);">${Utils.escapeHtml(row.sapCode) || '-'}</td>
-          <td style="padding: 8px; color: var(--ink-muted);">${Utils.escapeHtml(row.costCenter) || '-'}</td>
-          <td style="padding: 8px; color: var(--ink-muted);">${Utils.escapeHtml(row.wbsElement) || '-'}</td>
-          <td style="padding: 8px; color: var(--ink-muted); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${Utils.escapeHtml(row.workDescription)}">
+        <tr>
+          <td>${row.date}</td>
+          <td>${Utils.escapeHtml(row.project)}</td>
+          <td class="muted">${Utils.escapeHtml(row.activityType) || '-'}</td>
+          <td class="num">${row.hours.toFixed(2)}</td>
+          <td class="muted">${Utils.escapeHtml(row.sapCode) || '-'}</td>
+          <td class="muted">${Utils.escapeHtml(row.costCenter) || '-'}</td>
+          <td class="muted">${Utils.escapeHtml(row.wbsElement) || '-'}</td>
+          <td class="muted truncate" title="${Utils.escapeHtml(row.workDescription)}">
             ${Utils.escapeHtml(row.workDescription.substring(0, 40))}${row.workDescription.length > 40 ? '...' : ''}
           </td>
         </tr>
@@ -178,7 +178,7 @@ window.LightTrack.SAPExport = (function() {
       if (state.aggregatedData.length > 20) {
         previewBody.innerHTML += `
           <tr>
-            <td colspan="8" style="padding: 8px; text-align: center; color: var(--ink-muted); font-style: italic;">
+            <td colspan="8" class="table-note">
               ... and ${state.aggregatedData.length - 20} more records
             </td>
           </tr>
@@ -191,7 +191,7 @@ window.LightTrack.SAPExport = (function() {
       console.error('Error updating SAP preview:', error);
       previewBody.innerHTML = `
         <tr>
-          <td colspan="8" style="padding: 20px; text-align: center; color: #ff6b6b;">
+          <td colspan="8" class="table-empty error">
             Error loading preview: ${error.message}
           </td>
         </tr>

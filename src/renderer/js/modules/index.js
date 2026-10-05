@@ -7,14 +7,13 @@
  *
  * Module Structure:
  * - utils.js        - Common utility functions
- * - charts.js       - Chart rendering (bar, pie)
  * - notifications.js - Toast notifications and dialogs
  * - sap-export.js   - SAP ByDesign export functionality
  *
  * Usage:
  * The main app.js can use modules like:
  *   window.LightTrack.Utils.formatTime(seconds)
- *   window.LightTrack.ChartRenderer.drawBarChart(...)
+ *   window.LightTrack.ChartRenderer.renderBarChart(...)  (defined in app.js)
  *   window.LightTrack.UI.showNotification(...)
  *   window.LightTrack.SAPExport.init()
  *
@@ -26,8 +25,8 @@
 
 window.LightTrack = window.LightTrack || {};
 
-// Module loading status
-window.LightTrack._loaded = {
+// Module loading status (keeps flags already set by modules loaded before this file)
+window.LightTrack._loaded = Object.assign({
   utils: false,
   charts: false,
   notifications: false,
@@ -37,7 +36,7 @@ window.LightTrack._loaded = {
   analytics: false,
   settingsView: false,
   modals: false
-};
+}, window.LightTrack._loaded);
 
 // Check if all modules are loaded
 window.LightTrack.isReady = function() {

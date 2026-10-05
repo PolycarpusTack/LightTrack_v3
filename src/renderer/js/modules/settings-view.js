@@ -9,7 +9,8 @@
   window.LightTrack = window.LightTrack || {};
 
   // Debounced version of saveSettings (500ms delay to batch rapid changes)
-  const debouncedSaveSettings = debounce(saveSettings, 500);
+  // app.js (which defines the global debounce) loads after this module, so use the Utils copy.
+  const debouncedSaveSettings = window.LightTrack.Utils.debounce(saveSettings, 500);
 
   // ============= URL Mappings =============
 
@@ -35,7 +36,7 @@
           const activity = typeof value === 'object' ? value.activity : null;
           const sapCode = typeof value === 'object' ? value.sapCode : null;
           const activityHtml = activity ? `<span class="activity">[${escapeHtml(activity)}]</span>` : '';
-          const sapCodeHtml = sapCode ? `<span class="sap-code" style="color: var(--neon); font-size: 11px;">(SAP: ${escapeHtml(sapCode)})</span>` : '';
+          const sapCodeHtml = sapCode ? `<span class="sap-code">(SAP: ${escapeHtml(sapCode)})</span>` : '';
           return `
           <div class="mapping-item" data-pattern="${escapeAttr(pattern)}">
             <div>
@@ -50,7 +51,7 @@
               <button data-action="remove-url-mapping" data-pattern="${escapeAttr(pattern)}" title="Remove rule">&#10005;</button>
             </div>
           </div>
-        `}).join('');
+        `;}).join('');
       }
     } catch (error) {
       console.error('Failed to load URL mappings:', error);
@@ -167,7 +168,7 @@
       updateBtn.disabled = false;
       updateBtn.dataset.pattern = pattern;
     }
-    if (cancelBtn) cancelBtn.style.display = '';
+    if (cancelBtn) cancelBtn.style.display = 'inline-flex';
 
     // Highlight the item being edited
     document.querySelectorAll('#url-mappings-list .mapping-item').forEach(el => el.classList.remove('editing'));
@@ -274,7 +275,7 @@
           const activity = typeof value === 'object' ? value.activity : null;
           const sapCode = typeof value === 'object' ? value.sapCode : null;
           const activityHtml = activity ? `<span class="activity">[${escapeHtml(activity)}]</span>` : '';
-          const sapCodeHtml = sapCode ? `<span class="sap-code" style="color: var(--neon); font-size: 11px;">(SAP: ${escapeHtml(sapCode)})</span>` : '';
+          const sapCodeHtml = sapCode ? `<span class="sap-code">(SAP: ${escapeHtml(sapCode)})</span>` : '';
           return `
           <div class="mapping-item" data-key="${escapeAttr(key)}">
             <div>
@@ -289,7 +290,7 @@
               <button data-action="remove-jira-mapping" data-key="${escapeAttr(key)}" title="Remove rule">&#10005;</button>
             </div>
           </div>
-        `}).join('');
+        `;}).join('');
       }
     } catch (error) {
       console.error('Failed to load JIRA mappings:', error);
@@ -406,7 +407,7 @@
       updateBtn.disabled = false;
       updateBtn.dataset.key = key;
     }
-    if (cancelBtn) cancelBtn.style.display = '';
+    if (cancelBtn) cancelBtn.style.display = 'inline-flex';
 
     // Highlight the item being edited
     document.querySelectorAll('#jira-mappings-list .mapping-item').forEach(el => el.classList.remove('editing'));
@@ -513,7 +514,7 @@
           const activity = typeof value === 'object' ? value.activity : null;
           const sapCode = typeof value === 'object' ? value.sapCode : null;
           const activityHtml = activity ? `<span class="activity">[${escapeHtml(activity)}]</span>` : '';
-          const sapCodeHtml = sapCode ? `<span class="sap-code" style="color: var(--neon); font-size: 11px;">(SAP: ${escapeHtml(sapCode)})</span>` : '';
+          const sapCodeHtml = sapCode ? `<span class="sap-code">(SAP: ${escapeHtml(sapCode)})</span>` : '';
           return `
           <div class="mapping-item" data-pattern="${escapeAttr(pattern)}">
             <div>
@@ -528,7 +529,7 @@
               <button data-action="remove-meeting-mapping" data-pattern="${escapeAttr(pattern)}" title="Remove rule">&#10005;</button>
             </div>
           </div>
-        `}).join('');
+        `;}).join('');
       }
     } catch (error) {
       console.error('Failed to load meeting mappings:', error);
@@ -665,7 +666,7 @@
       updateBtn.disabled = false;
       updateBtn.dataset.pattern = pattern;
     }
-    if (cancelBtn) cancelBtn.style.display = '';
+    if (cancelBtn) cancelBtn.style.display = 'inline-flex';
 
     // Highlight the item being edited
     document.querySelectorAll('#meeting-mappings-list .mapping-item').forEach(el => el.classList.remove('editing'));
@@ -1296,11 +1297,11 @@
 
       // Show confirmation
       const stats = backupData.stats || {};
-      const confirmMsg = `This will restore:\n` +
+      const confirmMsg = 'This will restore:\n' +
         `\u2022 ${stats.activitiesCount || 0} activities\n` +
         `\u2022 ${stats.projectsCount || 0} projects\n` +
         `\u2022 ${stats.tagsCount || 0} tags\n\n` +
-        `Existing data will be merged. Continue?`;
+        'Existing data will be merged. Continue?';
 
       if (!confirm(confirmMsg)) {
         if (statusEl) statusEl.textContent = 'Restore cancelled';
@@ -1560,14 +1561,14 @@
     overlay.className = 'modal-overlay';
     overlay.id = 'calendar-help-modal-overlay';
     overlay.innerHTML = `
-      <div class="modal modal-small" style="max-width: 500px;">
+      <div class="modal modal-small modal-narrow">
         <div class="modal-header">
           <h3>How to Get Your Calendar ICS URL</h3>
           <button class="modal-close" id="calendar-help-modal-close">&times;</button>
         </div>
         <div class="modal-body">
           <h4>Outlook Web (Office 365)</h4>
-          <ol style="margin-left: 20px; line-height: 1.6;">
+          <ol class="steps">
             <li>Go to <strong>outlook.office.com</strong></li>
             <li>Click the <strong>Settings</strong> gear icon</li>
             <li>Click <strong>View all Outlook settings</strong></li>
@@ -1578,8 +1579,8 @@
             <li>Copy the <strong>ICS</strong> link</li>
           </ol>
 
-          <h4 style="margin-top: 16px;">Google Calendar</h4>
-          <ol style="margin-left: 20px; line-height: 1.6;">
+          <h4 class="mt-16">Google Calendar</h4>
+          <ol class="steps">
             <li>Go to <strong>calendar.google.com</strong></li>
             <li>Click the three dots next to your calendar</li>
             <li>Select <strong>Settings and sharing</strong></li>
@@ -1587,7 +1588,7 @@
             <li>Copy the <strong>Secret address in iCal format</strong></li>
           </ol>
 
-          <div style="margin-top: 16px; padding: 12px; background: var(--surface-raised); border-radius: 8px;">
+          <div class="note-box mt-16">
             <strong>Privacy Note:</strong> The ICS URL is typically accessible to anyone with the link. Keep it private and do not share it.
           </div>
         </div>

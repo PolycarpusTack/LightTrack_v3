@@ -201,7 +201,14 @@ function debounce(func, wait) {
 
 // Simple Chart Renderer for Analytics
 const ChartRenderer = {
-  colors: ['#3805e3', '#b3fc4f', '#9c27b0', '#ff9800', '#00bcd4', '#f44336', '#8bc34a', '#e91e63'],
+  // Brand palette, kept in step with .chart-color-* in app.css
+  colors: ['#3805e3', '#b3fc4f', '#b8afda', '#eb652b', '#3e257c', '#8c8c88', '#1e5a0a', '#a8410f'],
+
+  // Theme-aware colours read from the CSS tokens at draw time
+  tokens() {
+    const t = (name, fallback) => window.LightTrackTheme?.token(name, fallback) || fallback;
+    return { ink: t('--ink', '#1a1a1a'), muted: t('--ink-muted', '#5e5e5e'), grid: t('--divider', '#e6e6e0'), paper: t('--paper', '#ffffff') };
+  },
 
   // Store chart geometry for hit detection
   chartData: new WeakMap(),
@@ -322,8 +329,8 @@ const ChartRenderer = {
     ctx.clearRect(0, 0, displayWidth, displayHeight);
 
     if (labels.length === 0 || values.length === 0) {
-      ctx.fillStyle = '#b6bbca';
-      ctx.font = '14px Poppins, sans-serif';
+      ctx.fillStyle = this.tokens().muted;
+      ctx.font = '13px Poppins, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('No data for this period', displayWidth / 2, displayHeight / 2);
       return;
@@ -334,7 +341,7 @@ const ChartRenderer = {
     const barSpacing = width / labels.length;
 
     // Draw grid lines
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+    ctx.strokeStyle = this.tokens().grid;
     ctx.lineWidth = 1;
     for (let i = 0; i <= 4; i++) {
       const y = padding.top + (height / 4) * i;
@@ -345,8 +352,8 @@ const ChartRenderer = {
     }
 
     // Draw Y-axis labels
-    ctx.fillStyle = '#b6bbca';
-    ctx.font = '11px Poppins, sans-serif';
+    ctx.fillStyle = this.tokens().muted;
+    ctx.font = '11.5px Poppins, sans-serif';
     ctx.textAlign = 'right';
     for (let i = 0; i <= 4; i++) {
       const y = padding.top + (height / 4) * i;
@@ -354,10 +361,7 @@ const ChartRenderer = {
       ctx.fillText(value.toFixed(1) + 'h', padding.left - 8, y + 4);
     }
 
-    // Draw bars with gradient and store geometry
-    const gradient = ctx.createLinearGradient(0, padding.top + height, 0, padding.top);
-    gradient.addColorStop(0, '#3805e3');
-    gradient.addColorStop(1, '#b3fc4f');
+    // Draw bars and store geometry
 
     const bars = [];
     labels.forEach((label, index) => {
@@ -365,7 +369,7 @@ const ChartRenderer = {
       const barHeight = Math.max((values[index] / maxValue) * height, 4); // Min height for clickability
       const y = padding.top + height - barHeight;
 
-      ctx.fillStyle = gradient;
+      ctx.fillStyle = this.colors[0];
       ctx.beginPath();
       ctx.roundRect(x, y, barWidth, barHeight, [4, 4, 0, 0]);
       ctx.fill();
@@ -379,8 +383,8 @@ const ChartRenderer = {
       });
 
       // X-axis label
-      ctx.fillStyle = '#b6bbca';
-      ctx.font = '11px Poppins, sans-serif';
+      ctx.fillStyle = this.tokens().muted;
+      ctx.font = '11.5px Poppins, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText(label, x + barWidth / 2, displayHeight - padding.bottom + 18);
     });
@@ -411,7 +415,7 @@ const ChartRenderer = {
 
     const total = values.reduce((sum, v) => sum + v, 0);
     if (total === 0) {
-      ctx.fillStyle = '#b6bbca';
+      ctx.fillStyle = this.tokens().muted;
       ctx.font = '12px Poppins, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('No data', centerX, centerY);
@@ -458,16 +462,20 @@ const ChartRenderer = {
     this.initCanvasInteractions(canvas, 'pie');
 
     // Center text
-    ctx.fillStyle = '#e8e9ee';
-    ctx.font = 'bold 16px Poppins, sans-serif';
+    ctx.fillStyle = this.tokens().ink;
+    ctx.font = '500 15px Poppins, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(values.length.toString(), centerX, centerY - 8);
     ctx.font = '10px Poppins, sans-serif';
-    ctx.fillStyle = '#b6bbca';
+    ctx.fillStyle = this.tokens().muted;
     ctx.fillText('projects', centerX, centerY + 10);
   }
 };
+
+// Analytics reads the chart renderer from the namespace.
+window.LightTrack = window.LightTrack || {};
+window.LightTrack.ChartRenderer = ChartRenderer;
 
 // DOM Elements cache
 const Elements = {};
@@ -519,7 +527,7 @@ function initElements() {
   Elements.floatingProject = document.getElementById('floating-project');
   Elements.views = document.querySelectorAll('.view');
 
-   // Mapping form elements
+  // Mapping form elements
   Elements.mappingPattern = document.getElementById('mapping-pattern');
   Elements.mappingProject = document.getElementById('mapping-project');
   Elements.mappingActivity = document.getElementById('mapping-activity');
@@ -851,7 +859,7 @@ function renderActivityList() {
   if (AppState.activities.length === 0) {
     Elements.activityList.innerHTML = `
       <div class="empty-state">
-        <div class="icon">📋</div>
+        <div class="icon">${window.LightTrack.Utils.icon('inbox')}</div>
         <div>No activities yet today</div>
         <div class="meta-line">Start tracking to see your activity feed</div>
       </div>
@@ -1409,6 +1417,15 @@ function setupEventListeners() {
     });
   });
 
+  // Buttons inside rendered content that jump to a view (e.g. empty-state calls to action)
+  document.addEventListener('click', e => {
+    const target = e.target.closest('[data-goto-view]');
+    if (!target) return;
+    const view = target.dataset.gotoView;
+    const navBtn = document.querySelector(`.nav-btn[data-view="${view}"]`);
+    switchView(view, navBtn?.title);
+  });
+
   // Pill filters
   document.querySelectorAll('.pill[data-filter]').forEach(pill => {
     pill.addEventListener('click', () => {
@@ -1439,12 +1456,6 @@ function setupEventListeners() {
         showNotification('Export failed', 'error');
       }
     });
-  }
-
-  // Snake game button
-  const snakeBtn = document.getElementById('btn-snake');
-  if (snakeBtn) {
-    snakeBtn.addEventListener('click', openSnakeGame);
   }
 
   // Manual entry button
@@ -1767,7 +1778,7 @@ function setupEventListeners() {
       e.preventDefault();
       // Find and click the Cancel button in this form
       const cancelBtn = form.querySelector('[id^="cancel-"][id$="-btn"]');
-      if (cancelBtn && cancelBtn.style.display !== 'none') {
+      if (cancelBtn && getComputedStyle(cancelBtn).display !== 'none') {
         cancelBtn.click();
       }
     }
@@ -1848,17 +1859,6 @@ function switchView(viewName, viewTitle = '') {
 
   if (Elements.topbarTitle) {
     Elements.topbarTitle.textContent = viewTitle || capitalize(viewName);
-  }
-  if (Elements.topbarSubtitle) {
-    const subtitles = {
-      timer: 'Trusted partner. Clear tracking.',
-      timeline: 'Timeline of your day.',
-      analytics: 'Weekly trends and insights.',
-      projects: 'Time by project.',
-      'sap-export': 'Export to SAP ByDesign.',
-      settings: 'Data and preferences.'
-    };
-    Elements.topbarSubtitle.textContent = subtitles[viewName] || 'LightTrack';
   }
 
   // Load view-specific data
@@ -2427,7 +2427,7 @@ async function loadProjectsView() {
       if (sorted.length === 0) {
         projectsList.innerHTML = `
           <div class="empty-state">
-            <div class="icon">📁</div>
+            <div class="icon">${window.LightTrack.Utils.icon('folder')}</div>
             <div>No projects yet</div>
             <div class="meta-line">Projects appear as you track time</div>
           </div>
@@ -2489,7 +2489,7 @@ async function loadProjectMappings() {
           wbsElement ? `WBS: ${escapeHtml(wbsElement)}` : null
         ].filter(Boolean);
         const sapCodeHtml = sapBits.length > 0
-          ? `<span class="sap-code" style="color: var(--neon); font-size: 11px;">(${sapBits.join(' · ')})</span>`
+          ? `<span class="sap-code">(${sapBits.join(' · ')})</span>`
           : '';
         return `
         <div class="mapping-item" data-pattern="${escapeAttr(pattern)}">
@@ -2505,7 +2505,7 @@ async function loadProjectMappings() {
             <button data-action="remove-mapping" data-pattern="${escapeAttr(pattern)}" title="Remove rule">✕</button>
           </div>
         </div>
-      `}).join('');
+      `;}).join('');
     }
   } catch (error) {
     console.error('Failed to load project mappings:', error);
@@ -2754,7 +2754,7 @@ function editProjectMapping(pattern) {
 
   // Show cancel button and highlight editing item
   const cancelBtn = document.getElementById('cancel-mapping-btn');
-  if (cancelBtn) cancelBtn.style.display = '';
+  if (cancelBtn) cancelBtn.style.display = 'inline-flex';
 
   // Highlight the item being edited
   document.querySelectorAll('#mappings-list .mapping-item').forEach(el => el.classList.remove('editing'));
@@ -3141,249 +3141,6 @@ function closeCalendarHelpModal() {
   return window.LightTrack.SettingsView?.closeCalendarHelpModal?.();
 }
 
-// ============= Snake Game =============
-
-const SnakeGame = {
-  canvas: null,
-  ctx: null,
-  snake: [],
-  food: null,
-  direction: 'right',
-  nextDirection: 'right',
-  gridSize: 20,
-  tileCount: 20,
-  gameLoop: null,
-  score: 0,
-  highScore: 0,
-  isRunning: false,
-  isPaused: false,
-  speed: 100,
-
-  init(canvas) {
-    this.canvas = canvas;
-    this.ctx = canvas.getContext('2d');
-    this.loadHighScore();
-    this.reset();
-  },
-
-  loadHighScore() {
-    try {
-      const saved = localStorage.getItem('lighttrack-snake-highscore');
-      this.highScore = saved ? parseInt(saved, 10) : 0;
-    } catch (e) {
-      this.highScore = 0;
-    }
-  },
-
-  saveHighScore() {
-    try {
-      localStorage.setItem('lighttrack-snake-highscore', this.highScore.toString());
-    } catch (e) {
-      // Ignore storage errors
-    }
-  },
-
-  reset() {
-    const mid = Math.floor(this.tileCount / 2);
-    this.snake = [
-      { x: mid, y: mid },
-      { x: mid - 1, y: mid },
-      { x: mid - 2, y: mid }
-    ];
-    this.direction = 'right';
-    this.nextDirection = 'right';
-    this.score = 0;
-    this.isPaused = false;
-    this.spawnFood();
-    this.updateScoreDisplay();
-  },
-
-  spawnFood() {
-    let newFood;
-    do {
-      newFood = {
-        x: Math.floor(Math.random() * this.tileCount),
-        y: Math.floor(Math.random() * this.tileCount)
-      };
-    } while (this.snake.some(seg => seg.x === newFood.x && seg.y === newFood.y));
-    this.food = newFood;
-  },
-
-  start() {
-    if (this.isRunning) return;
-    this.isRunning = true;
-    this.isPaused = false;
-    this.gameLoop = setInterval(() => this.update(), this.speed);
-  },
-
-  pause() {
-    this.isPaused = !this.isPaused;
-    const pauseBtn = document.getElementById('snake-pause-btn');
-    if (pauseBtn) {
-      pauseBtn.textContent = this.isPaused ? 'Resume' : 'Pause';
-    }
-  },
-
-  stop() {
-    this.isRunning = false;
-    if (this.gameLoop) {
-      clearInterval(this.gameLoop);
-      this.gameLoop = null;
-    }
-  },
-
-  update() {
-    if (this.isPaused) return;
-
-    this.direction = this.nextDirection;
-
-    // Calculate new head position
-    const head = { ...this.snake[0] };
-    switch (this.direction) {
-      case 'up': head.y--; break;
-      case 'down': head.y++; break;
-      case 'left': head.x--; break;
-      case 'right': head.x++; break;
-    }
-
-    // Check wall collision
-    if (head.x < 0 || head.x >= this.tileCount || head.y < 0 || head.y >= this.tileCount) {
-      this.gameOver();
-      return;
-    }
-
-    // Check self collision
-    if (this.snake.some(seg => seg.x === head.x && seg.y === head.y)) {
-      this.gameOver();
-      return;
-    }
-
-    // Add new head
-    this.snake.unshift(head);
-
-    // Check food collision
-    if (head.x === this.food.x && head.y === this.food.y) {
-      this.score += 10;
-      if (this.score > this.highScore) {
-        this.highScore = this.score;
-        this.saveHighScore();
-      }
-      this.updateScoreDisplay();
-      this.spawnFood();
-    } else {
-      // Remove tail if no food eaten
-      this.snake.pop();
-    }
-
-    this.draw();
-  },
-
-  draw() {
-    const tileSize = this.canvas.width / this.tileCount;
-
-    // Clear canvas
-    this.ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--surface-base').trim() || '#1a1a1a';
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-
-    // Draw grid (subtle)
-    this.ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--border-subtle').trim() || '#333';
-    this.ctx.lineWidth = 0.5;
-    for (let i = 0; i <= this.tileCount; i++) {
-      this.ctx.beginPath();
-      this.ctx.moveTo(i * tileSize, 0);
-      this.ctx.lineTo(i * tileSize, this.canvas.height);
-      this.ctx.stroke();
-      this.ctx.beginPath();
-      this.ctx.moveTo(0, i * tileSize);
-      this.ctx.lineTo(this.canvas.width, i * tileSize);
-      this.ctx.stroke();
-    }
-
-    // Draw food
-    this.ctx.fillStyle = '#e74c3c';
-    this.ctx.beginPath();
-    this.ctx.arc(
-      this.food.x * tileSize + tileSize / 2,
-      this.food.y * tileSize + tileSize / 2,
-      tileSize / 2 - 2,
-      0,
-      Math.PI * 2
-    );
-    this.ctx.fill();
-
-    // Draw snake
-    this.snake.forEach((seg, i) => {
-      const isHead = i === 0;
-      this.ctx.fillStyle = isHead ? '#27ae60' : '#2ecc71';
-      this.ctx.fillRect(
-        seg.x * tileSize + 1,
-        seg.y * tileSize + 1,
-        tileSize - 2,
-        tileSize - 2
-      );
-      // Add slight rounding
-      this.ctx.strokeStyle = '#27ae60';
-      this.ctx.lineWidth = 2;
-      this.ctx.strokeRect(
-        seg.x * tileSize + 1,
-        seg.y * tileSize + 1,
-        tileSize - 2,
-        tileSize - 2
-      );
-    });
-  },
-
-  updateScoreDisplay() {
-    const scoreEl = document.getElementById('snake-score');
-    const highScoreEl = document.getElementById('snake-highscore');
-    if (scoreEl) scoreEl.textContent = this.score;
-    if (highScoreEl) highScoreEl.textContent = this.highScore;
-  },
-
-  gameOver() {
-    this.stop();
-    const gameOverEl = document.getElementById('snake-game-over');
-    const finalScoreEl = document.getElementById('snake-final-score');
-    if (gameOverEl) gameOverEl.style.display = 'flex';
-    if (finalScoreEl) finalScoreEl.textContent = this.score;
-  },
-
-  handleKeydown(e) {
-    if (!this.isRunning || this.isPaused) return;
-
-    const keyMap = {
-      'ArrowUp': 'up',
-      'ArrowDown': 'down',
-      'ArrowLeft': 'left',
-      'ArrowRight': 'right',
-      'w': 'up',
-      's': 'down',
-      'a': 'left',
-      'd': 'right'
-    };
-
-    const newDir = keyMap[e.key];
-    if (!newDir) return;
-
-    // Prevent reverse direction
-    const opposites = { up: 'down', down: 'up', left: 'right', right: 'left' };
-    if (opposites[newDir] !== this.direction) {
-      this.nextDirection = newDir;
-      e.preventDefault();
-    }
-  }
-};
-
-// ============= Snake Game (delegated to Modals module) =============
-
-function openSnakeGame() {
-  return window.LightTrack.Modals?.openSnakeGame?.();
-}
-
-function closeSnakeGame() {
-  return window.LightTrack.Modals?.closeSnakeGame?.();
-}
-
 // ============= Modal Functions (delegated to Modals module) =============
 
 function addModalEscHandler(overlayId, closeFunction) {
@@ -3511,7 +3268,7 @@ function renderFilteredActivityList() {
 
     Elements.activityList.innerHTML = `
       <div class="empty-state">
-        <div class="icon">${hasFilters ? '🔍' : '📋'}</div>
+        <div class="icon">${window.LightTrack.Utils.icon(hasFilters ? 'search' : 'inbox')}</div>
         <div>${hasFilters ? 'No activities match filters' : 'No activities yet today'}</div>
         <div class="meta-line">${hasFilters ? 'Try adjusting your filters' : 'Start tracking to see your activity feed'}</div>
       </div>

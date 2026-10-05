@@ -7,7 +7,9 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; object-src 'none'; connect-src 'self'; base-uri 'self'; form-action 'self'">
     <title>LightTrack</title>
     <link rel="icon" type="image/png" href="../../assets/icon.png">
+    <link rel="stylesheet" href="styles/fonts.css">
     <link rel="stylesheet" href="styles/app.css">
+    <script src="js/theme.js"></script>
 </head>
 <body>
     <!-- Splash Screen -->
@@ -21,44 +23,56 @@
 
     <!-- Left Rail Navigation -->
     <nav class="rail" role="navigation" aria-label="Main navigation">
-        <div class="logo" aria-label="LightTrack home">
-            <img src="../../assets/icon.png" alt="LightTrack icon">
+        <div class="logo" aria-label="LightTrack">
+            <img src="../../assets/icon.png" alt="">
+            <span>LightTrack</span>
         </div>
-        <button class="nav-btn active" data-view="timer" title="Timer" aria-label="Timer view">
-            <span class="icon">⏱️</span>
+        <button class="nav-btn active" data-view="timer" title="Timer" aria-label="Timer">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 1H9v2h6V1zm-4 13h2V8h-2v6zm8.03-6.61 1.42-1.42c-.43-.51-.9-.99-1.41-1.41l-1.42 1.42A8.96 8.96 0 0 0 12 4c-4.97 0-9 4.03-9 9s4.02 9 9 9 9-4.03 9-9c0-2.12-.74-4.07-1.97-5.61zM12 20c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
+            <span class="nav-label">Timer</span>
         </button>
-        <button class="nav-btn" data-view="timeline" title="Timeline" aria-label="Timeline view">
-            <span class="icon">🗺️</span>
+        <button class="nav-btn" data-view="timeline" title="Timeline" aria-label="Timeline">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M23 8c0 1.1-.9 2-2 2-.18 0-.35-.02-.51-.07l-3.56 3.55c.05.16.07.34.07.52 0 1.1-.9 2-2 2s-2-.9-2-2c0-.18.02-.36.07-.52l-2.55-2.55c-.16.05-.34.07-.52.07s-.36-.02-.52-.07l-4.55 4.56c.05.16.07.33.07.51 0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2c.18 0 .35.02.51.07l4.56-4.55C8.02 9.36 8 9.18 8 9c0-1.1.9-2 2-2s2 .9 2 2c0 .18-.02.36-.07.52l2.55 2.55c.16-.05.34-.07.52-.07s.36.02.52.07l3.55-3.56C19.02 8.35 19 8.18 19 8c0-1.1.9-2 2-2s2 .9 2 2z"/></svg>
+            <span class="nav-label">Timeline</span>
         </button>
-        <button class="nav-btn" data-view="analytics" title="Analytics" aria-label="Analytics view">
-            <span class="icon">📊</span>
+        <button class="nav-btn" data-view="analytics" title="Analytics" aria-label="Analytics">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9.2h3V19H5V9.2zM10.6 5h2.8v14h-2.8V5zm5.6 8H19v6h-2.8v-6z"/></svg>
+            <span class="nav-label">Analytics</span>
         </button>
-        <button class="nav-btn" data-view="projects" title="Projects" aria-label="Projects view">
-            <span class="icon">📁</span>
+        <button class="nav-btn" data-view="projects" title="Projects" aria-label="Projects">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
+            <span class="nav-label">Projects</span>
         </button>
-        <button class="nav-btn" data-view="sap-export" title="SAP Export" aria-label="SAP Export view">
-            <img class="nav-icon" src="../../assets/nav-icons/analytics.png" alt="">
+        <button class="nav-btn" data-view="sap-export" title="SAP export" aria-label="SAP export">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+            <span class="nav-label">SAP export</span>
         </button>
-        <button class="nav-btn" data-view="settings" title="Settings" aria-label="Settings view">
-            <span class="icon">⚙️</span>
-        </button>
+        <div class="rail-spacer"></div>
+        <div class="rail-footer">
+            <button class="nav-btn" data-view="settings" title="Settings" aria-label="Settings">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+                <span class="nav-label">Settings</span>
+            </button>
+        </div>
     </nav>
 
     <!-- Main Content -->
     <main class="content" role="main">
-        <div class="glow"></div>
-
-        <!-- Topbar -->
+        <!-- Page toolbar -->
         <div class="topbar">
-            <div>
-                <div class="title" id="topbar-title">Dashboard</div>
-                <div class="sub" id="topbar-subtitle">Trusted partner. Clear tracking.</div>
-            </div>
+            <div class="title" id="topbar-title">Timer</div>
+            <div class="sub" id="topbar-subtitle"></div>
             <div class="topbar-actions">
-                <button class="ghost" id="btn-floating-timer" title="Toggle Floating Timer (Ctrl+Shift+F)">⏱</button>
-                <button class="ghost" id="btn-export" title="Export Data">↓</button>
-                <button class="ghost" id="btn-snake" title="Take a Break - Play Snake">🐍</button>
-                <button class="ghost" id="btn-help" title="Help">?</button>
+                <button class="icon-btn" id="btn-export" title="Export data" aria-label="Export data">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                </button>
+                <button class="icon-btn" id="btn-floating-timer" title="Floating timer (Ctrl+Shift+F)" aria-label="Floating timer">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 11h-8v6h8v-6zm4 8V4.98C23 3.88 22.1 3 21 3H3c-1.1 0-2 .88-2 1.98V19c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2zm-2 .02H3V4.97h18v14.05z"/></svg>
+                </button>
+                <span class="toolbar-divider" aria-hidden="true"></span>
+                <button class="icon-btn" id="btn-help" title="Help" aria-label="Help">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"/></svg>
+                </button>
             </div>
         </div>
 
@@ -82,7 +96,7 @@
                         <button class="solid primary" id="toggle-tracking">
                             <span id="toggle-tracking-text">Start</span>
                         </button>
-                        <button class="solid primary" id="add-manual-entry">Add manual</button>
+                        <button class="ghost" id="add-manual-entry">Add manual</button>
                         <button class="ghost" id="mark-break">Mark break</button>
                     </div>
                 </div>
@@ -140,7 +154,7 @@
                     <div class="section-title">Activity feed</div>
                     <div id="activity-list">
                         <div class="empty-state">
-                            <div class="icon">📋</div>
+                            <div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 3H4.99C3.88 3 3.01 3.89 3.01 5L3 19c0 1.1.88 2 1.99 2H19c1.1 0 2-.9 2-2V5a2 2 0 0 0-2-2zm0 12h-4c0 1.66-1.35 3-3 3s-3-1.34-3-3H4.99V5H19v10z"/></svg></div>
                             <div>No activities yet today</div>
                             <div class="meta-line">Start tracking to see your activity feed</div>
                         </div>
@@ -149,12 +163,12 @@
 
                 <div class="insights">
                     <div class="section-title">Insights</div>
-                    <div class="insight-card" id="upcoming-meetings-card" style="display: none;">
+                    <div class="insight-card" id="upcoming-meetings-card" hidden>
                         <div class="label">Upcoming meetings</div>
                         <div id="upcoming-meetings-list">
                             <!-- Meetings populated dynamically -->
                         </div>
-                        <div class="meta-line" id="calendar-sync-info" style="margin-top: 8px; font-size: 11px;"></div>
+                        <div class="meta-line mt-8 text-xs" id="calendar-sync-info"></div>
                     </div>
                     <div class="insight-card">
                         <div class="label">Top projects</div>
@@ -282,7 +296,7 @@
                 </div>
                 <div id="timeline-list">
                     <div class="empty-state">
-                        <div class="icon">📋</div>
+                        <div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 3H4.99C3.88 3 3.01 3.89 3.01 5L3 19c0 1.1.88 2 1.99 2H19c1.1 0 2-.9 2-2V5a2 2 0 0 0-2-2zm0 12h-4c0 1.66-1.35 3-3 3s-3-1.34-3-3H4.99V5H19v10z"/></svg></div>
                         <div>No activities for this date</div>
                     </div>
                 </div>
@@ -299,7 +313,7 @@
                     <button class="range-btn" data-range="all">All Time</button>
                     <button class="range-btn" data-range="custom" id="custom-range-btn">Custom</button>
                 </div>
-                <div class="custom-range-picker" id="custom-range-picker" style="display: none;">
+                <div class="custom-range-picker" id="custom-range-picker" hidden>
                     <div class="date-inputs">
                         <label>
                             <span>From:</span>
@@ -309,7 +323,7 @@
                             <span>To:</span>
                             <input type="date" id="analytics-date-to">
                         </label>
-                        <button class="btn btn-sm" id="apply-custom-range">Apply</button>
+                        <button class="ghost btn-sm" id="apply-custom-range">Apply</button>
                     </div>
                 </div>
                 <div class="pill-row analytics-filter-row">
@@ -325,7 +339,7 @@
             </section>
 
             <!-- Period Comparison (hidden by default) -->
-            <section class="card comparison-card" id="comparison-section" style="display: none;">
+            <section class="card comparison-card" id="comparison-section" hidden>
                 <div class="label">Period Comparison</div>
                 <div class="comparison-grid">
                     <div class="comparison-col">
@@ -422,7 +436,7 @@
                     <div class="value" id="analytics-billable-time">0h 0m</div>
                     <div class="billable-breakdown" id="analytics-billable-breakdown">
                         <div class="billable-bar">
-                            <div class="billable-fill" id="analytics-billable-fill" style="width: 0%"></div>
+                            <div class="billable-fill" id="analytics-billable-fill"></div>
                         </div>
                         <div class="billable-labels">
                             <span id="analytics-billable-percent">0%</span>
@@ -439,7 +453,7 @@
                                 <span class="goal-value" id="goal-deepwork-value">0h / 4h</span>
                             </div>
                             <div class="goal-bar">
-                                <div class="goal-fill" id="goal-deepwork-fill" style="width: 0%"></div>
+                                <div class="goal-fill" id="goal-deepwork-fill"></div>
                             </div>
                         </div>
                         <div class="goal-item">
@@ -448,7 +462,7 @@
                                 <span class="goal-value" id="goal-focus-value">0 / 4</span>
                             </div>
                             <div class="goal-bar">
-                                <div class="goal-fill focus" id="goal-focus-fill" style="width: 0%"></div>
+                                <div class="goal-fill focus" id="goal-focus-fill"></div>
                             </div>
                         </div>
                     </div>
@@ -523,7 +537,7 @@
                     <input type="text" id="mapping-wbs" placeholder="WBS Element (optional)">
                     <button class="solid primary" id="add-mapping-btn">Add</button>
                     <button class="ghost" id="update-mapping-btn" disabled>Update</button>
-                    <button class="ghost danger" id="cancel-mapping-btn" style="display: none;">Cancel</button>
+                    <button class="ghost danger" id="cancel-mapping-btn" hidden>Cancel</button>
                 </div>
                 <div id="mappings-list" class="mappings-list"></div>
             </section>
@@ -542,7 +556,7 @@
                     <input type="text" id="url-mapping-wbs" placeholder="WBS Element (optional)">
                     <button class="solid primary" id="add-url-mapping-btn">Add</button>
                     <button class="ghost" id="update-url-mapping-btn" disabled>Update</button>
-                    <button class="ghost danger" id="cancel-url-mapping-btn" style="display: none;">Cancel</button>
+                    <button class="ghost danger" id="cancel-url-mapping-btn" hidden>Cancel</button>
                 </div>
                 <div id="url-mappings-list" class="mappings-list"></div>
             </section>
@@ -560,7 +574,7 @@
                     <input type="text" id="jira-mapping-wbs" placeholder="WBS Element (optional)">
                     <button class="solid primary" id="add-jira-mapping-btn">Add</button>
                     <button class="ghost" id="update-jira-mapping-btn" disabled>Update</button>
-                    <button class="ghost danger" id="cancel-jira-mapping-btn" style="display: none;">Cancel</button>
+                    <button class="ghost danger" id="cancel-jira-mapping-btn" hidden>Cancel</button>
                 </div>
                 <div id="jira-mappings-list" class="mappings-list"></div>
             </section>
@@ -579,7 +593,7 @@
                     <input type="text" id="meeting-mapping-wbs" placeholder="WBS Element (optional)">
                     <button class="solid primary" id="add-meeting-mapping-btn">Add</button>
                     <button class="ghost" id="update-meeting-mapping-btn" disabled>Update</button>
-                    <button class="ghost danger" id="cancel-meeting-mapping-btn" style="display: none;">Cancel</button>
+                    <button class="ghost danger" id="cancel-meeting-mapping-btn" hidden>Cancel</button>
                 </div>
                 <div id="meeting-mappings-list" class="mappings-list"></div>
             </section>
@@ -597,7 +611,7 @@
             <section class="list">
                 <div id="projects-list">
                     <div class="empty-state">
-                        <div class="icon">📁</div>
+                        <div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg></div>
                         <div>No projects yet</div>
                         <div class="meta-line">Projects appear as you track time</div>
                     </div>
@@ -611,24 +625,24 @@
                 <div class="label">Employee Settings</div>
                 <div class="meta-line">Your employee ID for SAP ByDesign export</div>
                 <div class="settings-row">
-                    <div class="form-group" style="flex: 1;">
+                    <div class="form-group flex-1">
                         <label for="sap-employee-id">Employee ID</label>
                         <input type="text" id="sap-employee-id" placeholder="Enter your employee ID">
                     </div>
-                    <button class="solid" id="sap-save-employee-id" style="align-self: flex-end;">Save</button>
+                    <button class="ghost self-end" id="sap-save-employee-id">Save</button>
                 </div>
             </section>
 
             <section class="card">
                 <div class="label">Select Period</div>
                 <div class="meta-line">Choose a date range for your timesheet export</div>
-                <div class="sap-period-buttons" style="display: flex; gap: 8px; margin-top: 12px;">
+                <div class="sap-period-buttons">
                     <button class="ghost" id="sap-this-week">This Week</button>
                     <button class="ghost" id="sap-last-week">Last Week</button>
                     <button class="ghost" id="sap-this-month">This Month</button>
                     <button class="ghost" id="sap-last-month">Last Month</button>
                 </div>
-                <div id="sap-selected-period" class="meta-line" style="margin-top: 12px; color: var(--neon);">
+                <div id="sap-selected-period" class="meta-line mt-12">
                     No period selected
                 </div>
             </section>
@@ -636,23 +650,23 @@
             <section class="card">
                 <div class="label">Preview</div>
                 <div id="sap-preview-summary" class="meta-line">Select a period to preview data</div>
-                <div id="sap-preview-table" style="margin-top: 12px; overflow-x: auto;">
-                    <table class="sap-preview" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                <div id="sap-preview-table">
+                    <table class="sap-preview">
                         <thead>
-                            <tr style="border-bottom: 1px solid var(--border);">
-                                <th style="text-align: left; padding: 8px; color: var(--ink-muted);">Date</th>
-                                <th style="text-align: left; padding: 8px; color: var(--ink-muted);">Project</th>
-                                <th style="text-align: left; padding: 8px; color: var(--ink-muted);">Activity Type</th>
-                                <th style="text-align: right; padding: 8px; color: var(--ink-muted);">Hours</th>
-                                <th style="text-align: left; padding: 8px; color: var(--ink-muted);">SAP Code</th>
-                                <th style="text-align: left; padding: 8px; color: var(--ink-muted);">Cost Center</th>
-                                <th style="text-align: left; padding: 8px; color: var(--ink-muted);">WBS</th>
-                                <th style="text-align: left; padding: 8px; color: var(--ink-muted);">Description</th>
+                            <tr>
+                                <th>Date</th>
+                                <th>Project</th>
+                                <th>Activity Type</th>
+                                <th class="num">Hours</th>
+                                <th>SAP Code</th>
+                                <th>Cost Center</th>
+                                <th>WBS</th>
+                                <th>Description</th>
                             </tr>
                         </thead>
                         <tbody id="sap-preview-body">
                             <tr>
-                                <td colspan="8" style="padding: 20px; text-align: center; color: var(--ink-muted);">
+                                <td colspan="8" class="table-empty">
                                     Select a period to see preview
                                 </td>
                             </tr>
@@ -662,7 +676,7 @@
             </section>
 
             <section class="card">
-                <div class="actions" style="display: flex; gap: 12px; align-items: center;">
+                <div class="actions align-center">
                     <button class="solid primary" id="sap-export-btn" disabled>Export to CSV</button>
                     <span id="sap-export-status" class="meta-line"></span>
                 </div>
@@ -672,7 +686,7 @@
             <section class="card">
                 <div class="label">Export History</div>
                 <div class="meta-line">Recent exports (last 20)</div>
-                <div id="export-history-list" style="margin-top: 12px;">
+                <div id="export-history-list" class="mt-12">
                     <div class="meta-line">No exports yet</div>
                 </div>
             </section>
@@ -704,7 +718,7 @@
                                 </label>
                             </div>
                         </div>
-                        <div class="settings-row" style="margin-top: 12px;">
+                        <div class="settings-row">
                             <div class="form-group">
                                 <label for="settings-close-behavior">When I close the window</label>
                                 <select id="settings-close-behavior">
@@ -739,7 +753,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="meta-line" style="margin-top: 8px; font-size: 11px;">
+                        <div class="meta-line mt-8 text-xs">
                             <strong>Smart:</strong> Merge activities with same JIRA ticket, common tags, or similar titles<br>
                             <strong>Strict:</strong> Only merge if titles match exactly<br>
                             <strong>Relaxed:</strong> Merge all activities in the same project
@@ -843,19 +857,19 @@
                     <section class="card">
                         <div class="label">Calendar Sync</div>
                         <div class="meta-line">Sync meetings from Outlook/Exchange via ICS subscription</div>
-                        <div class="settings-row" style="flex-direction: column; gap: 12px;">
-                            <div class="form-group" style="width: 100%;">
+                        <div class="settings-row column">
+                            <div class="form-group w-full">
                                 <label for="settings-calendar-url">Calendar ICS URL</label>
-                                <div style="display: flex; gap: 8px;">
-                                    <input type="url" id="settings-calendar-url" placeholder="https://outlook.office365.com/owa/calendar/.../calendar.ics" style="flex: 1;">
+                                <div class="inline-row">
+                                    <input type="url" id="settings-calendar-url" placeholder="https://outlook.office365.com/owa/calendar/.../calendar.ics" class="flex-1">
                                     <button class="solid primary" id="calendar-sync-btn">Sync Now</button>
                                 </div>
-                                <div class="meta-line" style="margin-top: 4px; font-size: 11px; color: var(--ink-muted);">
+                                <div class="meta-line text-xs">
                                     <strong>Privacy:</strong> This URL is typically public. Do not share it.
-                                    <a href="#" id="calendar-help-link" style="margin-left: 8px;">How to get your calendar URL</a>
+                                    <a href="#" id="calendar-help-link" class="ml-8">How to get your calendar URL</a>
                                 </div>
                             </div>
-                            <div id="calendar-sync-status" class="meta-line" style="display: none;"></div>
+                            <div id="calendar-sync-status" class="meta-line" hidden></div>
                         </div>
                     </section>
                 </div>
@@ -872,7 +886,7 @@
                     <section class="card">
                         <div class="label">Data Management</div>
                         <div class="meta-line">Export and manage your time tracking data</div>
-                        <div class="actions" style="margin-top: 12px;">
+                        <div class="actions">
                             <button class="solid primary" id="settings-export">Export CSV</button>
                             <button class="ghost" id="settings-clear-old">Clear old data (30+ days)</button>
                         </div>
@@ -884,12 +898,12 @@
                     <section class="card">
                         <div class="label">Backup & Restore</div>
                         <div class="meta-line">Create a full backup or restore from a previous backup</div>
-                        <div class="actions" style="margin-top: 12px; flex-wrap: wrap; gap: 8px;">
+                        <div class="actions wrap">
                             <button class="solid primary" id="backup-data-btn">Create Backup</button>
                             <button class="ghost" id="restore-data-btn">Restore from Backup</button>
                         </div>
-                        <input type="file" id="restore-file-input" accept=".json" style="display: none;">
-                        <div id="backup-status" class="meta-line" style="margin-top: 8px; display: none;"></div>
+                        <input type="file" id="restore-file-input" accept=".json" hidden>
+                        <div id="backup-status" class="meta-line mt-8" hidden></div>
                     </section>
                 </div>
             </details>
@@ -899,9 +913,17 @@
                 <summary>
                     <span class="chevron">▶</span>
                     <span class="group-title">Customization</span>
-                    <span class="group-count">3 settings</span>
+                    <span class="group-count">4 settings</span>
                 </summary>
                 <div class="settings-group-content">
+                    <section class="card">
+                        <div class="label">Appearance</div>
+                        <div class="meta-line">Colour mode for this window. Applies immediately.</div>
+                        <div class="segmented mt-12" role="group" aria-label="Colour mode">
+                            <button type="button" data-color-mode="light" aria-pressed="false">Light</button>
+                            <button type="button" data-color-mode="dark" aria-pressed="false">Dark</button>
+                        </div>
+                    </section>
                     <section class="card">
                         <div class="label">Tag Management</div>
                         <div class="meta-line">Manage system and custom tags for activity categorization</div>
@@ -959,7 +981,7 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" id="edit-activity-id">
-                <div id="matched-rule-info" class="matched-rule-info" style="display: none;">
+                <div id="matched-rule-info" class="matched-rule-info" hidden>
                     <span class="label">Matched by:</span>
                     <span id="matched-rule-text"></span>
                 </div>
@@ -1081,7 +1103,6 @@
 
     <!-- LightTrack Modules (load before main app) -->
     <script src="js/modules/utils.js"></script>
-    <script src="js/modules/charts.js"></script>
     <script src="js/modules/notifications.js"></script>
     <script src="js/modules/sap-export.js"></script>
     <script src="js/modules/help.js"></script>

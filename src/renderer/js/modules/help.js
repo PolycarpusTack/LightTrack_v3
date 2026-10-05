@@ -280,14 +280,6 @@ Regular breaks help maintain focus and productivity.
 ### Break Button
 Click **Mark Break** in the Timer view to record a break.
 
-### Snake Game 🐍
-Click the snake button in the toolbar to play during breaks.
-
-**Controls:**
-- Arrow keys or WASD to move
-- P to pause/resume
-- Enter to restart
-
 ### Break Reminders
 Enable in Settings to get notified when it's time for a break.
 

@@ -1,150 +1,11 @@
 /**
  * LightTrack Modals Module
- * Handles modal dialogs, tag system, project management, activity type management,
- * and the snake game easter egg.
+ * Handles modal dialogs, tag system, project management and activity type management.
  */
 (function() {
   'use strict';
 
   window.LightTrack = window.LightTrack || {};
-
-  // ============= Snake Game Easter Egg =============
-
-  /**
-   * Open the Snake game modal
-   */
-  function openSnakeGame() {
-    // Remove existing modal if present
-    const existingModal = document.getElementById('snake-modal-overlay');
-    if (existingModal) {
-      existingModal.remove();
-    }
-
-    const overlay = document.createElement('div');
-    overlay.className = 'modal-overlay';
-    overlay.id = 'snake-modal-overlay';
-    overlay.innerHTML = `
-      <div class="modal" style="max-width: 480px; width: 100%;">
-        <div class="modal-header">
-          <h3>\u{1F40D} Snake - Take a Break!</h3>
-          <button class="modal-close" id="snake-modal-close">&times;</button>
-        </div>
-        <div class="modal-body" style="padding: 16px; text-align: center;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px;">
-            <span>Score: <strong id="snake-score">0</strong></span>
-            <span>High Score: <strong id="snake-highscore">0</strong></span>
-          </div>
-          <div style="position: relative; display: inline-block;">
-            <canvas id="snake-canvas" width="400" height="400" style="border: 2px solid var(--border-default); border-radius: 8px; display: block;"></canvas>
-            <div id="snake-game-over" style="display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); border-radius: 8px; flex-direction: column; align-items: center; justify-content: center; color: white;">
-              <div style="font-size: 24px; font-weight: bold; margin-bottom: 8px;">Game Over!</div>
-              <div style="margin-bottom: 16px;">Final Score: <strong id="snake-final-score">0</strong></div>
-              <button class="solid primary" id="snake-restart-btn">Play Again</button>
-            </div>
-          </div>
-          <div style="margin-top: 12px; display: flex; gap: 8px; justify-content: center;">
-            <button class="solid primary" id="snake-start-btn">Start</button>
-            <button class="ghost" id="snake-pause-btn" disabled>Pause</button>
-          </div>
-          <div style="margin-top: 12px; font-size: 12px; color: var(--ink-muted);">
-            Use arrow keys or WASD to move
-          </div>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(overlay);
-
-    // Add active class after a brief delay for animation
-    requestAnimationFrame(() => {
-      overlay.classList.add('active');
-      const modal = overlay.querySelector('.modal');
-      if (modal) modal.classList.add('active');
-    });
-
-    // Initialize game
-    const canvas = document.getElementById('snake-canvas');
-    SnakeGame.init(canvas);
-    SnakeGame.draw();
-
-    // Button handlers
-    const closeBtn = document.getElementById('snake-modal-close');
-    const startBtn = document.getElementById('snake-start-btn');
-    const pauseBtn = document.getElementById('snake-pause-btn');
-    const restartBtn = document.getElementById('snake-restart-btn');
-
-    if (closeBtn) {
-      closeBtn.addEventListener('click', closeSnakeGame);
-    }
-
-    if (startBtn) {
-      startBtn.addEventListener('click', () => {
-        SnakeGame.start();
-        startBtn.disabled = true;
-        pauseBtn.disabled = false;
-      });
-    }
-
-    if (pauseBtn) {
-      pauseBtn.addEventListener('click', () => {
-        SnakeGame.pause();
-      });
-    }
-
-    if (restartBtn) {
-      restartBtn.addEventListener('click', () => {
-        const gameOverEl = document.getElementById('snake-game-over');
-        if (gameOverEl) gameOverEl.style.display = 'none';
-        SnakeGame.reset();
-        SnakeGame.draw();
-        SnakeGame.start();
-        startBtn.disabled = true;
-        pauseBtn.disabled = false;
-        pauseBtn.textContent = 'Pause';
-      });
-    }
-
-    // Keyboard handler
-    const keyHandler = (e) => {
-      if (e.key === 'Escape') {
-        closeSnakeGame();
-      } else if (e.key === ' ') {
-        e.preventDefault();
-        if (SnakeGame.isRunning) {
-          SnakeGame.pause();
-        }
-      } else {
-        SnakeGame.handleKeydown(e);
-      }
-    };
-    document.addEventListener('keydown', keyHandler);
-
-    // Store handler for cleanup
-    overlay.keyHandler = keyHandler;
-
-    // Close on overlay click
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) {
-        closeSnakeGame();
-      }
-    });
-  }
-
-  /**
-   * Close the Snake game modal
-   */
-  function closeSnakeGame() {
-    const overlay = document.getElementById('snake-modal-overlay');
-    if (overlay) {
-      SnakeGame.stop();
-      if (overlay.keyHandler) {
-        document.removeEventListener('keydown', overlay.keyHandler);
-      }
-      overlay.classList.remove('active');
-      const modal = overlay.querySelector('.modal');
-      if (modal) modal.classList.remove('active');
-      setTimeout(() => overlay.remove(), 300);
-    }
-  }
 
   // ============= Modal Functions =============
 
@@ -549,30 +410,39 @@
     editor.innerHTML = `
       <div class="tag-editor-header">
         <span>Edit Tags</span>
-        <button onclick="closeTagEditor()" class="tag-editor-close">\u00d7</button>
+        <button type="button" class="tag-editor-close" aria-label="Close">\u00d7</button>
       </div>
       <div class="tag-editor-list">
         ${allTags.map(tag => {
-          const isChecked = currentTags.includes(tag);
-          const isSystem = AppState.tags.system.includes(tag);
-          return `
+    const isChecked = currentTags.includes(tag);
+    const isSystem = AppState.tags.system.includes(tag);
+    return `
             <label class="tag-editor-item ${isSystem ? 'system' : 'custom'}">
               <input type="checkbox" value="${escapeHtml(tag)}" ${isChecked ? 'checked' : ''}>
               <span>${escapeHtml(tag)}</span>
             </label>
           `;
-        }).join('')}
+  }).join('')}
       </div>
       <div class="tag-editor-actions">
         <input type="text" id="new-tag-input" placeholder="Add new tag..." class="tag-editor-input">
-        <button onclick="addNewTag('${activityId}')" class="btn-small">Add</button>
+        <button type="button" class="btn-small tag-editor-add">Add</button>
       </div>
       <div class="tag-editor-footer">
-        <button onclick="saveActivityTags('${activityId}')" class="btn-small primary">Save</button>
+        <button type="button" class="btn-small primary tag-editor-save">Save</button>
       </div>
     `;
 
     activityEl.appendChild(editor);
+
+    // Wire buttons here: the CSP blocks inline onclick handlers.
+    const wire = (selector, fn) => editor.querySelector(selector)?.addEventListener('click', e => {
+      e.stopPropagation();
+      fn();
+    });
+    wire('.tag-editor-close', closeTagEditor);
+    wire('.tag-editor-add', () => addNewTag(activityId));
+    wire('.tag-editor-save', () => saveActivityTags(activityId));
 
     // Handle enter key in new tag input
     const newTagInput = editor.querySelector('#new-tag-input');
@@ -600,7 +470,7 @@
   /**
    * Add a new custom tag
    */
-  async function addNewTag(activityId) {
+  async function addNewTag(_activityId) {
     const input = document.getElementById('new-tag-input');
     const tagName = input?.value?.trim().toLowerCase();
 
@@ -709,7 +579,7 @@
         <h4>Custom Tags</h4>
         <div class="tag-manager-list custom" id="custom-tags-list">
           ${customTags.length === 0 ? '<span class="meta-line">No custom tags yet</span>' :
-            customTags.map(tag => `
+    customTags.map(tag => `
               <span class="tag-manager-item custom">
                 ${escapeHtml(tag)}
                 <button data-action="remove-tag" data-tag="${escapeAttr(tag)}" title="Remove tag">\u00d7</button>
@@ -847,7 +717,7 @@
         <h4>Custom Projects</h4>
         <div class="project-list" id="custom-projects-list">
           ${customProjects.length === 0 ? '<span class="meta-line">No custom projects yet</span>' :
-            customProjects.map(project => `
+    customProjects.map(project => `
               <div class="project-list-item">
                 <div class="project-info">
                   <span class="project-name">${escapeHtml(project.name)}</span>
@@ -869,7 +739,7 @@
         <h4>Add New Project</h4>
         <div class="project-form">
           <div class="project-form-row">
-            <input type="text" id="new-project-name" placeholder="Project name *" style="flex: 2;">
+            <input type="text" id="new-project-name" placeholder="Project name *" class="flex-2">
             <input type="text" id="new-project-sap" placeholder="SAP Code">
           </div>
           <div class="project-form-row">
@@ -1064,7 +934,7 @@
         <h4>Custom Types</h4>
         <div class="tag-manager-list custom" id="custom-activity-types-list">
           ${customTypes.length === 0 ? '<span class="meta-line">No custom activity types yet</span>' :
-            customTypes.map(type => `
+    customTypes.map(type => `
               <span class="tag-manager-item custom">
                 ${escapeHtml(type.name)}
                 <button data-action="remove-activity-type" data-type-id="${escapeHtml(type.id)}" title="Remove activity type">&times;</button>
@@ -1159,9 +1029,6 @@
   // ============= Module Export =============
 
   window.LightTrack.Modals = {
-    // Snake game
-    openSnakeGame,
-    closeSnakeGame,
     // Modal helpers
     addModalEscHandler,
     removeModalEscHandler,
