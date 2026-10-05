@@ -23,7 +23,7 @@ These changes exist in the working tree and must be committed before CI runs aga
 
 ## Not yet done
 
-See section 4 of the development plan. In particular, no check launches the packaged application, and the existing smoke test exercises mocks rather than application code.
+See section 4 of the development plan. CI now launches the packaged application in an isolated profile (LT3-005); the mock-only smoke test was removed.
 
 ## LT3-002 retirement record
 

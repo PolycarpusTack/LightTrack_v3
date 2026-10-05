@@ -1,0 +1,114 @@
+/**
+ * Packaged-application harness (LT3-005).
+ *
+ * Launches the packaged LightTrack.exe in harness mode with an isolated profile,
+ * drives the real UI and IPC: stores a manual activity, previews and writes a SAP
+ * export, then restarts to check the data persisted (encrypted, as installed
+ * builds are). Capture is not started; the manual entry is the stored raw event.
+ *
+ * LIGHTTRACK_EXE overrides the executable (default: dist/win-unpacked/LightTrack.exe).
+ */
+const { test, expect, _electron: electron } = require('@playwright/test');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+
+const EXE = process.env.LIGHTTRACK_EXE || path.join(__dirname, '..', '..', 'dist', 'win-unpacked', 'LightTrack.exe');
+const PROJECT = 'Harness Project';
+
+function localDateISO(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+async function launch(userData) {
+  const app = await electron.launch({
+    executablePath: EXE,
+    env: { ...process.env, LIGHTTRACK_HARNESS: '1', LIGHTTRACK_USER_DATA: userData }
+  });
+  const page = await app.firstWindow();
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
+  await page.locator('.nav-btn[data-view="timer"]').waitFor({ state: 'visible' });
+  return { app, page, errors };
+}
+
+test.describe('packaged application', () => {
+  let userData;
+
+  test.beforeAll(() => {
+    expect(fs.existsSync(EXE), `packaged app not found at ${EXE}`).toBe(true);
+    userData = fs.mkdtempSync(path.join(os.tmpdir(), 'lighttrack-harness-'));
+  });
+
+  test.afterAll(() => {
+    if (userData) fs.rmSync(userData, { recursive: true, force: true });
+  });
+
+  test('stores a manual entry, exports it to SAP CSV and keeps it after restart', async () => {
+    const { app, page, errors } = await launch(userData);
+
+    // Harness mode uses the isolated profile, not the user's real one.
+    const appUserData = await app.evaluate(({ app: electronApp }) => electronApp.getPath('userData'));
+    expect(path.resolve(appUserData)).toBe(path.resolve(userData));
+
+    // 1. Store a manual activity through the real form and IPC.
+    await page.locator('#add-manual-entry').click();
+    await page.locator('#entry-project').fill(PROJECT);
+    await page.locator('#entry-app').fill('Harness work');
+    await page.locator('#entry-date').fill(localDateISO());
+    await page.locator('#entry-start').fill('09:00');
+    await page.locator('#entry-end').fill('10:30');
+    await page.locator('#modal-save').click();
+
+    const stored = await page.evaluate(async project => {
+      const all = await window.lightTrackAPI.getActivities();
+      return all.filter(a => a.project === project);
+    }, PROJECT);
+    expect(stored).toHaveLength(1);
+    expect(stored[0].duration).toBe(5400);
+
+    // 2. SAP export: preview is built in main, then written to a file.
+    await page.locator('.nav-btn[data-view="sap-export"]').click();
+    await page.locator('#sap-employee-id').fill('E-HARNESS');
+    await page.locator('#sap-save-employee-id').click();
+    await page.locator('#sap-this-week').click();
+    const row = page.locator('#sap-preview-body tr', { hasText: PROJECT });
+    await expect(row).toHaveCount(1);
+    await expect(row.locator('td.num')).toHaveText('1.50');
+    await expect(row.locator('.sap-description-input')).toHaveValue(`${PROJECT} - Development`);
+
+    const csvPath = path.join(userData, 'harness-export.csv');
+    await app.evaluate(({ dialog }, filePath) => {
+      dialog.showSaveDialog = async () => ({ canceled: false, filePath });
+    }, csvPath);
+    await page.locator('#sap-export-btn').click();
+    await expect.poll(() => fs.existsSync(csvPath)).toBe(true);
+
+    const lines = fs.readFileSync(csvPath, 'utf8').split('\n');
+    expect(lines[0]).toBe('Employee ID,Date,Project,Activity Type,Hours,SAP Code,Cost Center,WBS Element,Work Description,Billable');
+    const dataLine = lines.find(l => l.includes(PROJECT));
+    expect(dataLine).toBe(`"E-HARNESS",${localDateISO()},"${PROJECT}","Development",1.50,"","","","${PROJECT} - Development",Yes`);
+    expect(fs.readFileSync(csvPath, 'utf8')).not.toContain('Harness work'); // raw title never exported
+
+    expect(errors).toEqual([]);
+    await app.close();
+
+    // 3. Installed builds encrypt the data file with a protected key.
+    expect(fs.existsSync(path.join(userData, '.keyref'))).toBe(true);
+    expect(fs.readFileSync(path.join(userData, 'config.json')).toString('utf8')).not.toContain(PROJECT);
+
+    // 4. Data survives a restart.
+    const second = await launch(userData);
+    const afterRestart = await second.page.evaluate(async project => {
+      const all = await window.lightTrackAPI.getActivities();
+      return all.filter(a => a.project === project).length;
+    }, PROJECT);
+    expect(afterRestart).toBe(1);
+    expect(second.errors).toEqual([]);
+    await second.app.close();
+  });
+});
