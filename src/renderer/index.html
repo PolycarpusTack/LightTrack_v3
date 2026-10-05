@@ -1110,7 +1110,8 @@
     </div>
 
     <!-- LightTrack Modules (load before main app) -->
-    <script src="js/modules/utils.js"></script>
+    <!-- TypeScript modules (bundled, LT3-006); must load before the legacy modules -->
+    <script src="js/bundle.js"></script>
     <script src="js/modules/notifications.js"></script>
     <script src="js/modules/sap-export.js"></script>
     <script src="js/modules/help.js"></script>

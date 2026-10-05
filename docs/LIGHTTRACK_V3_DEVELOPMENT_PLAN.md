@@ -192,7 +192,7 @@ Items are ordered by risk reduction and usable outcomes. Estimates must be added
 
 **Outcome:** contributors have one authoritative repository decision.
 
-**Status:** acceptance criteria met except issue creation.
+**Status:** done. Open backlog items are GitHub issues #10 to #33 (labels P0 to P4, increment-A/B/C, blocked).
 
 Acceptance criteria:
 
@@ -268,6 +268,8 @@ Acceptance criteria:
 - `test/integration/smoke.test.js` is removed.
 
 #### LT3-006 — Add a TypeScript toolchain
+
+**Status:** done. `scripts/build.js` builds into `out/` (tsc for main/preload/shared with `allowJs`, esbuild IIFE bundle for `src/renderer/ts`, renderer type-check); packaging uses `out/`. Migrated as proof: `src/main/exports/sap-csv.ts` and `src/renderer/ts/utils.ts`, both exercised by the app harness. Jest runs TypeScript through ts-jest; ESLint uses `@typescript-eslint`. Further migration happens per module.
 
 **Outcome:** main process, preload and renderer can be written in TypeScript and packaged.
 

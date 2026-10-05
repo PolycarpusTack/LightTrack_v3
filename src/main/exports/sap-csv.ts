@@ -1,5 +1,5 @@
 /**
- * SAP ByDesign CSV export (LT3-007).
+ * SAP ByDesign CSV export (LT3-007). Migrated to TypeScript in LT3-006.
  *
  * Rows are built here, in the main process, from stored activities. The renderer
  * only sends the period, the employee ID and optional per-row description edits,
@@ -12,7 +12,7 @@
  * into versioned export profiles in LT3-302.
  */
 
-const HEADERS = [
+export const HEADERS = [
   'Employee ID',
   'Date',
   'Project',
@@ -23,7 +23,7 @@ const HEADERS = [
   'WBS Element',
   'Work Description',
   'Billable'
-];
+] as const;
 
 const DEFAULT_ACTIVITY_TYPE = 'Development';
 const MAX_RANGE_DAYS = 366;
@@ -37,35 +37,74 @@ const FORMULA_PREFIX = /^[=+\-@\t\r]/;
 // eslint-disable-next-line no-control-regex
 const CONTROL_CHARS = /[\u0000-\u001f\u007f]/;
 
-class SapExportValidationError extends Error {
-  constructor(message) {
+/** Request as received over IPC; nothing about it is trusted. */
+export type SapRequestInput = unknown;
+
+export interface SapRequest {
+  startDate: Date;
+  endDate: Date;
+  employeeId: string;
+  descriptions: Record<string, string>;
+}
+
+/** The subset of a stored activity that the export reads. */
+export interface ActivityLike {
+  startTime?: string;
+  timestamp?: string;
+  duration?: number | string;
+  project?: string;
+  activity?: string;
+  activityType?: string;
+  sapCode?: string;
+  costCenter?: string;
+  wbsElement?: string;
+  tickets?: unknown[];
+  billable?: boolean;
+}
+
+export interface SapRow {
+  key: string;
+  date: string;
+  project: string;
+  activityType: string;
+  hours: number;
+  sapCode: string;
+  costCenter: string;
+  wbsElement: string;
+  jiraKeys: string[];
+  workDescription: string;
+  billable: 'Yes' | 'No';
+}
+
+export class SapExportValidationError extends Error {
+  constructor(message: string) {
     super(message);
     this.name = 'SapExportValidationError';
   }
 }
 
-function fail(message) {
+function fail(message: string): never {
   throw new SapExportValidationError(message);
 }
 
-function parseInstant(value, field) {
+function parseInstant(value: unknown, field: string): Date {
   if (typeof value !== 'string' || !value) fail(`${field} is required`);
   const time = Date.parse(value);
   if (Number.isNaN(time)) fail(`${field} is not a valid date`);
   return new Date(time);
 }
 
-/**
- * Validate and normalise an export or preview request from the renderer.
- * @returns {{ startDate: Date, endDate: Date, employeeId: string, descriptions: Object<string,string> }}
- */
-function validateRequest(options, { requireEmployeeId = false } = {}) {
-  if (!options || typeof options !== 'object' || Array.isArray(options)) fail('Request must be an object');
+const isPlainObject = (v: unknown): v is Record<string, unknown> =>
+  v !== null && typeof v === 'object' && !Array.isArray(v);
+
+/** Validate and normalise an export or preview request from the renderer. */
+export function validateRequest(options: SapRequestInput, { requireEmployeeId = false } = {}): SapRequest {
+  if (!isPlainObject(options)) fail('Request must be an object');
 
   const startDate = parseInstant(options.startDate, 'startDate');
   const endDate = parseInstant(options.endDate, 'endDate');
   if (endDate < startDate) fail('endDate is before startDate');
-  if ((endDate - startDate) / 86400000 > MAX_RANGE_DAYS) fail(`Period is longer than ${MAX_RANGE_DAYS} days`);
+  if ((endDate.getTime() - startDate.getTime()) / 86400000 > MAX_RANGE_DAYS) fail(`Period is longer than ${MAX_RANGE_DAYS} days`);
 
   const employeeId = options.employeeId === undefined ? '' : options.employeeId;
   if (typeof employeeId !== 'string') fail('employeeId must be a string');
@@ -74,10 +113,10 @@ function validateRequest(options, { requireEmployeeId = false } = {}) {
   if (CONTROL_CHARS.test(trimmedId)) fail('employeeId contains control characters');
   if (requireEmployeeId && !trimmedId) fail('employeeId is required');
 
-  const descriptions = {};
+  const descriptions: Record<string, string> = {};
   if (options.descriptions !== undefined) {
     const raw = options.descriptions;
-    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) fail('descriptions must be an object');
+    if (!isPlainObject(raw)) fail('descriptions must be an object');
     const entries = Object.entries(raw);
     if (entries.length > MAX_OVERRIDES) fail('Too many description edits');
     for (const [key, value] of entries) {
@@ -92,28 +131,45 @@ function validateRequest(options, { requireEmployeeId = false } = {}) {
 }
 
 /** Local calendar date (YYYY-MM-DD), matching how the renderer groups days. */
-function localDate(date) {
+function localDate(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
 }
 
-function defaultDescription(project, activityType, jiraKeys) {
+export function defaultDescription(project: string, activityType: string, jiraKeys: readonly string[]): string {
   const base = `${project} - ${activityType}`;
   return jiraKeys.length ? `${base} - ${jiraKeys.join(', ')}` : base;
+}
+
+interface Group {
+  key: string;
+  date: string;
+  project: string;
+  seconds: number;
+  jiraKeys: Set<string>;
+  activityType: string;
+  sapCode: string;
+  costCenter: string;
+  wbsElement: string;
+  billable: boolean;
 }
 
 /**
  * Group activities by local date and project for the selected period.
  * Each row carries a stable key (`date|project`) that description edits refer to.
  */
-function buildRows(activities, { startDate, endDate, descriptions = {} }) {
-  const groups = new Map();
+export function buildRows(
+  activities: unknown,
+  { startDate, endDate, descriptions = {} }: Pick<SapRequest, 'startDate' | 'endDate'> & Partial<Pick<SapRequest, 'descriptions'>>
+): SapRow[] {
+  const groups = new Map<string, Group>();
 
-  for (const activity of Array.isArray(activities) ? activities : []) {
-    if (!activity || typeof activity !== 'object') continue;
-    const started = new Date(activity.startTime || activity.timestamp);
+  for (const item of Array.isArray(activities) ? activities : []) {
+    if (!isPlainObject(item)) continue;
+    const activity = item as ActivityLike;
+    const started = new Date(activity.startTime || activity.timestamp || NaN);
     if (Number.isNaN(started.getTime()) || started < startDate || started > endDate) continue;
 
     const duration = Number(activity.duration);
@@ -123,15 +179,16 @@ function buildRows(activities, { startDate, endDate, descriptions = {} }) {
     const project = String(activity.project || 'General');
     const key = `${date}|${project}`;
 
-    if (!groups.has(key)) {
-      groups.set(key, {
-        key, date, project, seconds: 0, jiraKeys: new Set(),
+    let group = groups.get(key);
+    if (!group) {
+      group = {
+        key, date, project, seconds: 0, jiraKeys: new Set<string>(),
         activityType: '', sapCode: '', costCenter: '', wbsElement: '',
         // As before LT3-007: the first activity in the group decides (revisit with LT3-202)
         billable: activity.billable !== false
-      });
+      };
+      groups.set(key, group);
     }
-    const group = groups.get(key);
     group.seconds += duration;
     const type = activity.activity || activity.activityType;
     if (type) group.activityType = String(type);
@@ -145,7 +202,7 @@ function buildRows(activities, { startDate, endDate, descriptions = {} }) {
   }
 
   return [...groups.values()]
-    .map(g => {
+    .map((g): SapRow => {
       const activityType = g.activityType || DEFAULT_ACTIVITY_TYPE;
       const jiraKeys = [...g.jiraKeys].sort();
       return {
@@ -168,14 +225,14 @@ function buildRows(activities, { startDate, endDate, descriptions = {} }) {
 }
 
 /** Quote a text cell and neutralise spreadsheet formula injection. */
-function textCell(value) {
+export function textCell(value: unknown): string {
   let text = value === undefined || value === null ? '' : String(value);
   if (FORMULA_PREFIX.test(text)) text = `'${text}`;
   return `"${text.replace(/"/g, '""')}"`;
 }
 
 /** Build the CSV file content. */
-function toCsv(rows, employeeId) {
+export function toCsv(rows: readonly SapRow[], employeeId: string): string {
   const lines = rows.map(row => [
     textCell(employeeId),
     row.date,
@@ -190,13 +247,3 @@ function toCsv(rows, employeeId) {
   ].join(','));
   return [HEADERS.join(','), ...lines].join('\n');
 }
-
-module.exports = {
-  HEADERS,
-  SapExportValidationError,
-  validateRequest,
-  buildRows,
-  toCsv,
-  textCell,
-  defaultDescription
-};
