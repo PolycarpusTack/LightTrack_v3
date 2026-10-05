@@ -13,7 +13,9 @@ window.LightTrack.SAPExport = (function() {
     selectedPeriod: null,
     startDate: null,
     endDate: null,
-    aggregatedData: [],
+    rows: [],
+    // Per-row Work Description edits, keyed by row key (date|project)
+    descriptions: {},
     employeeId: ''
   };
 
@@ -64,69 +66,9 @@ window.LightTrack.SAPExport = (function() {
   }
 
   /**
-   * Aggregate activities for SAP export
-   * Groups by date + project, sums duration, concatenates descriptions
-   */
-  function aggregateActivities(activities, startDate, endDate) {
-    const filtered = activities.filter(a => {
-      const activityDate = new Date(a.startTime || a.timestamp);
-      return activityDate >= startDate && activityDate <= endDate;
-    });
-
-    const groups = {};
-
-    filtered.forEach(activity => {
-      const date = Utils.formatDateISO(new Date(activity.startTime || activity.timestamp));
-      const project = activity.project || 'General';
-      const key = `${date}|${project}`;
-
-      if (!groups[key]) {
-        groups[key] = {
-          date,
-          project,
-          duration: 0,
-          titles: new Set(),
-          sapCode: activity.sapCode || '',
-          costCenter: activity.costCenter || '',
-          wbsElement: activity.wbsElement || '',
-          activityType: activity.activity || activity.activityType || '',
-          billable: activity.billable !== false
-        };
-      }
-
-      groups[key].duration += activity.duration || 0;
-
-      const title = (activity.title || '').trim();
-      if (title && title.length > 3) {
-        const cleanTitle = title.substring(0, 100);
-        groups[key].titles.add(cleanTitle);
-      }
-
-      if (activity.sapCode) groups[key].sapCode = activity.sapCode;
-      if (activity.costCenter) groups[key].costCenter = activity.costCenter;
-      if (activity.wbsElement) groups[key].wbsElement = activity.wbsElement;
-      if (activity.activity || activity.activityType) {
-        groups[key].activityType = activity.activity || activity.activityType;
-      }
-    });
-
-    return Object.values(groups)
-      .map(g => ({
-        date: g.date,
-        project: g.project,
-        activityType: g.activityType || 'Development',
-        hours: Math.round((g.duration / 3600) * 100) / 100,
-        sapCode: g.sapCode,
-        costCenter: g.costCenter,
-        wbsElement: g.wbsElement,
-        workDescription: Array.from(g.titles).slice(0, 10).join('; '),
-        billable: g.billable ? 'Yes' : 'No'
-      }))
-      .sort((a, b) => a.date.localeCompare(b.date) || a.project.localeCompare(b.project));
-  }
-
-  /**
-   * Update SAP preview table
+   * Update SAP preview table.
+   * Rows come from the main process (the same code that writes the file), so the
+   * preview always matches the export. Only the description column is editable.
    */
   async function updatePreview() {
     const previewBody = document.getElementById('sap-preview-body');
@@ -138,10 +80,14 @@ window.LightTrack.SAPExport = (function() {
     }
 
     try {
-      const activities = await window.lightTrackAPI.getActivities() || [];
-      state.aggregatedData = aggregateActivities(activities, state.startDate, state.endDate);
+      const result = await window.lightTrackAPI.previewSAPExport({
+        startDate: state.startDate.toISOString(),
+        endDate: state.endDate.toISOString(),
+        descriptions: state.descriptions
+      });
+      state.rows = result?.rows || [];
 
-      if (state.aggregatedData.length === 0) {
+      if (state.rows.length === 0) {
         previewBody.innerHTML = `
           <tr>
             <td colspan="8" class="table-empty">
@@ -154,13 +100,11 @@ window.LightTrack.SAPExport = (function() {
         return;
       }
 
-      const totalHours = state.aggregatedData.reduce((sum, r) => sum + r.hours, 0);
-      const recordCount = state.aggregatedData.length;
-
+      const totalHours = state.rows.reduce((sum, r) => sum + r.hours, 0);
+      const recordCount = state.rows.length;
       previewSummary.textContent = `${recordCount} record${recordCount !== 1 ? 's' : ''}, ${totalHours.toFixed(2)} hours total`;
 
-      const displayData = state.aggregatedData.slice(0, 20);
-      previewBody.innerHTML = displayData.map(row => `
+      previewBody.innerHTML = state.rows.map((row, index) => `
         <tr>
           <td>${row.date}</td>
           <td>${Utils.escapeHtml(row.project)}</td>
@@ -169,21 +113,24 @@ window.LightTrack.SAPExport = (function() {
           <td class="muted">${Utils.escapeHtml(row.sapCode) || '-'}</td>
           <td class="muted">${Utils.escapeHtml(row.costCenter) || '-'}</td>
           <td class="muted">${Utils.escapeHtml(row.wbsElement) || '-'}</td>
-          <td class="muted truncate" title="${Utils.escapeHtml(row.workDescription)}">
-            ${Utils.escapeHtml(row.workDescription.substring(0, 40))}${row.workDescription.length > 40 ? '...' : ''}
+          <td class="description-cell">
+            <input type="text" class="sap-description-input" data-row="${index}" maxlength="500">
           </td>
         </tr>
       `).join('');
 
-      if (state.aggregatedData.length > 20) {
-        previewBody.innerHTML += `
-          <tr>
-            <td colspan="8" class="table-note">
-              ... and ${state.aggregatedData.length - 20} more records
-            </td>
-          </tr>
-        `;
-      }
+      // Value and label are set through the DOM so quotes in user text cannot break the markup.
+      previewBody.querySelectorAll('.sap-description-input').forEach(input => {
+        const current = state.rows[Number(input.dataset.row)];
+        input.value = current?.workDescription || '';
+        input.setAttribute('aria-label', `Work description for ${current?.date}, ${current?.project}`);
+        input.addEventListener('change', () => {
+          const row = state.rows[Number(input.dataset.row)];
+          if (!row) return;
+          state.descriptions[row.key] = input.value;
+          row.workDescription = input.value;
+        });
+      });
 
       if (exportBtn) exportBtn.disabled = false;
 
@@ -192,7 +139,7 @@ window.LightTrack.SAPExport = (function() {
       previewBody.innerHTML = `
         <tr>
           <td colspan="8" class="table-empty error">
-            Error loading preview: ${error.message}
+            Error loading preview: ${Utils.escapeHtml(error.message)}
           </td>
         </tr>
       `;
@@ -252,6 +199,7 @@ window.LightTrack.SAPExport = (function() {
             state.startDate = range.start;
             state.endDate = range.end;
             state.selectedPeriod = range.label;
+            state.descriptions = {};
 
             const periodDisplay = document.getElementById('sap-selected-period');
             if (periodDisplay) {
@@ -275,7 +223,7 @@ window.LightTrack.SAPExport = (function() {
             return;
           }
 
-          if (state.aggregatedData.length === 0) {
+          if (state.rows.length === 0) {
             window.LightTrack.UI?.showNotification?.('No data to export', 'warning');
             return;
           }
@@ -288,7 +236,7 @@ window.LightTrack.SAPExport = (function() {
               startDate: state.startDate.toISOString(),
               endDate: state.endDate.toISOString(),
               employeeId: state.employeeId,
-              data: state.aggregatedData
+              descriptions: state.descriptions
             });
 
             if (result && result.filePath) {

@@ -8,6 +8,7 @@ const { app, dialog, BrowserWindow, shell, Notification } = require('electron');
 const log = require('electron-log');
 const path = require('path');
 const fs = require('fs');
+const { UPDATES_ENABLED, DISABLED_REASON } = require('./update-policy');
 
 class AutoUpdater {
   constructor() {
@@ -27,6 +28,14 @@ class AutoUpdater {
     // Configure logging
     log.transports.file.level = 'info';
     autoUpdater.logger = log;
+
+    // No feed, no checks, no download or install until releases are signed (LT3-008)
+    autoUpdater.autoDownload = false;
+    autoUpdater.autoInstallOnAppQuit = false;
+    if (!UPDATES_ENABLED) {
+      log.info(DISABLED_REASON);
+      return;
+    }
 
     // Configure update server
     this.configureUpdateServer();

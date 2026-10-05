@@ -260,17 +260,21 @@ Acceptance criteria:
 
 #### LT3-007 — SAP export hygiene
 
+**Status:** done. Rows are built by `src/main/exports/sap-csv.js` for both preview and export; covered by `test/baseline/sap-csv.test.js` (golden file included).
+
 **Outcome:** the current SAP CSV export does not leak raw evidence or trust renderer data, pending configurable profiles (LT3-302).
 
 Acceptance criteria:
 
-- Raw window titles are absent from exports by default. Work Description defaults to project and activity type, followed by any Jira keys detected for the row (for example `Project X – Development – PROJ-123, PROJ-456`); users can edit it per row in the preview. (Owner decision, 2026-10-05.)
+- Raw window titles are absent from exports by default. Work Description defaults to project and activity type, followed by any Jira keys detected for the row (for example `Project X - Development - PROJ-123, PROJ-456`, ASCII hyphens so the file reads correctly in any encoding); users can edit it per row in the preview. (Owner decision, 2026-10-05.)
 - Rows are built in the main process from activity IDs (worklog IDs once they exist); the renderer supplies only the selection and options, not aggregated rows.
 - Cells beginning with `=`, `+`, `-`, `@`, tab or carriage return are escaped against formula injection.
 - Export request input is validated and invalid requests are rejected with explicit errors.
 - A golden-file test covers the current format, including quoting and escaping.
 
 #### LT3-008 — Secrets at rest and update safety
+
+**Status:** done except the encryption decision. Calendar URL protected, derived-key fallback replaced by fail-closed handling with one-time migration, in-app updates switched off entirely (the feed URL is not one this project controls). Open: installed builds never set `NODE_ENV=production`, so their data file has never been encrypted; whether to turn encryption on for installed builds is undecided. Tests: `test/baseline/secrets.test.js`.
 
 **Outcome:** secrets are protected by the operating system and unsigned builds are not installed automatically.
 
@@ -455,7 +459,7 @@ Acceptance criteria:
 
 Acceptance criteria:
 
-- Recognized `mstsc.exe`, Windows App and configured RemoteApp windows create `remote_session` events.
+- Recognized `mstsc.exe` and Windows App windows create `remote_session` events. These are the clients in use (owner, 2026-10-05); RemoteApp and third-party clients are out of scope until needed.
 - Events include locally visible connection label, local active/idle state and source confidence.
 - UI text states: **remote session — contents not visible locally**.
 - No remote process, URL, Jira or Salesforce context is inferred.
@@ -480,7 +484,7 @@ Acceptance criteria:
 - Assigned/recent issues can be searched and linked.
 - Locally visible Jira keys are mapping evidence, not elapsed-time proof.
 - Network failure never blocks local capture, review or export.
-- Outbound Jira worklogs require a payload review and explicit confirmation.
+- Outbound Jira worklogs are in scope (owner decision, 2026-10-05) and always require a payload review and explicit confirmation.
 
 #### LT3-502 — Salesforce record context
 
@@ -699,8 +703,8 @@ There is no defensible calendar forecast yet: team capacity, historical throughp
 | Anonymised SAP target file or formal specification | LT3-304 | SAP process owner |
 | Project-master source, owner and refresh cadence | LT3-201 | Master-data owner |
 | Representative v3 exports | LT3-103/104 | Current LightTrack users |
-| RDP client inventory and labelled examples | LT3-402 | Windows/IT owner |
-| Jira link-only vs outbound-worklog policy | LT3-501 | Product/Jira owner |
+| RDP client inventory (decided: `mstsc.exe`, Windows App) and labelled examples | LT3-402 | Windows/IT owner |
+| Jira policy (decided: outbound worklogs with review) | LT3-501 | Product/Jira owner |
 | Salesforce record scope and connected-app approval | LT3-502 | Salesforce/privacy owner |
 | Code-signing certificate and release policy | LT3-603 | Release/security owner |
 | Team availability and historical throughput | Iteration planning | Delivery team |

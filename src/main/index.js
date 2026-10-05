@@ -1,4 +1,4 @@
-const { app, ipcMain, globalShortcut, shell } = require('electron');
+const { app, ipcMain, globalShortcut, shell, dialog } = require('electron');
 const logger = require('./logger');
 
 // Import core modules
@@ -87,8 +87,19 @@ class LightTrackApp {
       // (required for app.getPath() and safeStorage to work correctly)
       await app.whenReady();
 
-      // Initialize storage and tracker (after app.whenReady for encryption key access)
-      this.storage = new StorageManager();
+      // Initialize storage and tracker (after app.whenReady for encryption key access).
+      // If the data key cannot be unlocked, stop here rather than open an empty store (LT3-008).
+      try {
+        this.storage = new StorageManager();
+      } catch (error) {
+        if (error.name === 'StorageKeyError') {
+          logger.error('Storage key unavailable:', error.message);
+          dialog.showErrorBox('LightTrack cannot open its data', error.message);
+          app.exit(1);
+          return;
+        }
+        throw error;
+      }
       this.appState.store = this.storage.store;
 
       // Check for upgrades and run migrations before loading main UI

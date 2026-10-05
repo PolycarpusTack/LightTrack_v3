@@ -3,6 +3,14 @@ const { contextBridge, ipcRenderer } = require('electron');
 // Store cleanup functions
 const cleanupFunctions = new Map();
 
+/** Strip Electron's 'Error invoking remote method ...' prefix from an IPC error. */
+function ipcErrorMessage(error, fallback) {
+  const message = String(error?.message || '')
+    .replace(/^Error invoking remote method '[^']*': /, '')
+    .replace(/^\w*Error: /, '');
+  return message || fallback;
+}
+
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld('lightTrackAPI', {
@@ -398,12 +406,21 @@ contextBridge.exposeInMainWorld('lightTrackAPI', {
     }
   },
 
+  // SAP export errors keep the main-process message (e.g. a validation error) without Electron's prefix.
+  previewSAPExport: async (options) => {
+    try {
+      return await ipcRenderer.invoke('activities:preview-sap', options);
+    } catch (error) {
+      throw new Error(ipcErrorMessage(error, 'Failed to load the SAP preview.'));
+    }
+  },
+
   exportToSAP: async (options) => {
     try {
       return await ipcRenderer.invoke('activities:export-sap', options);
     } catch (error) {
       console.error('Failed to export to SAP:', error);
-      throw new Error('Failed to export to SAP. Please try again.');
+      throw new Error(ipcErrorMessage(error, 'Failed to export to SAP. Please try again.'));
     }
   },
 

@@ -4,6 +4,7 @@
  */
 
 const ical = require('node-ical');
+const { protect, unprotect, maskUrl } = require('../../core/protected-value');
 const {
   CALENDAR_SYNC_INTERVAL_MS,
   FETCH_TIMEOUT_MS
@@ -23,9 +24,15 @@ const PRIVATE_IP_PATTERNS = [
   /^fd00:/i                     // IPv6 unique local
 ];
 
+// The ICS URL usually embeds a private feed token, so it is stored protected (LT3-008).
+const URL_KEY = 'settings.calendarIcsUrlProtected';
+const LEGACY_URL_KEY = 'settings.calendarIcsUrl';
+
 class CalendarSyncService {
-  constructor(store) {
+  constructor(store, safeStorage = require('electron').safeStorage) {
     this.store = store;
+    this.safeStorage = safeStorage;
+    this.migrateLegacyUrl();
     this.syncInterval = null;
     this.syncIntervalMs = CALENDAR_SYNC_INTERVAL_MS;
 
@@ -131,10 +138,30 @@ class CalendarSyncService {
   }
 
   /**
+   * Move a plain-text URL from older versions into protected storage.
+   * If data protection is unavailable the plain value is left in place.
+   */
+  migrateLegacyUrl() {
+    const legacy = this.store.get(LEGACY_URL_KEY);
+    if (!legacy) return;
+    try {
+      this.store.set(URL_KEY, protect(this.safeStorage, legacy));
+      this.store.delete(LEGACY_URL_KEY);
+    } catch (error) {
+      console.warn('Calendar URL left unmigrated:', error.message);
+    }
+  }
+
+  /** The stored URL in clear text, for use inside the main process only. */
+  readUrl() {
+    return unprotect(this.safeStorage, this.store.get(URL_KEY)) || this.store.get(LEGACY_URL_KEY, '');
+  }
+
+  /**
    * Initialize the service and start auto-sync if URL is configured
    */
   initialize() {
-    const calendarUrl = this.store.get('settings.calendarIcsUrl');
+    const calendarUrl = this.readUrl();
     if (calendarUrl) {
       // Initial sync on startup
       this.syncCalendar().catch(err => {
@@ -179,7 +206,8 @@ class CalendarSyncService {
    */
   async setCalendarUrl(url) {
     if (!url) {
-      this.store.set('settings.calendarIcsUrl', '');
+      this.store.delete(URL_KEY);
+      this.store.delete(LEGACY_URL_KEY);
       this.stopAutoSync();
       this.store.set('calendarMeetings', []);
       return { success: true, message: 'Calendar URL cleared' };
@@ -193,11 +221,16 @@ class CalendarSyncService {
 
     // Validate it's an ICS URL (basic check)
     if (!url.includes('.ics') && !url.includes('calendar') && !url.includes('webcal')) {
-      console.warn('URL may not be a valid ICS feed:', url);
+      console.warn('URL may not be a valid ICS feed:', maskUrl(url));
     }
 
-    // Store the validated URL
-    this.store.set('settings.calendarIcsUrl', validation.sanitizedUrl);
+    // Store the validated URL, protected
+    try {
+      this.store.set(URL_KEY, protect(this.safeStorage, validation.sanitizedUrl));
+      this.store.delete(LEGACY_URL_KEY);
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
 
     // Try to sync
     const result = await this.syncCalendar();
@@ -210,11 +243,11 @@ class CalendarSyncService {
   }
 
   /**
-   * Get the current calendar URL
-   * @returns {string|null}
+   * Get a masked form of the configured URL for display (never the full URL).
+   * @returns {string} e.g. "https://outlook.office365.com/…", or '' when not configured
    */
   getCalendarUrl() {
-    return this.store.get('settings.calendarIcsUrl', '');
+    return maskUrl(this.readUrl());
   }
 
   /**
@@ -222,7 +255,7 @@ class CalendarSyncService {
    * @returns {Promise<Object>} Sync result with meeting count
    */
   async syncCalendar() {
-    const url = this.store.get('settings.calendarIcsUrl');
+    const url = this.readUrl();
 
     if (!url) {
       return { success: false, error: 'No calendar URL configured' };
