@@ -20,7 +20,8 @@ Do not open a public issue containing secrets, personal activity titles or explo
 
 - **Calendar ICS URL.** Stored encrypted with Windows data protection (Electron `safeStorage`) under `settings.calendarIcsUrlProtected`. Plain values from older versions are migrated on start. The renderer only receives a masked form (`https://host/…`), and the URL is not logged.
 - **Data file key.** When the data file is encrypted, its key is random and stored encrypted with Windows data protection in `.keyref`. There is no guessable fallback. If the key cannot be created or unlocked, LightTrack shows an error and exits without changing data. A file written with the key derived by older versions is migrated once, after a backup (`config.pre-keyref-backup.json`).
-- **When the data file is encrypted.** Only when `NODE_ENV=production` is set at run time. Installed builds do not set it, so their data file is currently not encrypted. Whether installed builds should encrypt is an open decision (LT3-008).
+- **When the data file is encrypted.** Installed builds always encrypt it (owner decision, 2026-10-05). Development runs (`npm start`, `npm run dev`) keep it unencrypted for debugging. On the first start after updating, an existing unencrypted file is migrated once and the original is kept as `config.pre-keyref-backup.json`; delete that backup once you have confirmed your data.
+- **What the encryption is tied to.** The key can only be unlocked by the same Windows user with the same LightTrack profile folder (`%APPDATA%\LightTrack`, including its `Local State` file). Copying the whole folder to the same account works. Moving to another PC or Windows account requires a LightTrack backup (Settings > Data > Create Backup) restored in the new installation.
 - **SAP exports.** Built in the main process from stored activities. Raw window titles are never exported, and text cells are escaped against spreadsheet formula injection.
 
 ## Updates

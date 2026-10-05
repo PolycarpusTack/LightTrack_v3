@@ -16,7 +16,7 @@ These changes exist in the working tree and must be committed before CI runs aga
 - The stale NSIS include was removed.
 - npm scripts are Windows-only and shell-independent; `.nvmrc` pins Node 22 (LT3-009).
 - SAP export rows are built in the main process without raw titles and with formula-injection escaping (LT3-007).
-- The calendar URL is stored protected, the data-file key has no guessable fallback, and in-app updates are off until releases are signed (LT3-008).
+- The calendar URL is stored protected, installed builds encrypt the data file with a key that has no guessable fallback, and in-app updates are off until releases are signed (LT3-008).
 - Direct dependencies were updated; `npm audit --audit-level=moderate` reports zero vulnerabilities.
 - Duplicate `services` tracker and window manager removed; `src/main/core` is the only capture and window path (LT3-002, see below).
 - Privacy boundaries explicitly reject screenshots, OCR, keystroke logging and claims about remote RDP contents.

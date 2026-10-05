@@ -12,14 +12,15 @@ const {
 
 /**
  * Store encryption key: random, protected by Windows data protection, no guessable
- * fallback. See storage-key.js (LT3-008).
+ * fallback. Used by installed builds. See storage-key.js (LT3-008).
  */
 function getEncryptionKey() {
   return resolveStorageKey({
     safeStorage,
     userDataPath: app.getPath('userData'),
     StoreClass: Store,
-    production: process.env.NODE_ENV === 'production'
+    // Installed builds encrypt their data file; development runs (npm start / npm run dev) do not.
+    production: app.isPackaged || process.env.NODE_ENV === 'production'
   });
 }
 
