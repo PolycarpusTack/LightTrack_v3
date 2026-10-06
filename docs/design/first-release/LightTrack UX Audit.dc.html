@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/nocturne-d5421774-bcb5-46e3-ac7d-5e06d400b200/styles.css">
+<script src="_ds/nocturne-d5421774-bcb5-46e3-ac7d-5e06d400b200/_ds_bundle.js"></script>
+<style>
+body{margin:0;background:var(--color-bg);color:var(--color-text);font-family:var(--font-body)}
+a{color:var(--color-accent-300)} a:hover{color:var(--color-accent-200)}
+</style>
+</helmet>
+<div style="max-width:1340px; margin:0 auto; padding:56px 30px 96px; display:grid; gap:64px;">
+
+  <header style="display:grid; gap:14px; max-width:820px;">
+    <div style="color:var(--color-accent-300); font-size:13px; letter-spacing:.08em; text-transform:uppercase;">LightTrack v3 · UI/UX audit · 6 October 2026</div>
+    <h1 style="margin:0; font-family:var(--font-heading); font-weight:500; font-size:44px; line-height:1.1; letter-spacing:-0.02em; text-wrap:pretty;">LightTrack records the day well. The UI doesn't yet let you close it.</h1>
+    <p style="margin:0; font-size:17px; line-height:1.6; color:var(--color-neutral-200); text-wrap:pretty;">Reviewed: Timer, Timeline, Projects and SAP export, from the renderer source (<code>src/renderer/index.html</code>, <code>styles/app.css</code>, <code>app.js</code>, <code>timeline.js</code>, <code>settings-view.js</code>) and the plan, ADR 0005 and STATUS. Lenses: the daily job (correct the day, book it), consistency, accessibility and first run. Users: consultants who book, plus someone who approves.</p>
+  </header>
+
+  <section style="display:grid; gap:20px; max-width:820px;">
+    <h2 style="margin:0; font-family:var(--font-heading); font-weight:500; font-size:26px;">Verdict</h2>
+    <p style="margin:0; font-size:15px; line-height:1.65; color:var(--color-neutral-200); text-wrap:pretty;">The current UI is built around watching time. The first release is built around booking it. None of the four screens has a concept of a day being done: raw activity is listed as if it were an entry, nothing is draft or approved, and SAP export takes whatever is there. The home screen spends most of its space on focus scores, streaks and goals, which the README says LightTrack is not about. The correction tools a consultant would reach for (switch project, merge, edit) are partly broken and fail without telling anyone. Visually the screens are tidy and on-token, but control styles have drifted and the label style fails contrast in both themes.</p>
+    <div style="display:grid; gap:10px;">
+      <div style="font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:var(--color-neutral-300);">Fix first</div>
+      <ol style="margin:0; padding-left:20px; display:grid; gap:6px; font-size:15px; line-height:1.55;">
+        <li>Make the day the unit of work: blocks, derived booking lines, approve (<a href="#f1">1</a>, <a href="#f3">3</a>).</li>
+        <li>Make every correction either work or say it failed (<a href="#f2">2</a>).</li>
+        <li>Replace the dashboard home with the day under review (<a href="#f4">4</a>, <a href="#f5">5</a>).</li>
+        <li>Collapse four rule forms into one ordered, testable rule list bound to booking codes (<a href="#f8">8</a>).</li>
+        <li>Raise label contrast and make every action a real, focusable button (<a href="#f12">12</a>, <a href="#f7">7</a>, <a href="#f14">14</a>).</li>
+      </ol>
+    </div>
+  </section>
+
+  <section style="display:grid; gap:24px;">
+    <div style="display:flex; align-items:end; gap:24px; flex-wrap:wrap;">
+      <h2 style="margin:0; font-family:var(--font-heading); font-weight:500; font-size:26px;">Findings</h2>
+      <div style="color:var(--color-neutral-300); font-size:14px;">P0 blocks the first release · P1 hurts daily use · P2 polish. Numbers match the pins on the screens below.</div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(400px,1fr)); gap:14px;">
+      <article id="f1" class="card" style="display:grid; gap:8px; align-content:start;">
+        <div style="display:flex; gap:10px; align-items:center;"><span style="width:22px; height:22px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:12px; font-weight:600; display:grid; place-items:center;">1</span><span class="tag tag-accent">P0</span><span style="color:var(--color-neutral-300); font-size:13px;">Daily job · Timeline, SAP export</span></div>
+        <div style="font-weight:500; font-size:16px;">Raw activity is shown as the timesheet</div>
+        <div style="font-size:14px; line-height:1.55; color:var(--color-neutral-200);">Timeline lists captured activities and SAP export sums them directly. There is no draft, approved or exported state anywhere, so a consultant can't tell what is finished. Plan principle 1 says raw activity is evidence, never an entry.</div>
+        <div style="font-size:14px; line-height:1.55;"><span style="color:var(--color-accent-300);">Fix:</span> time blocks on the left, derived booking lines on the right, and a day status with one approve action (ADR 0005).</div>
+      </article>
+      <article id="f2" class="card" style="display:grid; gap:8px; align-content:start;">
+        <div style="display:flex; gap:10px; align-items:center;"><span style="width:22px; height:22px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:12px; font-weight:600; display:grid; place-items:center;">2</span><span class="tag tag-accent">P0</span><span style="color:var(--color-neutral-300); font-size:13px;">Daily job · Timer, Timeline</span></div>
+        <div style="font-weight:500; font-size:16px;">Corrections fail silently</div>
+        <div style="font-size:14px; line-height:1.55; color:var(--color-neutral-200);">From STATUS: the project badge switcher calls <code>switchProject</code> (not exposed, guarded, so nothing happens), Merge calls <code>saveActivity</code> (not exposed), Edit wipes tags, Restore reports success while restoring nothing. These are the four actions someone uses to fix a day.</div>
+        <div style="font-size:14px; line-height:1.55;"><span style="color:var(--color-accent-300);">Fix:</span> remove existence-check guards in the renderer; any missing IPC call shows an error toast. Hide controls whose handler isn't there.</div>
+      </article>
+      <article id="f3" class="card" style="display:grid; gap:8px; align-content:start;">
+        <div style="display:flex; gap:10px; align-items:center;"><span style="width:22px; height:22px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:12px; font-weight:600; display:grid; place-items:center;">3</span><span class="tag tag-accent">P0</span><span style="color:var(--color-neutral-300); font-size:13px;">Daily job · SAP export</span></div>
+        <div style="font-weight:500; font-size:16px;">Export has no gate and no exact preview</div>
+        <div style="font-size:14px; line-height:1.55; color:var(--color-neutral-200);">Pick a period and Export is live. Rows without a SAP code export anyway, hours are unrounded decimals (5.37), and the preview carries Cost Center and WBS, which LT3-201 retires. The preview is a summary table, not the file. History doesn't stop the same week going out twice.</div>
+        <div style="font-size:14px; line-height:1.55;"><span style="color:var(--color-accent-300);">Fix:</span> export only approved lines, show the literal CSV, list checks, record the run (hash, rows) and lock the lines.</div>
+      </article>
+      <article id="f4" class="card" style="display:grid; gap:8px; align-content:start;">
+        <div style="display:flex; gap:10px; align-items:center;"><span style="width:22px; height:22px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:12px; font-weight:600; display:grid; place-items:center;">4</span><span class="tag tag-outline">P1</span><span style="color:var(--color-neutral-300); font-size:13px;">Daily job · Timer</span></div>
+        <div style="font-weight:500; font-size:16px;">Home is a productivity scoreboard</div>
+        <div style="font-size:14px; line-height:1.55; color:var(--color-neutral-200);">Focus score, 7-day focus, streak, deep-work and break goals, context switches. The README says LightTrack "is not a productivity-scoring" product and LT3-204 says billable is an accounting field, not a score. For the approver audience this reads as monitoring.</div>
+        <div style="font-size:14px; line-height:1.55;"><span style="color:var(--color-accent-300);">Fix:</span> home becomes the Day screen. Move personal stats to an opt-in Reports view, off by default.</div>
+      </article>
+      <article id="f5" class="card" style="display:grid; gap:8px; align-content:start;">
+        <div style="display:flex; gap:10px; align-items:center;"><span style="width:22px; height:22px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:12px; font-weight:600; display:grid; place-items:center;">5</span><span class="tag tag-outline">P1</span><span style="color:var(--color-neutral-300); font-size:13px;">Consistency · Timer</span></div>
+        <div style="font-weight:500; font-size:16px;">The same numbers, three times</div>
+        <div style="font-size:14px; line-height:1.55; color:var(--color-neutral-200);">Today's total appears in the Today card, Daily summary and (implicitly) the mini timeline. Billable appears as 87% and as 3.6h. Top projects and Time by project list the same three rows side by side. Each repeat costs a scan and suggests they might differ.</div>
+        <div style="font-size:14px; line-height:1.55;"><span style="color:var(--color-accent-300);">Fix:</span> one total, one per-line breakdown, one place.</div>
+      </article>
+      <article id="f6" class="card" style="display:grid; gap:8px; align-content:start;">
+        <div style="display:flex; gap:10px; align-items:center;"><span style="width:22px; height:22px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:12px; font-weight:600; display:grid; place-items:center;">6</span><span class="tag tag-outline">P1</span><span style="color:var(--color-neutral-300); font-size:13px;">Daily job · Timeline</span></div>
+        <div style="font-weight:500; font-size:16px;">Gaps are counted, not fixable</div>
+        <div style="font-size:14px; line-height:1.55; color:var(--color-neutral-200);">The Gaps card says 0h 37m, but neither the bar nor the list shows where they are or offers "add block" or "mark as break". The bar's track is <code>--paper</code> on a <code>--paper</code> card, so empty hours are invisible, and it clips to 9:00–18:00. Details exist only in hover tooltips.</div>
+        <div style="font-size:14px; line-height:1.55;"><span style="color:var(--color-accent-300);">Fix:</span> render gaps as rows in the block list with inline actions.</div>
+      </article>
+      <article id="f7" class="card" style="display:grid; gap:8px; align-content:start;">
+        <div style="display:flex; gap:10px; align-items:center;"><span style="width:22px; height:22px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:12px; font-weight:600; display:grid; place-items:center;">7</span><span class="tag tag-outline">P1</span><span style="color:var(--color-neutral-300); font-size:13px;">Accessibility · Timeline, Timer</span></div>
+        <div style="font-weight:500; font-size:16px;">Row actions only exist on hover</div>
+        <div style="font-size:14px; line-height:1.55; color:var(--color-neutral-200);"><code>.activity-actions</code> is <code>opacity:0</code> until <code>:hover</code>, with no <code>:focus-within</code>. Keyboard users tab onto invisible Edit/Tags/Delete. Delete sits next to Edit with the same weight.</div>
+        <div style="font-size:14px; line-height:1.55;"><span style="color:var(--color-accent-300);">Fix:</span> show actions always (small ghost buttons), put Delete behind Edit.</div>
+      </article>
+      <article id="f8" class="card" style="display:grid; gap:8px; align-content:start;">
+        <div style="display:flex; gap:10px; align-items:center;"><span style="width:22px; height:22px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:12px; font-weight:600; display:grid; place-items:center;">8</span><span class="tag tag-outline">P1</span><span style="color:var(--color-neutral-300); font-size:13px;">Daily job · Projects</span></div>
+        <div style="font-weight:500; font-size:16px;">Four rule forms, seven fields each, free-text project</div>
+        <div style="font-size:14px; line-height:1.55; color:var(--color-neutral-200);">App, URL, Jira and Meeting rules repeat the same inline form. Project is a text field, so a typo makes a new project (see "acme portal" in the list). At 1280px the fields can't shrink below their intrinsic width and Add/Update are pushed out of the card. Rules have no order, so which one wins is invisible.</div>
+        <div style="font-size:14px; line-height:1.55;"><span style="color:var(--color-accent-300);">Fix:</span> one ordered list, condition type as a select, target picked from booking codes, test result explains precedence (LT3-301).</div>
+      </article>
+      <article id="f9" class="card" style="display:grid; gap:8px; align-content:start;">
+        <div style="display:flex; gap:10px; align-items:center;"><span style="width:22px; height:22px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:12px; font-weight:600; display:grid; place-items:center;">9</span><span class="tag tag-neutral">P2</span><span style="color:var(--color-neutral-300); font-size:13px;">Consistency · Projects</span></div>
+        <div style="font-weight:500; font-size:16px;">Project list looks clickable but isn't</div>
+        <div style="font-size:14px; line-height:1.55; color:var(--color-neutral-200);">Projects render with the <code>.activity</code> class (pointer cursor, hover tint) but have no click handler. "+ New Project" lives in a separate card above the list, and its modal still asks for Cost Center and WBS.</div>
+      </article>
+      <article id="f10" class="card" style="display:grid; gap:8px; align-content:start;">
+        <div style="display:flex; gap:10px; align-items:center;"><span style="width:22px; height:22px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:12px; font-weight:600; display:grid; place-items:center;">10</span><span class="tag tag-neutral">P2</span><span style="color:var(--color-neutral-300); font-size:13px;">Consistency · all</span></div>
+        <div style="font-weight:500; font-size:16px;">Controls have drifted from the token rules</div>
+        <div style="font-size:14px; line-height:1.55; color:var(--color-neutral-200);">The token header says 4px radius on controls. <code>.form-group</code> inputs follow it (paper, 4px, 32px), but <code>.mapping-form</code> and <code>.settings-row</code> inputs are filled, 8px and padded. Buttons come in <code>.solid</code>, <code>.ghost</code>, <code>.btn-small</code>, <code>.btn btn-sm</code>, <code>.range-btn</code>, <code>.pill</code> and bare row buttons. Period buttons on SAP export show no selected state; only a line of accent text does.</div>
+      </article>
+      <article id="f11" class="card" style="display:grid; gap:8px; align-content:start;">
+        <div style="display:flex; gap:10px; align-items:center;"><span style="width:22px; height:22px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:12px; font-weight:600; display:grid; place-items:center;">11</span><span class="tag tag-neutral">P2</span><span style="color:var(--color-neutral-300); font-size:13px;">Consistency · copy</span></div>
+        <div style="font-weight:500; font-size:16px;">Copy and number formats vary</div>
+        <div style="font-size:14px; line-height:1.55; color:var(--color-neutral-200);">Title Case ("Select Period", "All Projects", "Export History") next to sentence case ("Add manual", "SAP export"). Engineering detail on the home screen ("Sampling: 5s"). Durations as 4h 9m, 3.6h, 0h 37m and 5.37. The feed row prints the duration twice.</div>
+        <div style="font-size:14px; line-height:1.55;"><span style="color:var(--color-accent-300);">Fix:</span> sentence case; H:MM in review, decimal only in the export file.</div>
+      </article>
+      <article id="f12" class="card" style="display:grid; gap:8px; align-content:start;">
+        <div style="display:flex; gap:10px; align-items:center;"><span style="width:22px; height:22px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:12px; font-weight:600; display:grid; place-items:center;">12</span><span class="tag tag-outline">P1</span><span style="color:var(--color-neutral-300); font-size:13px;">Accessibility · all</span></div>
+        <div style="font-weight:500; font-size:16px;">Labels fail contrast in both themes</div>
+        <div style="font-size:14px; line-height:1.55; color:var(--color-neutral-200);">Every <code>.label</code>, section title and table header is 10px uppercase in <code>--ink-faint</code>: #8c8c88 on white is about 3.4:1, on <code>--raised</code> about 3.0:1, and #76766f on dark paper about 4.1:1. All need 4.5:1 at this size.</div>
+        <div style="font-size:14px; line-height:1.55;"><span style="color:var(--color-accent-300);">Fix:</span> labels to <code>--ink-muted</code> at 11px; keep <code>--ink-faint</code> for decoration only.</div>
+      </article>
+      <article id="f13" class="card" style="display:grid; gap:8px; align-content:start;">
+        <div style="display:flex; gap:10px; align-items:center;"><span style="width:22px; height:22px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:12px; font-weight:600; display:grid; place-items:center;">13</span><span class="tag tag-neutral">P2</span><span style="color:var(--color-neutral-300); font-size:13px;">Accessibility · Timeline, Timer</span></div>
+        <div style="font-weight:500; font-size:16px;">Billable vs non-billable by hue alone</div>
+        <div style="font-size:14px; line-height:1.55; color:var(--color-neutral-200);">Cobalt vs mauve, and mauve (#b8afda) is about 2.1:1 on white, under the 3:1 needed for meaningful graphics. There's no legend.</div>
+      </article>
+      <article id="f14" class="card" style="display:grid; gap:8px; align-content:start;">
+        <div style="display:flex; gap:10px; align-items:center;"><span style="width:22px; height:22px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:12px; font-weight:600; display:grid; place-items:center;">14</span><span class="tag tag-outline">P1</span><span style="color:var(--color-neutral-300); font-size:13px;">Accessibility · Timer, Analytics</span></div>
+        <div style="font-weight:500; font-size:16px;">Clickable things that aren't controls</div>
+        <div style="font-size:14px; line-height:1.55; color:var(--color-neutral-200);">The project switcher is a <code>span.badge</code>, analytics filters are <code>div.pill</code>, rows are <code>div</code>s. None take focus or Enter. Bare <code>Space</code> toggles tracking on the Timer view, which is easy to hit by accident.</div>
+      </article>
+      <article id="f15" class="card" style="display:grid; gap:8px; align-content:start;">
+        <div style="display:flex; gap:10px; align-items:center;"><span style="width:22px; height:22px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:12px; font-weight:600; display:grid; place-items:center;">15</span><span class="tag tag-outline">P1</span><span style="color:var(--color-neutral-300); font-size:13px;">First run · SAP export</span></div>
+        <div style="font-weight:500; font-size:16px;">No first run</div>
+        <div style="font-size:14px; line-height:1.55; color:var(--color-neutral-200);">The app starts hidden in the tray and opens on a page of zeros. LT3-601 requires retention to be chosen at first run; nothing asks. Employee ID is set on the export screen, booking codes are optional fields on rules, and every unmatched minute lands in General.</div>
+        <div style="font-size:14px; line-height:1.55;"><span style="color:var(--color-accent-300);">Fix:</span> a four-step setup: retention, booking details, booking codes, start.</div>
+      </article>
+      <article id="f16" class="card" style="display:grid; gap:8px; align-content:start;">
+        <div style="display:flex; gap:10px; align-items:center;"><span style="width:22px; height:22px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:12px; font-weight:600; display:grid; place-items:center;">16</span><span class="tag tag-neutral">Open</span><span style="color:var(--color-neutral-300); font-size:13px;">Approver</span></div>
+        <div style="font-weight:500; font-size:16px;">The approver has no place in the product</div>
+        <div style="font-size:14px; line-height:1.55; color:var(--color-neutral-200);">In the plan, consultants approve their own lines and the first release hands off a CSV. A second-person approval needs a shared system LightTrack doesn't have. The redesign gives the approver a readable summary with each export; anything more is a decision for after Timmy.</div>
+      </article>
+    </div>
+  </section>
+
+  <section style="display:grid; gap:20px;">
+    <div style="display:flex; align-items:end; gap:24px; flex-wrap:wrap;">
+      <div style="display:grid; gap:6px;">
+        <h2 style="margin:0; font-family:var(--font-heading); font-weight:500; font-size:26px;">Current screens</h2>
+        <div style="color:var(--color-neutral-300); font-size:14px; max-width:720px;">Rebuilt from the renderer markup and <code>app.css</code> tokens at 1280px (the minimum supported display), with sample data. Pins refer to findings.</div>
+      </div>
+      <div style="margin-left:auto; display:flex; gap:6px;">
+        <button class="{{ lightCls }}" onClick="{{ setLight }}">Light</button>
+        <button class="{{ darkCls }}" onClick="{{ setDark }}">Dark</button>
+      </div>
+    </div>
+
+    <div style="display:grid; gap:10px;">
+      <div style="font-weight:500; font-size:17px;">Timer <span style="color:var(--color-neutral-300); font-weight:400; font-size:14px;">· pins <a href="#f2">2</a> <a href="#f4">4</a> <a href="#f5">5</a> <a href="#f11">11</a> <a href="#f12">12</a></span></div>
+      <div style="overflow-x:auto; border-radius:var(--radius-md); box-shadow:var(--shadow-md);"><dc-import name="LT Current" screen="timer" theme="{{ theme }}" annotate="{{ true }}" hint-size="1280px,1100px"></dc-import></div>
+    </div>
+    <div style="display:grid; gap:10px;">
+      <div style="font-weight:500; font-size:17px;">Timeline <span style="color:var(--color-neutral-300); font-weight:400; font-size:14px;">· pins <a href="#f1">1</a> <a href="#f2">2</a> <a href="#f6">6</a> <a href="#f7">7</a> <a href="#f10">10</a> <a href="#f13">13</a> · row 2 shown hovered</span></div>
+      <div style="overflow-x:auto; border-radius:var(--radius-md); box-shadow:var(--shadow-md);"><dc-import name="LT Current" screen="timeline" theme="{{ theme }}" annotate="{{ true }}" hint-size="1280px,1000px"></dc-import></div>
+    </div>
+    <div style="display:grid; gap:10px;">
+      <div style="font-weight:500; font-size:17px;">Projects <span style="color:var(--color-neutral-300); font-weight:400; font-size:14px;">· pins <a href="#f8">8</a> <a href="#f9">9</a></span></div>
+      <div style="overflow-x:auto; border-radius:var(--radius-md); box-shadow:var(--shadow-md);"><dc-import name="LT Current" screen="projects" theme="{{ theme }}" annotate="{{ true }}" hint-size="1280px,1100px"></dc-import></div>
+    </div>
+    <div style="display:grid; gap:10px;">
+      <div style="font-weight:500; font-size:17px;">SAP export <span style="color:var(--color-neutral-300); font-weight:400; font-size:14px;">· pins <a href="#f1">1</a> <a href="#f3">3</a> <a href="#f10">10</a> <a href="#f15">15</a></span></div>
+      <div style="overflow-x:auto; border-radius:var(--radius-md); box-shadow:var(--shadow-md);"><dc-import name="LT Current" screen="sap" theme="{{ theme }}" annotate="{{ true }}" hint-size="1280px,1000px"></dc-import></div>
+    </div>
+  </section>
+
+  <section style="display:grid; gap:20px;">
+    <div style="display:grid; gap:10px; max-width:820px;">
+      <h2 style="margin:0; font-family:var(--font-heading); font-weight:500; font-size:26px;">Redesign: the first-release flow</h2>
+      <p style="margin:0; font-size:15px; line-height:1.65; color:var(--color-neutral-200); text-wrap:pretty;">Day → Week → Export, plus Rules and first run. Same tokens, rail and type as today so it can land incrementally. Changes to the system itself: labels move to <code>--ink-muted</code> at 11px, one solid and one ghost button, 4px inputs everywhere, real buttons with the focus ring, H:MM durations. Every frame below is live; try assigning the Outlook block and confirming the remote session, then approve. <a href="LT First Release.dc.html">Open the prototype on its own</a>.</p>
+    </div>
+
+    <div style="display:grid; gap:10px;">
+      <div style="font-weight:500; font-size:17px;">Day <span style="color:var(--color-neutral-300); font-weight:400; font-size:14px;">· replaces Timer and Timeline · fixes <a href="#f1">1</a> <a href="#f4">4</a> <a href="#f5">5</a> <a href="#f6">6</a> <a href="#f7">7</a></span></div>
+      <div style="color:var(--color-neutral-200); font-size:14px; line-height:1.55; max-width:820px;">Blocks on the left are what happened; lines on the right are what gets booked, actual next to rounded. Problems sit on the block they belong to with the fix as the first button. Approve stays disabled until the blocking checks pass; gaps are information, not blockers. Remote sessions are proposed, never auto-approved (plan principle 4).</div>
+      <div style="overflow-x:auto; border-radius:var(--radius-md); box-shadow:var(--shadow-md);"><dc-import name="LT First Release" screen="day" theme="{{ theme }}" hint-size="1280px,1180px"></dc-import></div>
+    </div>
+    <div style="display:grid; gap:10px;">
+      <div style="font-weight:500; font-size:17px;">Week <span style="color:var(--color-neutral-300); font-weight:400; font-size:14px;">· fixes <a href="#f1">1</a> <a href="#f5">5</a></span></div>
+      <div style="color:var(--color-neutral-200); font-size:14px; line-height:1.55; max-width:820px;">Booking lines by day with each day's status in the header. This is the view that matches what SAP receives, and the one to read before exporting.</div>
+      <div style="overflow-x:auto; border-radius:var(--radius-md); box-shadow:var(--shadow-md);"><dc-import name="LT First Release" screen="week" theme="{{ theme }}" hint-size="1280px,820px"></dc-import></div>
+    </div>
+    <div style="display:grid; gap:10px;">
+      <div style="font-weight:500; font-size:17px;">Export <span style="color:var(--color-neutral-300); font-weight:400; font-size:14px;">· replaces SAP export · fixes <a href="#f3">3</a> <a href="#f11">11</a> <a href="#f16">16</a></span></div>
+      <div style="color:var(--color-neutral-200); font-size:14px; line-height:1.55; max-width:820px;">The preview is the file. Checks are listed before the button, the run is recorded with a hash (LT3-303), and the receipt carries a plain summary the consultant can send to whoever approves. In the frame below the week isn't approved yet, so export is held.</div>
+      <div style="overflow-x:auto; border-radius:var(--radius-md); box-shadow:var(--shadow-md);"><dc-import name="LT First Release" screen="export" theme="{{ theme }}" hint-size="1280px,820px"></dc-import></div>
+    </div>
+    <div style="display:grid; gap:10px;">
+      <div style="font-weight:500; font-size:17px;">Rules <span style="color:var(--color-neutral-300); font-weight:400; font-size:14px;">· replaces Projects · fixes <a href="#f8">8</a> <a href="#f9">9</a> <a href="#f10">10</a></span></div>
+      <div style="color:var(--color-neutral-200); font-size:14px; line-height:1.55; max-width:820px;">One ordered list across all condition types. Targets come from the booking-code list, so typos can't create projects. The test explains which higher rule claimed time first. Booking codes move to their own page.</div>
+      <div style="overflow-x:auto; border-radius:var(--radius-md); box-shadow:var(--shadow-md);"><dc-import name="LT First Release" screen="rules" theme="{{ theme }}" hint-size="1280px,820px"></dc-import></div>
+    </div>
+    <div style="display:grid; gap:10px;">
+      <div style="font-weight:500; font-size:17px;">First run <span style="color:var(--color-neutral-300); font-weight:400; font-size:14px;">· fixes <a href="#f15">15</a></span></div>
+      <div style="color:var(--color-neutral-200); font-size:14px; line-height:1.55; max-width:820px;">Retention (default 1 year, per the owner decision), Employee ID and rounding, booking codes, then start. The last step states plainly what LightTrack records.</div>
+      <div style="overflow-x:auto; border-radius:var(--radius-md); box-shadow:var(--shadow-md);"><dc-import name="LT First Release" screen="firstrun" theme="{{ theme }}" hint-size="1280px,820px"></dc-import></div>
+    </div>
+  </section>
+
+  <section style="display:grid; gap:14px; max-width:820px;">
+    <h2 style="margin:0; font-family:var(--font-heading); font-weight:500; font-size:26px;">Open questions</h2>
+    <ul style="margin:0; padding-left:20px; display:grid; gap:8px; font-size:15px; line-height:1.55; color:var(--color-neutral-200);">
+      <li>Does an approver need to approve inside LightTrack, or is the CSV plus summary enough until Timmy? That decides whether finding <a href="#f16">16</a> needs a product change.</li>
+      <li>Do Analytics and the personal goals stay at all? The redesign keeps them out of the main path.</li>
+      <li>Activity-type codes (P0940005 Meeting, P0940010 Administration) and the CSV column set are placeholders until the export profile is defined.</li>
+    </ul>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = { theme: null };
+  renderVals() {
+    const theme = this.state.theme ?? this.props.theme ?? 'light';
+    return {
+      theme,
+      lightCls: theme === 'light' ? 'btn btn-primary' : 'btn btn-ghost',
+      darkCls: theme === 'dark' ? 'btn btn-primary' : 'btn btn-ghost',
+      setLight: () => this.setState({ theme: 'light' }),
+      setDark: () => this.setState({ theme: 'dark' })
+    };
+  }
+}
+</script>
+</body>
+</html>

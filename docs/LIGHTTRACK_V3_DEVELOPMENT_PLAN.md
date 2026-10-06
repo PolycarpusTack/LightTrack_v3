@@ -769,6 +769,8 @@ The first release ships with the CSV export as the hand-off (owner decision, 202
 
 After the first release: LT3-304 (Timmy), LT3-401, LT3-501 to LT3-503, LT3-602.
 
+UI reference: the first-release design handoff in [docs/design/first-release](design/first-release/README.md) (Day, Week, Export, Rules, first run) and its [review](design/first-release/REVIEW.md), which maps each screen to its backlog item.
+
 ## 17. Immediate next actions
 
 1. Commit the working-tree baseline (CI, `test/baseline`, policies, ADRs, `package.json` changes) so CI runs against it.
