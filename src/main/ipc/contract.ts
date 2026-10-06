@@ -199,6 +199,13 @@ export const CONTRACT = {
   'add-meeting-mapping': spec(z.tuple([Pattern, MappingValue]), Mappings, 'Add or replace a meeting mapping'),
   'remove-meeting-mapping': spec(z.tuple([Pattern]), Mappings, 'Remove a meeting mapping'),
 
+  // Salesforce case memory (#48): one case books to one client
+  'salesforce:get-case-mappings': spec(z.tuple([]), Mappings, 'Salesforce case number -> project'),
+  'salesforce:assign-case': spec(z.tuple([z.string().min(4).max(20), MappingValue]),
+    z.looseObject({ mappings: Mappings, updated: z.number() }),
+    'Remember the project for a case and move its activities to it'),
+  'salesforce:remove-case-mapping': spec(z.tuple([z.string().min(4).max(20)]), Mappings, 'Forget the project for a case'),
+
   // Tags
   'tags:getAll': spec(z.tuple([]), Groups(z.string()), 'System and custom tags'),
   'tags:getUsed': spec(z.tuple([]), z.array(z.string()), 'Tags used on activities'),

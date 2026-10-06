@@ -1154,6 +1154,12 @@ body.splash-hidden #splash-screen {
     font-family: var(--mono);
 }
 
+/* Salesforce case without a client yet (#48) */
+.case-badge-open {
+    background: var(--risk-bg);
+    color: var(--risk-ink);
+}
+
 /* Insight Card */
 .insight-card {
     background: var(--paper);

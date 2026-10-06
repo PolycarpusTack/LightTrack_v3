@@ -1,3 +1,5 @@
+const { detectSalesforceCase } = require('./salesforce-case');
+
 /**
  * TitleParser - Extracts activity information from window titles
  * Extracted from ActivityTracker to improve maintainability and testability
@@ -140,6 +142,7 @@ class TitleParser {
       title: title,
       url: url,
       project: null,
+      salesforceCase: null,
       activity: null,
       sapCode: null,
       tickets: [],
@@ -157,6 +160,7 @@ class TitleParser {
 
     // Extract tickets and tags
     this.extractTickets(extracted, title);
+    this.extractSalesforceCase(extracted);
 
     // Detect Outlook/Teams activity first (more specific)
     this.detectOutlookActivity(extracted);
@@ -166,6 +170,7 @@ class TitleParser {
     this.detectActivityType(extracted, searchText);
 
     // Apply mappings in priority order
+    this.applySalesforceCaseMappings(extracted); // a remembered case wins (#48)
     this.applyMeetingMappings(extracted);  // New: meeting-specific mappings
     this.applyJiraMappings(extracted, searchText);
     this.applyUrlMappings(extracted);
@@ -211,6 +216,34 @@ class TitleParser {
     }
     if (githubIssues.length > 0) {
       this.addTag(extracted.tags, 'github');
+    }
+  }
+
+  /**
+   * Salesforce case number from the title (#48); the client is remembered per case.
+   */
+  extractSalesforceCase(extracted) {
+    extracted.salesforceCase = detectSalesforceCase(extracted.title, extracted.url);
+    if (extracted.salesforceCase) {
+      this.addTag(extracted.tags, 'salesforce');
+    }
+  }
+
+  /**
+   * Apply the project remembered for this Salesforce case. Runs first and replaces
+   * any guess made by activity-type detection, since the user chose it.
+   */
+  applySalesforceCaseMappings(extracted) {
+    if (!extracted.salesforceCase) return;
+    const mapping = this.getStoreValue('salesforceCaseMappings', {})[extracted.salesforceCase];
+    if (!mapping) return;
+    extracted.salesforceCaseAssigned = true;
+    extracted.project = typeof mapping === 'string' ? mapping : mapping.project;
+    if (typeof mapping === 'object') {
+      if (mapping.activity) extracted.activity = mapping.activity;
+      if (mapping.sapCode) extracted.sapCode = mapping.sapCode;
+      if (mapping.costCenter) extracted.costCenter = mapping.costCenter;
+      if (mapping.wbsElement) extracted.wbsElement = mapping.wbsElement;
     }
   }
 

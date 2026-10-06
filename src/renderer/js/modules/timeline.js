@@ -212,9 +212,16 @@
     // Render activity tags
     const tagsHtml = renderActivityTags(activity);
 
-    // Render JIRA tickets if present
-    const ticketsHtml = tickets.length > 0
-      ? `<div class="activity-tickets">${tickets.map(t => `<span class="ticket-badge">${escapeHtml(t)}</span>`).join('')}</div>`
+    // Salesforce case (#48): flagged until the case has a client
+    const caseNumber = activity.salesforceCase;
+    const caseOpen = caseNumber && !activity.salesforceCaseAssigned;
+    const caseHtml = caseNumber
+      ? `<span class="ticket-badge case-badge${caseOpen ? ' case-badge-open' : ''}" title="${caseOpen ? 'Edit this entry to choose the client for this case' : 'Salesforce case'}">Case ${escapeHtml(caseNumber)}${caseOpen ? ' · no client' : ''}</span>`
+      : '';
+
+    // Render JIRA tickets and the Salesforce case if present
+    const ticketsHtml = tickets.length > 0 || caseHtml
+      ? `<div class="activity-tickets">${caseHtml}${tickets.map(t => `<span class="ticket-badge">${escapeHtml(t)}</span>`).join('')}</div>`
       : '';
 
     // Render activity type if present

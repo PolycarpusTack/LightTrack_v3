@@ -168,6 +168,22 @@ test.describe('packaged application', () => {
     await app.close();
   });
 
+  // #48: a Salesforce case remembered through the preload shows up under Projects.
+  test('remembers the client for a Salesforce case', async () => {
+    const { app, page, errors } = await launch(userData);
+
+    const result = await page.evaluate(() => window.lightTrackAPI.salesforce.assignCase('00012345', 'Harness client'));
+    expect(result).toEqual({ mappings: { '00012345': 'Harness client' }, updated: 0 });
+
+    await page.locator('.nav-btn[data-view="projects"]').click();
+    const item = page.locator('#salesforce-cases-list .mapping-item');
+    await expect(item).toContainText('Case 00012345');
+    await expect(item).toContainText('Harness client');
+
+    expect(errors).toEqual([]);
+    await app.close();
+  });
+
   // LT3-003: main validates every request against the IPC contract.
   test('main refuses a request outside the IPC contract', async () => {
     const { app, page, errors } = await launch(userData);

@@ -5,30 +5,9 @@ const { app } = require('electron');
 const logger = require('../../logger');
 const {
   sanitizePattern,
-  sanitizeProjectName,
-  sanitizeSapCode,
-  sanitizeString
+  sanitizeString,
+  sanitizeMappingValue
 } = require('../../../shared/sanitize');
-
-/**
- * A mapping value is a project name, or a project with booking details
- * ({ project, activity, sapCode, costCenter, wbsElement, tags }). Returns '' when
- * there is no usable project name.
- */
-function sanitizeMappingValue(value) {
-  if (typeof value === 'string') return sanitizeProjectName(value);
-  const project = sanitizeProjectName(value?.project);
-  if (!project) return '';
-  const mapping = { project };
-  if (value.activity) mapping.activity = sanitizeString(value.activity, 100);
-  for (const key of ['sapCode', 'costCenter', 'wbsElement']) {
-    if (value[key]) mapping[key] = sanitizeSapCode(value[key]);
-  }
-  if (Array.isArray(value.tags)) {
-    mapping.tags = value.tags.map(t => sanitizeString(t, 50)).filter(Boolean).slice(0, 20);
-  }
-  return mapping;
-}
 
 /**
  * Settings Handler for main.js

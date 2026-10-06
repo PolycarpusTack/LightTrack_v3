@@ -102,6 +102,13 @@ contextBridge.exposeInMainWorld('lightTrackAPI', {
   addMeetingMapping: call('add-meeting-mapping', fail('Failed to save meeting mapping. Please try again.'), 'add meeting mapping'),
   removeMeetingMapping: call('remove-meeting-mapping', fail('Failed to remove meeting mapping. Please try again.'), 'remove meeting mapping'),
 
+  // Salesforce case memory (#48)
+  salesforce: {
+    getCaseMappings: call('salesforce:get-case-mappings', { useMainMessage: 'Failed to load Salesforce cases.' }, 'get Salesforce cases'),
+    assignCase: call('salesforce:assign-case', { useMainMessage: 'Failed to save the Salesforce case.' }, 'assign Salesforce case'),
+    removeCaseMapping: call('salesforce:remove-case-mapping', { useMainMessage: 'Failed to remove the Salesforce case.' }, 'remove Salesforce case')
+  },
+
   // Tags
   getTags: call('tags:getAll', orReturn(EMPTY_GROUPS), 'get tags'),
   getUsedTags: call('tags:getUsed', orReturn([]), 'get used tags'),

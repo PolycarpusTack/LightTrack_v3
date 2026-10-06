@@ -20,6 +20,7 @@ const ProjectsHandlerMain = require('./ipc/handlers/projectsHandlerMain');
 const ActivityTypesHandlerMain = require('./ipc/handlers/activityTypesHandlerMain');
 const CalendarSyncService = require('./integrations/calendar/calendar-sync-service');
 const CalendarHandlerMain = require('./ipc/handlers/calendarHandlerMain');
+const { SalesforceHandler } = require('./ipc/handlers/salesforceHandler');
 const BrowserExtensionServer = require('./core/browser-extension-server');
 const { ExtensionPairing } = require('./integrations/browser/extension-pairing');
 const UpgradeManager = require('./core/upgrade-manager');
@@ -341,6 +342,7 @@ class LightTrackApp {
     new ProjectsHandlerMain(this.storage).registerHandlers(registry);
     new ActivityTypesHandlerMain(this.storage).registerHandlers(registry);
     new CalendarHandlerMain(this.calendarSyncService).registerHandlers(registry);
+    new SalesforceHandler(this.storage, () => this.tracker).registerHandlers(registry);
     this.updaterHandler.registerHandlers(registry);
 
     // Initialize calendar sync after handlers are ready (no network in harness runs)

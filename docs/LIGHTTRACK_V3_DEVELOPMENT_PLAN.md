@@ -67,6 +67,7 @@ Work proceeds incrementally. A big-bang rewrite would put working capture and ex
 | First-release UI | The design handoff in `docs/design/first-release` is the reference (2026-10-06) | Section 16 |
 | Window size | Minimum 1024 px wide; two-column screens stack below about 1100 px (2026-10-06) | Design review |
 | Worklog states | Stored: draft, approved, superseded. "Exported" derived from export runs; "rejected" added with Timmy (2026-10-06) | LT3-101, LT3-304 |
+| Salesforce | Client remembered per case, asked once; one case = one client; API lookup deferred until admin access (2026-10-06) | #48, LT3-502 |
 | CSV layout | Taken from a sample of the file the approver imports into SAP ByDesign; owner provides it (pending, 2026-10-06) | LT3-302 |
 
 ## 4. Current baseline
@@ -535,6 +536,8 @@ Acceptance criteria:
 - Outbound Jira worklogs are in scope (owner decision, 2026-10-05) and always require a payload review and explicit confirmation.
 
 #### LT3-502 — Salesforce record context
+
+**First step, done early (#48, owner decision 2026-10-06):** Salesforce titles and URLs never show the client. LightTrack detects the case number in the window title, keeps each case a separate activity, asks once per case (when an entry is edited) and remembers the client; one case belongs to one client. API lookup below waits until a Salesforce admin can create a connected app.
 
 Acceptance criteria:
 

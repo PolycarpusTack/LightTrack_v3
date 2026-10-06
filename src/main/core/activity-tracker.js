@@ -373,6 +373,11 @@ class ActivityTracker {
       return false;
     }
 
+    // Different Salesforce case = new activity, so each case can be assigned on its own (#48)
+    if ((current.salesforceCase || null) !== (newData.salesforceCase || null)) {
+      return false;
+    }
+
     // If smart sampling is disabled, always check title/project
     if (!settings.smartSamplingEnabled) {
       return current.title === newData.title && current.project === newData.project;
@@ -510,7 +515,8 @@ class ActivityTracker {
     const existingActivity = this.storage.findActivityByAppAndProject(
       activityData.app,
       activityData.project,
-      today
+      today,
+      activityData.salesforceCase || null
     );
 
     if (existingActivity) {
