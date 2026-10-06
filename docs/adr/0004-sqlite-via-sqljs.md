@@ -32,7 +32,7 @@ Use `sql.js` for the LightTrack database, owned by the main process, with atomic
 - No native module to rebuild for Electron upgrades; the installer grows by about 700 KB.
 - Every save rewrites the whole file. Saves happen after each committed transaction (approval, allocation, export, import), not per captured sample; capture writes are batched. At four years of data a save takes about 50 ms.
 - The whole database is held in memory. Retention controls (LT3-601) keep raw evidence bounded; above roughly 200,000 rows, revisit.
-- The database file is not encrypted by SQLite itself. Decision (2026-10-05): installed builds encrypt the exported bytes with the protected key from LT3-008 before the atomic write, and decrypt on open, as for the current data file. Implemented in LT3-101.
+- The database file is not encrypted by SQLite itself. Decision (2026-10-05): installed builds encrypt the exported bytes with the protected key from LT3-008 before the atomic write, and decrypt on open, as for the current data file. Implemented in LT3-101 (`src/main/persistence/file-crypto.ts`): AES-256-GCM with a key derived from the storage key by HKDF-SHA256.
 
 ## Revisit criteria
 

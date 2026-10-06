@@ -119,27 +119,37 @@ test.describe('packaged application', () => {
     await second.app.close();
   });
 
-  // LT3-100 spike: sql.js (WebAssembly) must load from inside the packaged app.
-  test('packaged app opens, writes and reads a SQLite database', async () => {
+  // LT3-101: the packaged app creates, migrates and encrypts the database (sql.js loads from app.asar).
+  test('packaged app creates an encrypted, migrated database', async () => {
     const { app } = await launch(userData);
-    const dbFile = path.join(userData, 'spike.db');
+    const dbFile = path.join(userData, 'harness.db');
 
-    const rows = await app.evaluate(async (_electron, file) => {
+    const result = await app.evaluate(async (_electron, file) => {
       // eslint-disable-next-line no-undef
-      const { SqliteDb } = process.mainModule.require('./persistence/sqlite-db');
-      const db = await SqliteDb.open(file);
-      db.run('CREATE TABLE IF NOT EXISTS probe (id INTEGER PRIMARY KEY, label TEXT NOT NULL)');
-      db.transaction(tx => tx.run('INSERT INTO probe (label) VALUES (?)', ['written in packaged app']));
-      db.save();
-      db.close();
-      const reopened = await SqliteDb.open(file);
-      const result = reopened.all('SELECT label FROM probe');
-      reopened.close();
-      return result;
+      const { openDatabase, schemaVersion } = process.mainModule.require('./persistence/database');
+      const key = 'harness-key';
+      const first = await openDatabase(file, { key });
+      first.db.run("INSERT INTO project VALUES ('p1', 'Harness', 'active', 0, '2026-10-06', '2026-10-06')");
+      first.db.save();
+      first.db.close();
+      const second = await openDatabase(file, { key });
+      const out = {
+        applied: first.migration.applied.length,
+        reapplied: second.migration.applied.length,
+        version: schemaVersion(second.db),
+        projects: second.db.all('SELECT name FROM project')
+      };
+      second.db.close();
+      return out;
     }, dbFile);
 
-    expect(rows).toEqual([{ label: 'written in packaged app' }]);
-    expect(fs.statSync(dbFile).size).toBeGreaterThan(0);
+    expect(result.applied).toBeGreaterThan(0);
+    expect(result.reapplied).toBe(0);
+    expect(result.version).toBe(result.applied);
+    expect(result.projects).toEqual([{ name: 'Harness' }]);
+    const bytes = fs.readFileSync(dbFile);
+    expect(bytes.subarray(0, 4).toString('ascii')).toBe('LTDB');
+    expect(bytes.includes(Buffer.from('Harness'))).toBe(false);
     await app.close();
   });
 
