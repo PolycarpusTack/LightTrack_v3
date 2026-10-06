@@ -86,7 +86,11 @@ class ActivitiesHandlerMain {
       if (!validation.valid) {
         throw new Error(validation.error || 'Invalid activity data');
       }
-      const safeUpdates = validation.sanitized;
+      // The sanitiser fills title, project, app and tags; keep only the fields sent,
+      // so an edit does not clear the others (#38).
+      const safeUpdates = Object.fromEntries(
+        Object.entries(validation.sanitized).filter(([key]) => key in updates)
+      );
 
       // Recalculate duration if times changed
       if (safeUpdates.startTime && safeUpdates.endTime) {
