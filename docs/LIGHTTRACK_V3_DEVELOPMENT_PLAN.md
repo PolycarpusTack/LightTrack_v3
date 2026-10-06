@@ -64,6 +64,10 @@ Work proceeds incrementally. A big-bang rewrite would put working capture and ex
 | Jira | Outbound worklogs allowed, always with review | LT3-501 |
 | RDP clients | `mstsc.exe` and Windows App | LT3-402 |
 | Salesforce | Kept, after Jira | LT3-502 |
+| First-release UI | The design handoff in `docs/design/first-release` is the reference (2026-10-06) | Section 16 |
+| Window size | Minimum 1024 px wide; two-column screens stack below about 1100 px (2026-10-06) | Design review |
+| Worklog states | Stored: draft, approved, superseded. "Exported" derived from export runs; "rejected" added with Timmy (2026-10-06) | LT3-101, LT3-304 |
+| CSV layout | Taken from a sample of the file the approver imports into SAP ByDesign; owner provides it (pending, 2026-10-06) | LT3-302 |
 
 ## 4. Current baseline
 
@@ -355,6 +359,8 @@ Acceptance criteria:
 - Reopening an up-to-date database is idempotent.
 - Migration failure leaves the prior database recoverable.
 - Foreign keys and required indexes are verified by automated tests.
+
+**Status:** done. `src/main/persistence/database.ts` opens the database, applies pending migrations from `schema.ts` in one transaction, checks integrity and foreign keys, and only then saves; a failure leaves the file unchanged, and an existing file is copied to `<file>.pre-v<N>.bak` before an upgrade. A database from a newer version is refused. Migration 1 holds the core tables of section 6.4 (`submission`, `integration_link` and `rdp_default` come with their items). The file is encrypted with AES-256-GCM using a key derived from the LT3-008 storage key (`file-crypto.ts`). Not yet used by the app: LT3-102 adds repositories and LT3-104 moves data in. Tests: `test/baseline/database.test.js`, `test/baseline/sqlite-db.test.js`, and a packaged-app check.
 
 #### LT3-102 — Implement typed repositories
 

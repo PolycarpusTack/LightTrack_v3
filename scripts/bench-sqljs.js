@@ -8,7 +8,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { SqliteDb } = require('../src/main/persistence/sqlite-db');
+const { SqliteDb } = require('../out/main/persistence/sqlite-db'); // run npm run build first
 
 const sizes = process.argv.slice(2).map(Number).filter(Boolean);
 const ROWS = sizes.length ? sizes : [10000, 50000, 200000];

@@ -23,7 +23,13 @@ Adopt it as the reference for the first-release UI. It follows plan sections 3 a
 
 The new screens need Increment B (database, repositories, import) and the worklog items first. Building them earlier would mean building them on the `electron-store` model that LT3-104 retires.
 
-## Differences from current decisions (to settle before the items above)
+## Owner decisions (2026-10-06)
+
+- Window: minimum 1024 px, two-column screens stack below about 1100 px (item 3 below).
+- Worklog states: exported is derived from export runs; rejected comes with Timmy (item 2).
+- CSV layout: from a sample of the approver's SAP ByDesign import file, which the owner provides (item 1).
+
+## Differences from current decisions
 
 1. **CSV layout.** The design shows `EmployeeID;Date;ProjectElement;ServiceProduct;Hours;Comment` with `;` and decimal comma. The current export (LT3-007, `src/main/exports/sap-csv.ts`) writes ten comma-separated columns with a decimal point. The handoff calls its layout a placeholder. The real layout must come from the SAP ByDesign import the approver uses; it becomes export profile v1 in LT3-302.
 2. **Worklog states.** The design lists `draft | approved | exported | rejected | superseded`. The schema in LT3-101 has `draft | approved | superseded`; "exported" follows from membership of an export run, and "rejected" needs an approver inside the product, which the first release does not have (the approver receives the summary). Recommendation: keep exported as derived and add `rejected` with Timmy (LT3-304).

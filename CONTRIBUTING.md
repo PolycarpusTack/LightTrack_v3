@@ -33,6 +33,10 @@ The app runs from `out/`, not `src/`. `npm run build` compiles the main process 
 
 `test/baseline/ipc-contract.test.js` fails if the three lists differ, and main refuses to start if a contract channel has no handler.
 
+### Changing the database schema
+
+Add a migration to the end of `MIGRATIONS` in `src/main/persistence/schema.ts`, with the next version number. Never edit a migration that has been merged. Do not use `BEGIN` or `COMMIT`; the runner wraps all pending migrations in one transaction. Index every foreign key; `test/baseline/database.test.js` checks it.
+
 New code is TypeScript. When you migrate a JavaScript module, replace it rather than keeping both versions. Renderer modules move into `src/renderer/ts` and are published on `window.LightTrack` from `src/renderer/ts/index.ts` until their legacy callers are migrated too.
 
 `npm run test:legacy` exposes the archived broad test suite. It contains tests for removed modules and is not the supported release gate; do not conceal new failures by adding more tests to that quarantine.
