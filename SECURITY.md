@@ -12,6 +12,7 @@ Do not open a public issue containing secrets, personal activity titles or explo
 
 - LightTrack must not capture screenshots, keystrokes, OCR output or remote RDP contents.
 - Renderer processes use context isolation, no Node integration and sandboxing through the active window manager.
+- The renderer reaches main only through the channels in `src/main/ipc/contract.ts`. Main validates every request and response against that contract; unknown channels and invalid payloads are refused with an error code. There is no generic `invoke` passthrough in the preload.
 - Browser-extension traffic is loopback-only (127.0.0.1), accepted only from paired extensions and schema-validated. Pairing needs a 6-digit code shown in the desktop app (two-minute expiry, five attempts, single use); LightTrack stores only a hash of each token, bound to the extension origin. Titles, URLs and tokens are not logged. Paired extensions can be disconnected in Settings > Data.
 - OAuth tokens and future database keys must use operating-system protected storage. `electron-store` encryption is not an authentication or key-management boundary.
 - Raw activity titles and remote-session metadata must not enter SAP exports unless an explicit export profile requires them.

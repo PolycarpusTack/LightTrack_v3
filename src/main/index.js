@@ -24,6 +24,8 @@ const BrowserExtensionServer = require('./core/browser-extension-server');
 const { ExtensionPairing } = require('./integrations/browser/extension-pairing');
 const UpgradeManager = require('./core/upgrade-manager');
 const { validateAndSanitizeActivity } = require('../shared/sanitize');
+const { IpcRegistry } = require('./ipc/registry');
+const { IpcError } = require('../shared/ipc/errors');
 
 
 class LightTrackApp {
@@ -281,186 +283,115 @@ class LightTrackApp {
     }).catch(() => {});
   }
 
+  /**
+   * Register every renderer-facing IPC handler through the registry (LT3-003).
+   * Throws when a handler is missing or outside the contract; initialize() then quits.
+   */
   setupIPC() {
-    try {
-      // Create safe handler wrapper with validation and structured errors
-      const createSafeHandler = (channel, handler) => async (...args) => {
-        logger.debug(`IPC: ${channel} called`, { argsCount: args.length });
-        try {
-          return await handler(...args);
-        } catch (error) {
-          logger.error(`IPC Error in ${channel}:`, error);
-          throw error;
+    const registry = new IpcRegistry(ipcMain, logger);
+
+    new ActivitiesHandlerMain(this.storage, this.appState.store, this.appState, validateAndSanitizeActivity)
+      .registerHandlers(registry);
+
+    new SettingsHandlerMain(
+      this.appState.store,
+      this.appState,
+      () => { /* setupBreakReminders */ },
+      () => this.tracker?.stop(),
+      () => this.tracker?.start()
+    ).registerHandlers(registry);
+
+    new TrackingHandlerMain(
+      this.appState,
+      // toggleTracking
+      async () => {
+        if (!this.tracker) {
+          throw new Error('Tracker not initialized');
         }
-      };
-
-      // Use shared validation from sanitize.js
-      const validateActivity = validateAndSanitizeActivity;
-
-      // Instantiate and register ActivitiesHandlerMain
-      this.activitiesHandler = new ActivitiesHandlerMain(
-        this.storage,
-        this.appState.store,
-        this.appState,
-        createSafeHandler,
-        validateActivity,
-        async () => {
-          // Consolidate activities by re-running storage cleanup
-          if (this.storage) {
-            try {
-              const activities = await this.storage.getActivities();
-              const cleaned = this.storage.lightweightCleanup(activities);
-              this.appState.store.set('activities', cleaned);
-              this.storage.activityCache = null; // Invalidate cache
-              logger.info(`Consolidated activities: ${activities.length} -> ${cleaned.length}`);
-              return { consolidated: activities.length - cleaned.length };
-            } catch (error) {
-              logger.error('Failed to consolidate activities:', error);
-              throw error;
-            }
-          }
-          return { consolidated: 0 };
+        if (this.tracker.isTracking) {
+          await this.tracker.stop();
+          this.appState.tracking.isActive = false;
+          this.appState.tracking.currentActivity = null;
+          this.appState.tracking.sessionStartTime = null;
+          this.appState.tracking.lastActivityTime = null;
+          this.appState.tracking.samplingRate = null;
+        } else {
+          await this.tracker.start();
+          this.appState.tracking.isActive = true;
+          this.appState.tracking.currentActivity = this.tracker.currentActivity;
+          this.appState.tracking.sessionStartTime = this.tracker.sessionStartTime;
+          this.appState.tracking.lastActivityTime = this.tracker.lastActiveTime;
+          this.appState.tracking.samplingRate = this.tracker.currentCheckInterval / 1000;
         }
-      );
-      this.activitiesHandler.registerHandlers();
-
-      // Instantiate and register SettingsHandlerMain
-      this.settingsHandler = new SettingsHandlerMain(
-        this.appState.store,
-        this.appState,
-        () => { /* setupBreakReminders */ },
-        () => this.tracker?.stop(),      // Wire to actual tracker
-        () => this.tracker?.start()      // Wire to actual tracker
-      );
-      this.settingsHandler.registerHandlers();
-
-      // Instantiate and register TrackingHandlerMain with actual tracker methods
-      this.trackingHandler = new TrackingHandlerMain(
-        this.appState,
-        // toggleTracking - wire to actual ActivityTracker
-        async () => {
-          if (!this.tracker) {
-            throw new Error('Tracker not initialized');
-          }
-          if (this.tracker.isTracking) {
-            await this.tracker.stop();
-            this.appState.tracking.isActive = false;
-            this.appState.tracking.currentActivity = null;
-            this.appState.tracking.sessionStartTime = null;
-            this.appState.tracking.lastActivityTime = null;
-            this.appState.tracking.samplingRate = null;
-          } else {
-            await this.tracker.start();
-            this.appState.tracking.isActive = true;
-            this.appState.tracking.currentActivity = this.tracker.currentActivity;
-            this.appState.tracking.sessionStartTime = this.tracker.sessionStartTime;
-            this.appState.tracking.lastActivityTime = this.tracker.lastActiveTime;
-            this.appState.tracking.samplingRate = this.tracker.currentCheckInterval / 1000;
-          }
-          this.trayManager?.updateMenu();
-          return {
-            isTracking: this.tracker.isTracking,
-            currentActivity: this.tracker.currentActivity
-          };
-        },
-        // saveCurrentActivity - wire to tracker
-        async () => {
-          if (this.tracker?.currentActivity) {
-            await this.tracker.saveActivity();
-          }
-        },
-        // updateTrayMenu
-        () => this.trayManager?.updateMenu(),
-        // detectActivity - wire to tracker
-        async () => {
-          if (this.tracker) {
-            await this.tracker.track();
-          }
-        },
-        // handleIdleDecision - delegate to ActivityTracker
-        async (wasWorking) => {
-          if (this.tracker) {
-            await this.tracker.handleIdleTimeDecision(wasWorking);
-          }
+        this.trayManager?.updateMenu();
+        return {
+          isTracking: this.tracker.isTracking,
+          currentActivity: this.tracker.currentActivity
+        };
+      },
+      // handleIdleDecision
+      async (wasWorking) => {
+        if (this.tracker) {
+          await this.tracker.handleIdleTimeDecision(wasWorking);
         }
-      );
-      this.trackingHandler.registerHandlers();
-
-      // Register Tags IPC handlers
-      this.tagsHandler = new TagsHandlerMain(this.storage);
-      this.tagsHandler.registerHandlers();
-
-      // Register Projects IPC handlers
-      this.projectsHandler = new ProjectsHandlerMain(this.storage);
-      this.projectsHandler.registerHandlers();
-
-      // Register Activity Types IPC handlers
-      this.activityTypesHandler = new ActivityTypesHandlerMain(this.storage);
-      this.activityTypesHandler.registerHandlers();
-
-      // Register Calendar IPC handlers
-      this.calendarHandler = new CalendarHandlerMain(this.calendarSyncService);
-      this.calendarHandler.registerHandlers();
-
-      // Initialize calendar sync after handlers are ready (no network in harness runs)
-      if (!isHarness()) {
-        this.calendarSyncService.initialize();
       }
+    ).registerHandlers(registry);
 
-      // Register Updater IPC handlers
-      if (this.updaterHandler) {
-        this.updaterHandler.registerHandlers();
-      }
+    new TagsHandlerMain(this.storage).registerHandlers(registry);
+    new ProjectsHandlerMain(this.storage).registerHandlers(registry);
+    new ActivityTypesHandlerMain(this.storage).registerHandlers(registry);
+    new CalendarHandlerMain(this.calendarSyncService).registerHandlers(registry);
+    this.updaterHandler.registerHandlers(registry);
 
-      // Register shell:open-external handler with URL validation
-      ipcMain.handle('browser-extension:get-status', () => ({
-        paired: this.extensionPairing ? this.extensionPairing.pairedCount() : 0
-      }));
-      ipcMain.handle('browser-extension:revoke-all', () => {
-        this.extensionPairing?.revokeAll();
-        logger.info('Browser extension pairings revoked');
-        return { paired: 0 };
-      });
-
-      ipcMain.handle('shell:open-external', (event, url) => {
-        if (typeof url !== 'string') {
-          throw new Error('URL must be a string');
-        }
-        // Only allow http and https URLs
-        try {
-          const parsed = new URL(url);
-          if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-            throw new Error('Only http and https URLs are allowed');
-          }
-        } catch (e) {
-          if (e.message === 'Only http and https URLs are allowed') throw e;
-          throw new Error('Invalid URL');
-        }
-        return shell.openExternal(url);
-      });
-
-      // Register upgrade info handler
-      ipcMain.handle('upgrade:getInfo', () => {
-        return this.upgradeManager?.getInstallationInfo() || null;
-      });
-
-      // Register window behavior handler
-      ipcMain.handle('window:update-behavior', (event, settings) => {
-        if (this.windowManager) {
-          this.windowManager.updateBehavior(settings);
-          // Also save to storage for persistence
-          this.storage.updateSettings({
-            closeBehavior: settings.closeBehavior,
-            minimizeToTray: settings.minimizeToTray
-          });
-        }
-        return { success: true };
-      });
-
-      logger.info('IPC handlers setup complete');
-    } catch (error) {
-      logger.error('Failed to setup IPC handlers:', error);
+    // Initialize calendar sync after handlers are ready (no network in harness runs)
+    if (!isHarness()) {
+      this.calendarSyncService.initialize();
     }
+
+    registry.handle('browser-extension:get-status', () => ({
+      paired: this.extensionPairing ? this.extensionPairing.pairedCount() : 0
+    }));
+    registry.handle('browser-extension:revoke-all', () => {
+      this.extensionPairing?.revokeAll();
+      logger.info('Browser extension pairings revoked');
+      return { paired: 0 };
+    });
+
+    // Only http and https URLs open in the system browser
+    registry.handle('shell:open-external', (event, url) => {
+      let parsed;
+      try {
+        parsed = new URL(url);
+      } catch {
+        throw new IpcError('INVALID_REQUEST', 'Invalid URL', 'shell:open-external');
+      }
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        throw new IpcError('INVALID_REQUEST', 'Only http and https URLs are allowed', 'shell:open-external');
+      }
+      return shell.openExternal(url);
+    });
+
+    registry.handle('upgrade:getInfo', () => {
+      return this.upgradeManager?.getInstallationInfo() || null;
+    });
+
+    registry.handle('window:update-behavior', (event, settings) => {
+      if (this.windowManager) {
+        this.windowManager.updateBehavior(settings);
+        // Also save to storage for persistence
+        this.storage.updateSettings({
+          closeBehavior: settings.closeBehavior,
+          minimizeToTray: settings.minimizeToTray
+        });
+      }
+      return { success: true };
+    });
+
+    const missing = registry.missing();
+    if (missing.length > 0) {
+      throw new Error(`IPC contract channels without a handler: ${missing.join(', ')}`);
+    }
+    logger.info(`IPC handlers registered: ${registry.registeredChannels().length}`);
   }
 
   // Periodic updates

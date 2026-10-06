@@ -2,7 +2,6 @@
  * Projects IPC Handler - Main Process
  * Handles project management operations
  */
-const { ipcMain } = require('electron');
 const logger = require('../../logger');
 const { validateAndSanitizeProject, sanitizeString, sanitizeProjectName, sanitizeSapCode } = require('../../../shared/sanitize');
 
@@ -11,11 +10,11 @@ class ProjectsHandlerMain {
     this.storage = storage;
   }
 
-  registerHandlers() {
+  registerHandlers(registry) {
     logger.debug('Registering Projects IPC handlers...');
 
     // Get all projects (system + custom)
-    ipcMain.handle('projects:getAll', async () => {
+    registry.handle('projects:getAll', async () => {
       try {
         return this.storage.getProjects();
       } catch (error) {
@@ -25,7 +24,7 @@ class ProjectsHandlerMain {
     });
 
     // Get project by ID
-    ipcMain.handle('projects:getById', async (event, id) => {
+    registry.handle('projects:getById', async (event, id) => {
       try {
         // Sanitize ID input
         const sanitizedId = sanitizeString(id, 100);
@@ -40,7 +39,7 @@ class ProjectsHandlerMain {
     });
 
     // Add a custom project
-    ipcMain.handle('projects:add', async (event, project) => {
+    registry.handle('projects:add', async (event, project) => {
       try {
         // Validate and sanitize project input
         const result = validateAndSanitizeProject(project);
@@ -55,7 +54,7 @@ class ProjectsHandlerMain {
     });
 
     // Update a project
-    ipcMain.handle('projects:update', async (event, id, updates) => {
+    registry.handle('projects:update', async (event, id, updates) => {
       try {
         // Sanitize ID
         const sanitizedId = sanitizeString(id, 100);
@@ -100,7 +99,7 @@ class ProjectsHandlerMain {
     });
 
     // Remove a custom project
-    ipcMain.handle('projects:remove', async (event, id) => {
+    registry.handle('projects:remove', async (event, id) => {
       try {
         // Sanitize ID input
         const sanitizedId = sanitizeString(id, 100);

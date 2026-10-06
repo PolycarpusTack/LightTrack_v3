@@ -2,7 +2,6 @@
  * Tags IPC Handler - Main Process
  * Handles tag management operations
  */
-const { ipcMain } = require('electron');
 const logger = require('../../logger');
 
 class TagsHandlerMain {
@@ -10,11 +9,11 @@ class TagsHandlerMain {
     this.storage = storage;
   }
 
-  registerHandlers() {
+  registerHandlers(registry) {
     logger.debug('Registering Tags IPC handlers...');
 
     // Get all tags (system + custom)
-    ipcMain.handle('tags:getAll', async () => {
+    registry.handle('tags:getAll', async () => {
       try {
         return this.storage.getTags();
       } catch (error) {
@@ -24,7 +23,7 @@ class TagsHandlerMain {
     });
 
     // Get tags actually used in activities
-    ipcMain.handle('tags:getUsed', async () => {
+    registry.handle('tags:getUsed', async () => {
       try {
         return this.storage.getUsedTags();
       } catch (error) {
@@ -34,7 +33,7 @@ class TagsHandlerMain {
     });
 
     // Add a custom tag
-    ipcMain.handle('tags:add', async (event, tagName) => {
+    registry.handle('tags:add', async (event, tagName) => {
       try {
         return this.storage.addTag(tagName);
       } catch (error) {
@@ -44,7 +43,7 @@ class TagsHandlerMain {
     });
 
     // Remove a custom tag
-    ipcMain.handle('tags:remove', async (event, tagName) => {
+    registry.handle('tags:remove', async (event, tagName) => {
       try {
         return this.storage.removeTag(tagName);
       } catch (error) {
@@ -54,7 +53,7 @@ class TagsHandlerMain {
     });
 
     // Update tags on an activity
-    ipcMain.handle('tags:updateActivity', async (event, activityId, tags) => {
+    registry.handle('tags:updateActivity', async (event, activityId, tags) => {
       try {
         return this.storage.updateActivityTags(activityId, tags);
       } catch (error) {
@@ -64,7 +63,7 @@ class TagsHandlerMain {
     });
 
     // Get activities filtered by tags
-    ipcMain.handle('tags:filterActivities', async (event, tags, matchAll = false) => {
+    registry.handle('tags:filterActivities', async (event, tags, matchAll = false) => {
       try {
         return this.storage.getActivitiesByTags(tags, matchAll);
       } catch (error) {
