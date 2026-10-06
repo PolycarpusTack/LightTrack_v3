@@ -55,10 +55,10 @@
     "typescript": "^6.0.3"
   },
   "dependencies": {
-    "active-win": "^7.7.2",
     "electron-log": "^5.4.3",
     "electron-store": "^8.2.0",
     "electron-updater": "^6.6.2",
+    "koffi": "^2.16.3",
     "node-ical": "^0.22.1",
     "sql.js": "^1.14.2",
     "zod": "^4.6.5"
@@ -78,7 +78,9 @@
       "!node_modules/sql.js/dist/*worker*",
       "!node_modules/sql.js/dist/*.zip",
       "!node_modules/sql.js/dist/*.mjs",
-      "!node_modules/sql.js/dist/sql-asm*"
+      "!node_modules/sql.js/dist/sql-asm*",
+      "!node_modules/koffi/build/koffi/!(win32_x64)/**",
+      "!node_modules/koffi/{src,vendor,doc,lib}/**"
     ],
     "win": {
       "target": "nsis",
