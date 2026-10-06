@@ -1,69 +1,65 @@
 # LightTrack v3: status and pickup
 
 **Last updated:** 2026-10-06, end of day
-**Current branch:** `feat/salesforce-case-memory` (#48, PR open)
-**`main`:** `46bd544`
+**`main`:** `d95aebd`, CI green. No open pull requests.
+**Next step:** #45 (show failed requests instead of silent fallbacks), branch `fix/45-visible-errors` from `main`.
 
 ## Where we are
 
-Increment A is done. Increment B: LT3-101 (database and migrations) is merged; LT3-102 is next. Salesforce case memory (#48) was pulled forward on 2026-10-06.
+Increment A (foundation) is done. Increment B (durable local data) has started: LT3-101 is merged, LT3-102 to LT3-105 remain. First release: 3 of 18 items done (LT3-003, LT3-101, #48).
 
-Merged on 2026-10-06:
+The app is in daily use by the owner as a time tracker. The first-release workflow (approval, booking lines, CSV hand-off, RDP) is not built yet; see plan section 16 and `docs/design/first-release/REVIEW.md`.
+
+**Installer:** `dist/LightTrack Setup 3.0.0.exe`, built from `main` (`d95aebd`) on 2026-10-06; the packaged-app harness (5 tests) passed against it. Unsigned, so SmartScreen warns on first run ("More info" > "Run anyway"). Data lives in `%APPDATA%\LightTrack` and survives reinstalls. Rebuild with `npm run electron:build:win` on `main`.
+
+## Merged on 2026-10-06
 
 - #36 LT3-003 typed, validated IPC contract (closes #10)
-- #37 dependency audit with recorded, expiring exceptions (`scripts/audit.js`; `sprintf-js` advisory accepted until 2026-11-05)
+- #37 dependency audit with recorded, expiring exceptions (`scripts/audit.js`; `sprintf-js` advisory accepted until **2026-11-05**, then CI fails again unless renewed or fixed)
 - #42 editing an activity no longer clears its tags (closes #38)
-- #43 active-window detection replaced: `active-win` 7 needed `ffi-napi`, which never installed, so tracking recorded nothing; now Win32 through `koffi` (`src/main/core/active-window.ts`)
-- #46 first-release design handoff and its review (`docs/design/first-release/`, `REVIEW.md`)
-- #47 LT3-101 SQLite and migration infrastructure (closes #12)
+- #43 active-window detection through Win32 and `koffi` (`src/main/core/active-window.ts`); `active-win` 7 needed `ffi-napi`, which never installed, so tracking recorded nothing
+- #46 first-release design handoff and review (`docs/design/first-release/`)
+- #47 LT3-101 SQLite and migrations (closes #12): encrypted database file, migrations in one transaction with integrity checks and a backup before upgrades, migration 1 with the core tables. Not used by the app yet.
+- #50 Salesforce: client remembered per case (closes #48). Case number read from the window title; each case is its own activity; editing an entry offers "Always book Salesforce case N to this project"; remembered cases under Projects > Salesforce cases.
 
 Earlier (PRs #1 to #9, #34, #35): Windows baseline and CI with a packaged-app harness, ADRs 0002 to 0005, Fabrica page-kit styling, LT3-002, 004 to 009, 100, 006.
 
-**Installer for daily use:** `dist/LightTrack Setup 3.0.0.exe`, built from the window-detection fix on 2026-10-06 (before #42 was merged). Unsigned, so SmartScreen warns on first run ("More info" > "Run anyway"). Data lives in `%APPDATA%\LightTrack` and survives reinstalls. Rebuild with `npm run electron:build:win` on `main`.
+## Owner decisions (recorded in the plan's decisions table)
 
-## Owner decisions (all recorded in the plan's decisions table)
+- First release hands off by CSV; Timmy submission after. Worklogs are time blocks with derived daily booking lines; rounding per user, default 15 min.
+- Full TypeScript including renderer. SQLite file encrypted with the protected key. Retention chosen at first run (default 1 year). Releases unsigned; in-app updates off.
+- Jira outbound with review. RDP clients: `mstsc.exe`, Windows App.
+- First-release UI follows the design handoff. Minimum window width 1024 px, two-column screens stack below about 1100 px.
+- Worklog states stored: draft, approved, superseded. "Exported" derived from export runs; "rejected" added with Timmy.
+- Salesforce: client remembered per case, one case = one client. API lookup (LT3-502) deferred until a Salesforce admin can create a connected app.
+- CSV layout: taken from a sample of the approver's SAP ByDesign import file (pending, see below).
 
-First release hands off by CSV; Timmy submission comes after. Worklogs are time blocks with derived daily booking lines. Rounding per user (default 15 min). Full TypeScript including renderer. SQLite file encrypted with the protected key. Retention chosen at first run (default 1 year). Releases stay unsigned; in-app updates off. Jira outbound with review. RDP clients: `mstsc.exe`, Windows App. Salesforce kept for later. The first-release design handoff is the UI reference (2026-10-06).
+## Waiting on the owner
 
-## LT3-101 (#12): merged
+1. **A real Salesforce window title** (a case record page, and the Service Console if used), to confirm the patterns in `src/main/core/salesforce-case.ts`.
+2. **A sample CSV** the approver imports into SAP ByDesign. Needed for LT3-302 only.
+3. Send `docs/integrations/timmy-integration-request.md` to Timmy's maintainer (Pieter Jan De Keyzer per Timmy's commit history; confirm the contact). Needed after the first release.
+4. Pair the browser extension once by hand in Chrome or Edge (not covered by automated tests).
+5. Report anything odd from daily use, especially tray, idle detection and tracking, which the harness does not cover.
 
-- `src/main/persistence/sqlite-db.ts` (replaces the JavaScript spike wrapper): open, run, transaction, atomic save, AES-256-GCM file encryption (`file-crypto.ts`). Found and fixed: sql.js `export()` turns foreign keys off, so the spike wrapper stopped enforcing them after the first save.
-- `database.ts`: migration runner (user_version plus `schema_migrations`), all pending migrations in one transaction, integrity and foreign-key checks before saving, backup `<file>.pre-v<N>.bak` before an upgrade, refuses a newer schema.
-- `schema.ts`: migration 1 with the core tables of plan 6.4; every foreign key indexed.
-- Not used by the app yet; LT3-102 adds repositories, LT3-104 moves data in.
+## Next (in order)
 
-## Decisions taken 2026-10-06 (recorded in the plan)
-
-- Minimum window width 1024 px, stacking below about 1100 px.
-- Worklog states stored as draft, approved, superseded; exported derived; rejected with Timmy.
-- CSV layout comes from a sample of the approver's import file. **Waiting on the owner** for that sample; only LT3-302 needs it.
-
-## Salesforce case memory (#48, PR open)
-
-Salesforce shows only a case number, never the client. The case number is read from the window title; each case is its own activity; editing an entry with a case offers "Always book Salesforce case N to this project", which remembers it and moves earlier entries of that case. Remembered cases are listed under Projects > Salesforce cases. The title patterns (`src/main/core/salesforce-case.ts`) are based on standard Lightning titles; **check them against a real window title** from the owner's Salesforce (record page and console).
-
-## Open issues found today
-
-#49 browser extension context parsed incorrectly, #39 timeline merge fails, #40 restore reports success but restores nothing, #41 switch project does nothing, #44 design-system pass on current screens, #45 show failed requests instead of silent fallbacks.
-
-## Open items for the owner
-
-1. Send `docs/integrations/timmy-integration-request.md` to Timmy's maintainer, Pieter Jan De Keyzer (per Timmy's commit history; confirm he is the right contact).
-2. Load the browser extension unpacked in Chrome or Edge and pair it once by hand (not covered by automated tests).
-3. Use a build for a while: `tsc` now adds `"use strict"` to the legacy main-process JavaScript; the harness passed, but tray, tracking and idle paths are not covered by it.
-
-## Next
-
-Merge #48, then #45 and #44 (small, visible to daily use), then LT3-102 (#13) repositories, LT3-103 to LT3-105 (#14 to #16), Increment C (#17 to #21), the CSV hand-off (#22, #23), RDP (#26, #27), #31, #33.
+1. **#45** Show failed requests to the user instead of falling back silently (preload fallbacks, renderer guards).
+2. **#44** Design-system pass on the current screens (labels, buttons, inputs, focus, visible row actions, no bare Space shortcut); see `docs/design/first-release/README.md`, "System-level changes".
+3. **#39, #40, #41, #49** Small defects: timeline merge, restore that restores nothing, switch project, browser extension parsing.
+4. **LT3-102 (#13)** Typed repositories on the LT3-101 schema, then LT3-103 to LT3-105 (#14 to #16): v3 export, import with reconciliation, backup and restore.
+5. Increment C (#17 to #21), the CSV hand-off (#22, #23), RDP (#26, #27), #31, #33.
 
 ## Working notes
 
-- Gates: `npm run lint`, `npm run typecheck`, `npm run test:ci` (baseline Jest, TS via ts-jest), `npm run build` (into `out/`), `npm run electron:build:win` (production build + installer), `npm run test:app` (harness against `dist/win-unpacked`; set `LIGHTTRACK_EXE` to test another build).
-- For a quick packaged check without touching `dist/`: `npm run build && npx electron-builder --win --dir --publish never --config.directories.output=<scratch dir>`.
+- Gates: `npm run lint`, `npm run typecheck`, `npm run test:ci` (baseline Jest, TS via ts-jest; 124 tests), `npm run build` (into `out/`), `npm run electron:build:win` (production build and installer), `npm run test:app` (harness against `dist/win-unpacked`; set `LIGHTTRACK_EXE` to test another build).
+- Quick packaged check without touching `dist/`: `npm run build:prod && npx electron-builder --win --dir --publish never --config.directories.output=<scratch dir>`.
+- IPC: add a channel to `src/main/ipc/contract.ts`, register it with `registry.handle`, map it in `src/preload/index.ts` (see CONTRIBUTING). Schema changes: append a migration to `src/main/persistence/schema.ts`.
 - The repository stores LF; `core.autocrlf` gives CRLF in some working copies. Git Bash tools hide the `\r`, so check with Node before a scripted edit that matches on newlines.
-- TypeScript 6: set `rootDir` explicitly; `module: node16` for main.
-- Workflow so far: one branch and PR per backlog item, CI green before merging, merges with a merge commit after the owner approves.
+- TypeScript 6: set `rootDir` explicitly; `module: node16` for main. Use CommonJS packages in main (koffi 2.x, not the ESM-only 3.x types).
+- If CI does not start on a new PR, close and reopen it.
+- Workflow: one branch and PR per item, CI green before merging, merge commit after the owner approves. Never `git add` the untracked design zip in `docs/`.
 
 ## Pickup prompt
 
-> Continue LightTrack v3 in `C:\Projects\Other\LightTrack_v3`. Read `docs/handover/STATUS.md` first. If the Salesforce PR (#48) is open, check its CI and ask me before merging. Then follow "Next" in STATUS.md, one branch and PR per item, keeping lint, typecheck, `test:ci`, build and the packaged-app harness green. Use `docs/design/first-release` for any UI work. Keep the plain, concise writing style used in the docs. Ask me before merging.
+> Continue LightTrack v3 in `C:\Projects\Other\LightTrack_v3`. Read `docs/handover/STATUS.md` first and check "Waiting on the owner" for anything I have answered. Then start with the first item under "Next" (#45): branch from `main`, implement, keep lint, typecheck, `test:ci`, build and the packaged-app harness green, open a PR and report CI. Use `docs/design/first-release` for any UI work. Keep the plain, concise writing style used in the docs. Ask me before merging.
