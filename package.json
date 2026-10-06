@@ -23,7 +23,7 @@
     "prerelease": "npm run test:ci && npm run lint:ci",
     "release": "npm run electron:build:win",
     "update-manifest": "node scripts/update-manifest.js",
-    "security:audit": "npm audit --audit-level=moderate",
+    "security:audit": "node scripts/audit.js",
     "security:fix": "npm audit fix",
     "typecheck": "tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.preload.json && tsc -p tsconfig.renderer.json"
   },
