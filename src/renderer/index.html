@@ -579,6 +579,13 @@
                 <div id="jira-mappings-list" class="mappings-list"></div>
             </section>
 
+            <!-- Salesforce cases (#48) -->
+            <section class="card">
+                <div class="label">Salesforce cases</div>
+                <div class="meta-line">A case books to the project you chose for it. To add one, edit an entry that shows a case number and save it with "Always book this case".</div>
+                <div id="salesforce-cases-list" class="mappings-list"></div>
+            </section>
+
             <!-- Meeting Subject Mapping Rules -->
             <section class="card">
                 <div class="label">Meeting Rules</div>
@@ -1018,6 +1025,10 @@
                 <div class="form-group checkbox-group">
                     <input type="checkbox" id="entry-billable" checked>
                     <label for="entry-billable">Billable</label>
+                </div>
+                <div class="form-group checkbox-group" id="entry-case" hidden>
+                    <input type="checkbox" id="entry-case-remember" checked>
+                    <label for="entry-case-remember" id="entry-case-label">Always book this Salesforce case to this project</label>
                 </div>
             </div>
             <div class="modal-footer">

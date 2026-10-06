@@ -371,6 +371,54 @@
   }
 
   /**
+   * Load and display Salesforce cases with their project (#48)
+   */
+  async function loadSalesforceCases() {
+    const list = document.getElementById('salesforce-cases-list');
+    if (!list) return;
+
+    try {
+      const entries = Object.entries(await window.lightTrackAPI.salesforce.getCaseMappings())
+        .sort(([a], [b]) => a.localeCompare(b));
+
+      list.innerHTML = entries.length === 0
+        ? '<div class="meta-line">No cases yet.</div>'
+        : entries.map(([caseNumber, value]) => {
+          const project = typeof value === 'string' ? value : value.project;
+          return `
+          <div class="mapping-item" data-key="${escapeAttr(caseNumber)}">
+            <div>
+              <span class="pattern">Case ${escapeHtml(caseNumber)}</span>
+              <span class="arrow">&rarr;</span>
+              <span class="project">${escapeHtml(project)}</span>
+            </div>
+            <div class="mapping-actions">
+              <button data-action="remove-salesforce-case" data-key="${escapeAttr(caseNumber)}" title="Forget this case">&#10005;</button>
+            </div>
+          </div>`;
+        }).join('');
+    } catch (error) {
+      console.error('Failed to load Salesforce cases:', error);
+      list.innerHTML = '<div class="meta-line">Failed to load Salesforce cases</div>';
+    }
+  }
+
+  /**
+   * Forget the project for a Salesforce case. Entries already booked keep their project.
+   */
+  async function removeSalesforceCase(caseNumber) {
+    if (!confirm(`Forget the project for case ${caseNumber}? Entries already booked keep it.`)) return;
+
+    try {
+      await window.lightTrackAPI.salesforce.removeCaseMapping(caseNumber);
+      showNotification(`Case ${caseNumber} removed`, 'success');
+      await loadSalesforceCases();
+    } catch (error) {
+      showNotification(`Failed to remove case: ${error.message}`, 'error');
+    }
+  }
+
+  /**
    * Edit an existing JIRA mapping (populate form for update)
    */
   function editJiraMapping(key) {
@@ -1681,6 +1729,8 @@
 
   // Expose via namespace
   window.LightTrack.SettingsView = {
+    loadSalesforceCases,
+    removeSalesforceCase,
     loadUrlMappings,
     addUrlMapping,
     removeUrlMapping,

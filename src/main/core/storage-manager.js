@@ -520,7 +520,7 @@ class StorageManager extends LightweightStorage {
   }
 
   // Find activity by app and project for a specific date (for consolidation)
-  findActivityByAppAndProject(app, project, date) {
+  findActivityByAppAndProject(app, project, date, salesforceCase = null) {
     try {
       const activities = this.store.get('activities', []);
 
@@ -532,6 +532,7 @@ class StorageManager extends LightweightStorage {
 
         return activity.app === app &&
                activity.project === project &&
+               (activity.salesforceCase || null) === salesforceCase &&
                activityDate === date;
       });
 

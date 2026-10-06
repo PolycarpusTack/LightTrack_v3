@@ -1749,6 +1749,9 @@ function setupEventListeners() {
       case 'remove-jira-mapping':
         if (key) removeJiraMapping(key);
         break;
+      case 'remove-salesforce-case':
+        if (key) window.LightTrack.SettingsView?.removeSalesforceCase(key);
+        break;
       case 'edit-meeting-mapping':
         if (pattern) editMeetingMapping(pattern);
         break;
@@ -2363,7 +2366,8 @@ async function loadProjectsView() {
       loadProjectMappings(),
       loadUrlMappings(),
       loadJiraMappings(),
-      loadMeetingMappings()
+      loadMeetingMappings(),
+      window.LightTrack.SettingsView?.loadSalesforceCases()
     ]);
 
     // Wire up all mapping buttons (only once each)

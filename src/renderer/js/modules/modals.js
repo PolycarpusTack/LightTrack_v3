@@ -43,11 +43,27 @@
   }
 
   /**
+   * Salesforce case of the entry being edited (#48): offer to remember its project.
+   */
+  function showCaseOption(caseNumber) {
+    AppState.editingCase = caseNumber || null;
+    const row = document.getElementById('entry-case');
+    if (!row) return;
+    row.hidden = !caseNumber;
+    if (!caseNumber) return;
+    const label = document.getElementById('entry-case-label');
+    if (label) label.textContent = `Always book Salesforce case ${caseNumber} to this project`;
+    const remember = document.getElementById('entry-case-remember');
+    if (remember) remember.checked = true;
+  }
+
+  /**
    * Open manual entry modal (new entry)
    * @param {string} [dateOverride] - Optional date to pre-fill (YYYY-MM-DD format)
    */
   function openManualEntryModal(dateOverride) {
     AppState.editingActivityId = null;
+    showCaseOption(null);
     if (Elements.modalTitle) Elements.modalTitle.textContent = 'Add Manual Entry';
     if (Elements.editActivityId) Elements.editActivityId.value = '';
 
@@ -79,6 +95,7 @@
     }
 
     AppState.editingActivityId = activityId;
+    showCaseOption(activity.salesforceCase);
     if (Elements.modalTitle) Elements.modalTitle.textContent = 'Edit Entry';
     if (Elements.editActivityId) Elements.editActivityId.value = activityId;
 
@@ -113,6 +130,7 @@
     removeModalEscHandler('modal-overlay');
     if (Elements.modalOverlay) Elements.modalOverlay.classList.remove('active');
     AppState.editingActivityId = null;
+    AppState.editingCase = null;
   }
 
   /**
@@ -159,7 +177,13 @@
           duration,
           billable
         });
-        showNotification('Entry updated', 'success');
+        const caseNumber = AppState.editingCase;
+        if (caseNumber && document.getElementById('entry-case-remember')?.checked) {
+          const { updated } = await window.lightTrackAPI.salesforce.assignCase(caseNumber, project);
+          showNotification(`Case ${caseNumber} now books to ${project} (${updated} ${updated === 1 ? 'entry' : 'entries'})`, 'success');
+        } else {
+          showNotification('Entry updated', 'success');
+        }
       } else {
         // Create new
         await window.lightTrackAPI.addManualEntry({

@@ -1,12 +1,12 @@
 # LightTrack v3: status and pickup
 
 **Last updated:** 2026-10-06, end of day
-**Current branch:** `feat/lt3-101-sqlite-migrations` (LT3-101 complete, PR open)
-**`main`:** `1e7f02f`
+**Current branch:** `feat/salesforce-case-memory` (#48, PR open)
+**`main`:** `46bd544`
 
 ## Where we are
 
-Increment A is done. Increment B has started: LT3-101 (database and migrations) is in review.
+Increment A is done. Increment B: LT3-101 (database and migrations) is merged; LT3-102 is next. Salesforce case memory (#48) was pulled forward on 2026-10-06.
 
 Merged on 2026-10-06:
 
@@ -15,6 +15,7 @@ Merged on 2026-10-06:
 - #42 editing an activity no longer clears its tags (closes #38)
 - #43 active-window detection replaced: `active-win` 7 needed `ffi-napi`, which never installed, so tracking recorded nothing; now Win32 through `koffi` (`src/main/core/active-window.ts`)
 - #46 first-release design handoff and its review (`docs/design/first-release/`, `REVIEW.md`)
+- #47 LT3-101 SQLite and migration infrastructure (closes #12)
 
 Earlier (PRs #1 to #9, #34, #35): Windows baseline and CI with a packaged-app harness, ADRs 0002 to 0005, Fabrica page-kit styling, LT3-002, 004 to 009, 100, 006.
 
@@ -24,7 +25,7 @@ Earlier (PRs #1 to #9, #34, #35): Windows baseline and CI with a packaged-app ha
 
 First release hands off by CSV; Timmy submission comes after. Worklogs are time blocks with derived daily booking lines. Rounding per user (default 15 min). Full TypeScript including renderer. SQLite file encrypted with the protected key. Retention chosen at first run (default 1 year). Releases stay unsigned; in-app updates off. Jira outbound with review. RDP clients: `mstsc.exe`, Windows App. Salesforce kept for later. The first-release design handoff is the UI reference (2026-10-06).
 
-## LT3-101 (#12): on the branch
+## LT3-101 (#12): merged
 
 - `src/main/persistence/sqlite-db.ts` (replaces the JavaScript spike wrapper): open, run, transaction, atomic save, AES-256-GCM file encryption (`file-crypto.ts`). Found and fixed: sql.js `export()` turns foreign keys off, so the spike wrapper stopped enforcing them after the first save.
 - `database.ts`: migration runner (user_version plus `schema_migrations`), all pending migrations in one transaction, integrity and foreign-key checks before saving, backup `<file>.pre-v<N>.bak` before an upgrade, refuses a newer schema.
@@ -37,9 +38,13 @@ First release hands off by CSV; Timmy submission comes after. Worklogs are time 
 - Worklog states stored as draft, approved, superseded; exported derived; rejected with Timmy.
 - CSV layout comes from a sample of the approver's import file. **Waiting on the owner** for that sample; only LT3-302 needs it.
 
+## Salesforce case memory (#48, PR open)
+
+Salesforce shows only a case number, never the client. The case number is read from the window title; each case is its own activity; editing an entry with a case offers "Always book Salesforce case N to this project", which remembers it and moves earlier entries of that case. Remembered cases are listed under Projects > Salesforce cases. The title patterns (`src/main/core/salesforce-case.ts`) are based on standard Lightning titles; **check them against a real window title** from the owner's Salesforce (record page and console).
+
 ## Open issues found today
 
-#39 timeline merge fails, #40 restore reports success but restores nothing, #41 switch project does nothing, #44 design-system pass on current screens, #45 show failed requests instead of silent fallbacks.
+#49 browser extension context parsed incorrectly, #39 timeline merge fails, #40 restore reports success but restores nothing, #41 switch project does nothing, #44 design-system pass on current screens, #45 show failed requests instead of silent fallbacks.
 
 ## Open items for the owner
 
@@ -49,7 +54,7 @@ First release hands off by CSV; Timmy submission comes after. Worklogs are time 
 
 ## Next
 
-Merge LT3-101, then #45 and #44 (small, visible to daily use), then LT3-102 (#13) repositories, LT3-103 to LT3-105 (#14 to #16), Increment C (#17 to #21), the CSV hand-off (#22, #23), RDP (#26, #27), #31, #33.
+Merge #48, then #45 and #44 (small, visible to daily use), then LT3-102 (#13) repositories, LT3-103 to LT3-105 (#14 to #16), Increment C (#17 to #21), the CSV hand-off (#22, #23), RDP (#26, #27), #31, #33.
 
 ## Working notes
 
@@ -61,4 +66,4 @@ Merge LT3-101, then #45 and #44 (small, visible to daily use), then LT3-102 (#13
 
 ## Pickup prompt
 
-> Continue LightTrack v3 in `C:\Projects\Other\LightTrack_v3`. Read `docs/handover/STATUS.md` first. If the LT3-101 PR is open, check its CI and ask me before merging. Then follow "Next" in STATUS.md, one branch and PR per item, keeping lint, typecheck, `test:ci`, build and the packaged-app harness green. Use `docs/design/first-release` for any UI work. Keep the plain, concise writing style used in the docs. Ask me before merging.
+> Continue LightTrack v3 in `C:\Projects\Other\LightTrack_v3`. Read `docs/handover/STATUS.md` first. If the Salesforce PR (#48) is open, check its CI and ask me before merging. Then follow "Next" in STATUS.md, one branch and PR per item, keeping lint, typecheck, `test:ci`, build and the packaged-app harness green. Use `docs/design/first-release` for any UI work. Keep the plain, concise writing style used in the docs. Ask me before merging.
