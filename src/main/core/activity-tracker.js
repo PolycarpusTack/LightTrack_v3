@@ -1,4 +1,4 @@
-const activeWin = require('active-win');
+const { activeWindow } = require('./active-window');
 const logger = require('../logger');
 const { generateId } = require('../../shared/generate-id');
 const TitleParser = require('./title-parser');
@@ -350,7 +350,7 @@ class ActivityTracker {
   // Retry logic from original implementation
   async getActiveWindowWithRetry(retries = ACTIVE_WINDOW_RETRY_COUNT) {
     try {
-      return await activeWin();
+      return activeWindow();
     } catch (err) {
       if (retries > 0) {
         await new Promise(resolve => setTimeout(resolve, ACTIVE_WINDOW_RETRY_DELAY_MS));

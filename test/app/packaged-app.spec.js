@@ -143,6 +143,21 @@ test.describe('packaged application', () => {
     await app.close();
   });
 
+  // Window detection loads its native module (koffi) from the packaged app.
+  test('packaged app can read process and window details', async () => {
+    const { app } = await launch(userData);
+    const result = await app.evaluate(() => {
+      // eslint-disable-next-line no-undef
+      const { activeWindow, processInfo } = process.mainModule.require('./core/active-window');
+      const window = activeWindow(); // may be undefined on a runner without a foreground window
+      return { self: processInfo(process.pid), window: window === undefined ? 'none' : typeof window.owner.name };
+    });
+    expect(result.self.path).toMatch(/LightTrack\.exe$/i);
+    expect(result.self.name).toBe('LightTrack');
+    expect(['none', 'string']).toContain(result.window);
+    await app.close();
+  });
+
   // LT3-003: main validates every request against the IPC contract.
   test('main refuses a request outside the IPC contract', async () => {
     const { app, page, errors } = await launch(userData);

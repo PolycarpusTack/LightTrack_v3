@@ -126,7 +126,7 @@ class TitleParser {
 
   /**
    * Extract comprehensive activity information from a window
-   * @param {Object} window - Active window object from active-win
+   * @param {Object} window - Active window (see active-window.ts)
    * @returns {Object} Extracted activity information
    */
   parse(window) {
