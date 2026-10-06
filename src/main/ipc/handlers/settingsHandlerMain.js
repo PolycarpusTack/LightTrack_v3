@@ -1,7 +1,7 @@
 // settingsHandlerMain.js - Settings IPC Handler for main.js
 // Extracted from main.js to improve modularity without breaking existing functionality
 
-const { ipcMain, app } = require('electron');
+const { app } = require('electron');
 const logger = require('../../logger');
 const {
   sanitizePattern,
@@ -9,6 +9,26 @@ const {
   sanitizeSapCode,
   sanitizeString
 } = require('../../../shared/sanitize');
+
+/**
+ * A mapping value is a project name, or a project with booking details
+ * ({ project, activity, sapCode, costCenter, wbsElement, tags }). Returns '' when
+ * there is no usable project name.
+ */
+function sanitizeMappingValue(value) {
+  if (typeof value === 'string') return sanitizeProjectName(value);
+  const project = sanitizeProjectName(value?.project);
+  if (!project) return '';
+  const mapping = { project };
+  if (value.activity) mapping.activity = sanitizeString(value.activity, 100);
+  for (const key of ['sapCode', 'costCenter', 'wbsElement']) {
+    if (value[key]) mapping[key] = sanitizeSapCode(value[key]);
+  }
+  if (Array.isArray(value.tags)) {
+    mapping.tags = value.tags.map(t => sanitizeString(t, 50)).filter(Boolean).slice(0, 20);
+  }
+  return mapping;
+}
 
 /**
  * Settings Handler for main.js
@@ -26,11 +46,11 @@ class SettingsHandlerMain {
   /**
    * Register all settings IPC handlers
    */
-  registerHandlers() {
+  registerHandlers(registry) {
     logger.debug('Registering Settings IPC handlers...');
 
     // Get all settings
-    ipcMain.handle('settings:get-all', () => {
+    registry.handle('settings:get-all', () => {
       const settings = this.store.get('settings', {});
       return {
         ...settings,
@@ -43,7 +63,7 @@ class SettingsHandlerMain {
     });
 
     // Save settings with validation
-    ipcMain.handle('settings:save', async (event, settings) => {
+    registry.handle('settings:save', async (event, settings) => {
       try {
         // Validate settings
         const errors = this.validateSettings(settings);
@@ -75,7 +95,7 @@ class SettingsHandlerMain {
     });
 
     // Set launch at startup (login item)
-    ipcMain.handle('settings:set-launch-at-startup', (event, enabled) => {
+    registry.handle('settings:set-launch-at-startup', (event, enabled) => {
       try {
         app.setLoginItemSettings({
           openAtLogin: enabled,
@@ -90,7 +110,7 @@ class SettingsHandlerMain {
     });
 
     // Get launch at startup status
-    ipcMain.handle('settings:get-launch-at-startup', () => {
+    registry.handle('settings:get-launch-at-startup', () => {
       try {
         const settings = app.getLoginItemSettings();
         return { enabled: settings.openAtLogin };
@@ -101,33 +121,27 @@ class SettingsHandlerMain {
     });
 
     // Get project mappings
-    ipcMain.handle('get-project-mappings', () => {
+    registry.handle('get-project-mappings', () => {
       return this.store.get('projectMappings', {});
     });
 
     // Add project mapping
-    ipcMain.handle('add-project-mapping', (event, pattern, project, meta = {}) => {
-      // Sanitize inputs
+    registry.handle('add-project-mapping', (event, pattern, mapping) => {
       const sanitizedPattern = sanitizePattern(pattern);
-      const sanitizedProject = sanitizeProjectName(project);
+      const sanitizedMapping = sanitizeMappingValue(mapping);
 
-      if (!sanitizedPattern || !sanitizedProject) {
+      if (!sanitizedPattern || !sanitizedMapping) {
         throw new Error('Invalid pattern or project name');
       }
 
       const mappings = this.store.get('projectMappings', {});
-      mappings[sanitizedPattern] = {
-        project: sanitizedProject,
-        sapCode: sanitizeSapCode(meta.sapCode || ''),
-        costCenter: sanitizeSapCode(meta.costCenter || ''),
-        wbsElement: sanitizeSapCode(meta.wbsElement || '')
-      };
+      mappings[sanitizedPattern] = sanitizedMapping;
       this.store.set('projectMappings', mappings);
       return mappings;
     });
 
     // Remove project mapping
-    ipcMain.handle('remove-project-mapping', (event, pattern) => {
+    registry.handle('remove-project-mapping', (event, pattern) => {
       const sanitizedPattern = sanitizePattern(pattern);
       if (!sanitizedPattern) {
         throw new Error('Invalid pattern');
@@ -139,14 +153,14 @@ class SettingsHandlerMain {
     });
 
     // Get URL project mappings
-    ipcMain.handle('get-url-mappings', () => {
+    registry.handle('get-url-mappings', () => {
       return this.store.get('urlProjectMappings', {});
     });
 
     // Add URL project mapping
-    ipcMain.handle('add-url-mapping', (event, pattern, project) => {
+    registry.handle('add-url-mapping', (event, pattern, mapping) => {
       const sanitizedPattern = sanitizePattern(pattern);
-      const sanitizedProject = sanitizeProjectName(project);
+      const sanitizedProject = sanitizeMappingValue(mapping);
 
       if (!sanitizedPattern || !sanitizedProject) {
         throw new Error('Invalid URL pattern or project name');
@@ -159,7 +173,7 @@ class SettingsHandlerMain {
     });
 
     // Remove URL project mapping
-    ipcMain.handle('remove-url-mapping', (event, pattern) => {
+    registry.handle('remove-url-mapping', (event, pattern) => {
       const sanitizedPattern = sanitizePattern(pattern);
       if (!sanitizedPattern) {
         throw new Error('Invalid URL pattern');
@@ -171,15 +185,15 @@ class SettingsHandlerMain {
     });
 
     // Get JIRA project mappings (project key -> project name)
-    ipcMain.handle('get-jira-mappings', () => {
+    registry.handle('get-jira-mappings', () => {
       return this.store.get('jiraProjectMappings', {});
     });
 
     // Add JIRA project mapping
-    ipcMain.handle('add-jira-mapping', (event, projectKey, project) => {
+    registry.handle('add-jira-mapping', (event, projectKey, mapping) => {
       // Sanitize JIRA key (alphanumeric, uppercase)
       const sanitizedKey = sanitizeString(projectKey, 20).toUpperCase().replace(/[^A-Z0-9]/g, '');
-      const sanitizedProject = sanitizeProjectName(project);
+      const sanitizedProject = sanitizeMappingValue(mapping);
 
       if (!sanitizedKey || !sanitizedProject) {
         throw new Error('Invalid JIRA project key or project name');
@@ -192,7 +206,7 @@ class SettingsHandlerMain {
     });
 
     // Remove JIRA project mapping
-    ipcMain.handle('remove-jira-mapping', (event, projectKey) => {
+    registry.handle('remove-jira-mapping', (event, projectKey) => {
       const sanitizedKey = sanitizeString(projectKey, 20).toUpperCase().replace(/[^A-Z0-9]/g, '');
       if (!sanitizedKey) {
         throw new Error('Invalid JIRA project key');
@@ -204,25 +218,21 @@ class SettingsHandlerMain {
     });
 
     // Get meeting subject mappings (for Outlook/Teams meeting subjects)
-    ipcMain.handle('get-meeting-mappings', () => {
+    registry.handle('get-meeting-mappings', () => {
       return this.store.get('meetingMappings', {});
     });
 
     // Add meeting subject mapping
-    ipcMain.handle('add-meeting-mapping', (event, pattern, mapping) => {
+    registry.handle('add-meeting-mapping', (event, pattern, mapping) => {
       const sanitizedPattern = sanitizePattern(pattern);
       if (!sanitizedPattern) {
         throw new Error('Invalid meeting pattern');
       }
 
-      // Sanitize mapping fields
-      const sanitizedMapping = {
-        project: sanitizeProjectName(mapping?.project || ''),
-        activity: sanitizeString(mapping?.activity || '', 100),
-        tags: Array.isArray(mapping?.tags)
-          ? mapping.tags.map(t => sanitizeString(t, 50)).filter(Boolean).slice(0, 20)
-          : []
-      };
+      const sanitizedMapping = sanitizeMappingValue(mapping);
+      if (!sanitizedMapping) {
+        throw new Error('Invalid project name');
+      }
 
       const mappings = this.store.get('meetingMappings', {});
       mappings[sanitizedPattern] = sanitizedMapping;
@@ -231,7 +241,7 @@ class SettingsHandlerMain {
     });
 
     // Remove meeting subject mapping
-    ipcMain.handle('remove-meeting-mapping', (event, pattern) => {
+    registry.handle('remove-meeting-mapping', (event, pattern) => {
       const sanitizedPattern = sanitizePattern(pattern);
       if (!sanitizedPattern) {
         throw new Error('Invalid meeting pattern');

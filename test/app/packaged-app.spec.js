@@ -142,4 +142,22 @@ test.describe('packaged application', () => {
     expect(fs.statSync(dbFile).size).toBeGreaterThan(0);
     await app.close();
   });
+
+  // LT3-003: main validates every request against the IPC contract.
+  test('main refuses a request outside the IPC contract', async () => {
+    const { app, page, errors } = await launch(userData);
+
+    const outcome = await page.evaluate(async () => {
+      try {
+        await window.lightTrackAPI.deleteActivity({ id: 'not-an-id' });
+        return 'resolved';
+      } catch (error) {
+        return error.message;
+      }
+    });
+
+    expect(outcome).toBe('Failed to delete activity. Please try again.');
+    expect(errors.some(e => e.includes('[INVALID_REQUEST]'))).toBe(true);
+    await app.close();
+  });
 });

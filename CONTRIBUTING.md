@@ -19,11 +19,19 @@ npm run test:app
 
 ## Building and running
 
-The app runs from `out/`, not `src/`. `npm run build` compiles the main process and preload with TypeScript (`tsconfig.main.json`, JavaScript and TypeScript side by side), type-checks the renderer (`tsconfig.renderer.json`), copies renderer files and bundles `src/renderer/ts` with esbuild into `out/renderer/js/bundle.js`. Type errors fail the build.
+The app runs from `out/`, not `src/`. `npm run build` compiles the main process with TypeScript (`tsconfig.main.json`, JavaScript and TypeScript side by side), bundles the preload with esbuild into `out/preload.js` (sandboxed preloads cannot load local files), type-checks the preload and renderer (`tsconfig.renderer.json`), copies renderer files and bundles `src/renderer/ts` with esbuild into `out/renderer/js/bundle.js`. Type errors fail the build.
 
 - `npm start` and `npm run dev` build first, then launch Electron.
 - `npm run electron:build:win` makes a production build and then packages `out/`.
 - `npm run test:app` runs the packaged-application harness against `dist/win-unpacked`.
+
+### Adding an IPC channel
+
+1. Add the channel to `src/main/ipc/contract.ts` with its argument tuple, result schema and a one-line description. Use `z.object` for requests (unknown keys are dropped) and `z.looseObject` for stored records.
+2. Register the handler in main with `registry.handle(channel, handler)`, never `ipcMain.handle`.
+3. Map it in `src/preload/index.ts`.
+
+`test/baseline/ipc-contract.test.js` fails if the three lists differ, and main refuses to start if a contract channel has no handler.
 
 New code is TypeScript. When you migrate a JavaScript module, replace it rather than keeping both versions. Renderer modules move into `src/renderer/ts` and are published on `window.LightTrack` from `src/renderer/ts/index.ts` until their legacy callers are migrated too.
 

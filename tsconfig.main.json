@@ -9,8 +9,16 @@
     "checkJs": false,
     "noEmitOnError": true,
     "sourceMap": true,
-    "types": ["node"]
+    "types": [
+      "node"
+    ]
   },
-  "include": ["src/main/**/*", "src/shared/**/*", "src/preload.js"],
-  "exclude": ["**/*.test.js", "**/*.test.ts"]
+  "include": [
+    "src/main/**/*",
+    "src/shared/**/*"
+  ],
+  "exclude": [
+    "**/*.test.js",
+    "**/*.test.ts"
+  ]
 }

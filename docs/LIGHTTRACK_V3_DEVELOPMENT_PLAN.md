@@ -230,6 +230,8 @@ Acceptance criteria:
 - Unknown channels and invalid payloads are rejected with explicit error types.
 - Renderer windows retain context isolation, disabled Node integration and sandboxing.
 
+**Status:** done. `src/main/ipc/contract.ts` lists 69 channels with argument and result schemas (zod). `src/main/ipc/registry.ts` is the only way main registers a handler: it refuses channels outside the contract, validates arguments and results, and returns errors as `[CODE] message` (`INVALID_REQUEST`, `UNKNOWN_CHANNEL`, `INVALID_RESPONSE`, `NOT_FOUND`, `CONFLICT`, `INTERNAL`). Startup fails if a contract channel has no handler. The preload (`src/preload/index.ts`, bundled into `out/preload.js`) can only name contract channels. Eight unused handlers were removed. Mapping handlers now accept the project-with-details form the renderer already sent. Tests: `test/baseline/ipc-contract.test.js` and a packaged-app check that main refuses an invalid request.
+
 #### LT3-004 — Harden the browser-extension endpoint
 
 **Status:** done. Pairing with a desktop-shown code (`src/main/integrations/browser/extension-pairing.js`), hashed origin-bound tokens, timing-safe comparison, JSON content-type and schema checks, no titles/URLs/tokens in logs, revocation in Settings, `browser-extension/` linted. Tests: `test/baseline/extension-pairing.test.js`.

@@ -1,7 +1,6 @@
 // trackingHandlerMain.js - Tracking IPC Handler for main.js
 // Extracted from main.js to improve modularity without breaking existing functionality
 
-const { ipcMain } = require('electron');
 const logger = require('../../logger');
 
 /**
@@ -9,26 +8,23 @@ const logger = require('../../logger');
  * Registers all tracking-related IPC handlers using the existing pattern
  */
 class TrackingHandlerMain {
-  constructor(appState, toggleTracking, saveCurrentActivity, updateTrayMenu, detectActivity, handleIdleDecision) {
+  constructor(appState, toggleTracking, handleIdleDecision) {
     logger.debug('TrackingHandlerMain constructor called');
     logger.debug('appState:', { exists: !!appState, hasTracking: !!(appState && appState.tracking) });
 
     this.appState = appState;
     this.toggleTracking = toggleTracking;
-    this.saveCurrentActivity = saveCurrentActivity;
-    this.updateTrayMenu = updateTrayMenu;
-    this.detectActivity = detectActivity;
     this.handleIdleDecision = handleIdleDecision;
   }
 
   /**
    * Register all tracking IPC handlers
    */
-  registerHandlers() {
+  registerHandlers(registry) {
     logger.debug('Registering Tracking IPC handlers...');
 
     // Toggle tracking
-    ipcMain.handle('tracking:toggle', async () => {
+    registry.handle('tracking:toggle', async () => {
       // Ensure appState exists
       if (!this.appState || !this.appState.tracking) {
         logger.error('TrackingHandlerMain: appState not properly initialized');
@@ -43,7 +39,7 @@ class TrackingHandlerMain {
     });
 
     // Start tracking (idempotent - no-op if already active)
-    ipcMain.handle('tracking:start', async () => {
+    registry.handle('tracking:start', async () => {
       if (!this.appState || !this.appState.tracking) {
         logger.error('TrackingHandlerMain: appState not properly initialized');
         return { isActive: false, wasAlreadyActive: false };
@@ -68,7 +64,7 @@ class TrackingHandlerMain {
     });
 
     // Stop tracking (idempotent - no-op if already stopped)
-    ipcMain.handle('tracking:stop', async () => {
+    registry.handle('tracking:stop', async () => {
       if (!this.appState || !this.appState.tracking) {
         logger.error('TrackingHandlerMain: appState not properly initialized');
         return { isActive: false, wasAlreadyStopped: true };
@@ -93,7 +89,7 @@ class TrackingHandlerMain {
     });
 
     // Get current activity
-    ipcMain.handle('tracking:get-current', () => {
+    registry.handle('tracking:get-current', () => {
       // Ensure appState and tracking exist
       if (!this.appState || !this.appState.tracking) {
         logger.error('TrackingHandlerMain: appState or appState.tracking is null/undefined');
@@ -115,37 +111,8 @@ class TrackingHandlerMain {
       };
     });
 
-    // Pause tracking - DISABLED
-    // ipcMain.handle('tracking:pause', (event, reason) => {
-    //   if (this.appState.tracking.isActive && this.appState.tracking.currentActivity) {
-    //     this.saveCurrentActivity();
-    //     this.appState.tracking.isActive = false;
-    //     this.appState.tracking.pauseReason = reason || 'manual';
-    //     if (this.appState.intervals.tracking) {
-    //       clearInterval(this.appState.intervals.tracking);
-    //       this.appState.intervals.tracking = null;
-    //     }
-    //     this.updateTrayMenu();
-    //     return true;
-    //   }
-    //   return false;
-    // });
-
-    // Resume tracking - DISABLED
-    // ipcMain.handle('tracking:resume', () => {
-    //   if (!this.appState.tracking.isActive) {
-    //     this.appState.tracking.isActive = true;
-    //     this.appState.tracking.lastActivityTime = Date.now();
-    //     this.appState.intervals.tracking = setInterval(this.detectActivity, 60000);
-    //     this.appState.tracking.pauseReason = null;
-    //     this.updateTrayMenu();
-    //     return true;
-    //   }
-    //   return false;
-    // });
-
     // Handle idle decision
-    ipcMain.handle('handle-idle-decision', async (event, wasWorking) => {
+    registry.handle('handle-idle-decision', async (event, wasWorking) => {
       logger.debug(`Idle decision: wasWorking = ${wasWorking}`);
       if (this.handleIdleDecision) {
         await this.handleIdleDecision(wasWorking);

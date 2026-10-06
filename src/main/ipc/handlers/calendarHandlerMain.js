@@ -1,7 +1,6 @@
 // calendarHandlerMain.js - Calendar Sync IPC Handler
 // Handles ICS calendar subscription sync
 
-const { ipcMain } = require('electron');
 const logger = require('../../logger');
 
 /**
@@ -16,11 +15,11 @@ class CalendarHandlerMain {
   /**
    * Register all calendar IPC handlers
    */
-  registerHandlers() {
+  registerHandlers(registry) {
     logger.debug('Registering Calendar IPC handlers...');
 
     // Set calendar URL
-    ipcMain.handle('calendar:set-url', async (event, url) => {
+    registry.handle('calendar:set-url', async (event, url) => {
       try {
         return await this.calendarService.setCalendarUrl(url);
       } catch (error) {
@@ -30,12 +29,12 @@ class CalendarHandlerMain {
     });
 
     // Get calendar URL
-    ipcMain.handle('calendar:get-url', () => {
+    registry.handle('calendar:get-url', () => {
       return this.calendarService.getCalendarUrl();
     });
 
     // Sync calendar now
-    ipcMain.handle('calendar:sync', async () => {
+    registry.handle('calendar:sync', async () => {
       try {
         return await this.calendarService.syncCalendar();
       } catch (error) {
@@ -45,37 +44,37 @@ class CalendarHandlerMain {
     });
 
     // Get all meetings
-    ipcMain.handle('calendar:get-meetings', (event, options = {}) => {
+    registry.handle('calendar:get-meetings', (event, options = {}) => {
       return this.calendarService.getMeetings(options);
     });
 
     // Get today's meetings
-    ipcMain.handle('calendar:get-today', () => {
+    registry.handle('calendar:get-today', () => {
       return this.calendarService.getTodaysMeetings();
     });
 
     // Get this week's meetings
-    ipcMain.handle('calendar:get-week', () => {
+    registry.handle('calendar:get-week', () => {
       return this.calendarService.getThisWeeksMeetings();
     });
 
     // Get upcoming meetings (next 24 hours)
-    ipcMain.handle('calendar:get-upcoming', () => {
+    registry.handle('calendar:get-upcoming', () => {
       return this.calendarService.getUpcomingMeetings();
     });
 
     // Get last sync time
-    ipcMain.handle('calendar:get-last-sync', () => {
+    registry.handle('calendar:get-last-sync', () => {
       return this.calendarService.getLastSyncTime();
     });
 
     // Convert meeting to activity (for creating time entry)
-    ipcMain.handle('calendar:meeting-to-activity', (event, meeting) => {
+    registry.handle('calendar:meeting-to-activity', (event, meeting) => {
       return this.calendarService.meetingToActivity(meeting);
     });
 
     // Match meeting to project
-    ipcMain.handle('calendar:match-project', (event, meeting) => {
+    registry.handle('calendar:match-project', (event, meeting) => {
       return this.calendarService.matchMeetingToProject(meeting);
     });
 

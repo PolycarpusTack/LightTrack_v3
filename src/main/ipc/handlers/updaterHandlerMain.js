@@ -1,6 +1,5 @@
 // updaterHandlerMain.js - Auto-updater IPC Handler for main.js
 
-const { ipcMain } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const logger = require('../../logger');
 const { UPDATES_ENABLED, DISABLED_REASON } = require('../../update-policy');
@@ -84,13 +83,13 @@ class UpdaterHandlerMain {
   /**
    * Register all updater IPC handlers
    */
-  registerHandlers() {
+  registerHandlers(registry) {
     logger.info('Registering Updater IPC handlers...');
 
     // Set current version when handlers are registered (app is ready)
     this.updateStatus.currentVersion = this.appState.app.getVersion();
 
-    ipcMain.handle('updater-check-for-updates', async () => {
+    registry.handle('updater-check-for-updates', async () => {
       if (!UPDATES_ENABLED) return disabled();
       try {
         if (process.env.NODE_ENV === 'development' && !process.env.FORCE_DEV_UPDATE_CONFIG) {
@@ -105,7 +104,7 @@ class UpdaterHandlerMain {
       }
     });
 
-    ipcMain.handle('updater-download-update', async () => {
+    registry.handle('updater-download-update', async () => {
       if (!UPDATES_ENABLED) return disabled();
       try {
         await autoUpdater.downloadUpdate();
@@ -116,7 +115,7 @@ class UpdaterHandlerMain {
       }
     });
 
-    ipcMain.handle('updater-install-update', async () => {
+    registry.handle('updater-install-update', async () => {
       if (!UPDATES_ENABLED) return disabled();
       try {
         autoUpdater.quitAndInstall();
@@ -127,15 +126,15 @@ class UpdaterHandlerMain {
       }
     });
 
-    ipcMain.handle('updater-get-status', () => {
+    registry.handle('updater-get-status', () => {
       return this.updateStatus;
     });
 
-    ipcMain.handle('updater-get-preferences', () => {
+    registry.handle('updater-get-preferences', () => {
       return this.updateStatus.preferences;
     });
 
-    ipcMain.handle('updater-save-preferences', (event, preferences) => {
+    registry.handle('updater-save-preferences', (event, preferences) => {
       this.updateStatus.preferences = { ...this.updateStatus.preferences, ...preferences };
       if (this.appState.store) {
         this.appState.store.set('updaterPreferences', this.updateStatus.preferences);
@@ -146,7 +145,7 @@ class UpdaterHandlerMain {
       return { status: 'success', preferences: this.updateStatus.preferences };
     });
 
-    ipcMain.handle('updater-set-channel', (event, channel) => {
+    registry.handle('updater-set-channel', (event, channel) => {
       autoUpdater.channel = channel;
       this.updateStatus.updateChannel = channel;
       this.updateStatus.preferences.updateChannel = channel;
@@ -156,7 +155,7 @@ class UpdaterHandlerMain {
       return { status: 'success', channel };
     });
 
-    ipcMain.handle('updater-skip-version', (event, version) => {
+    registry.handle('updater-skip-version', (event, version) => {
       // This typically involves setting a flag in preferences to skip a specific version
       // For now, a placeholder:
       logger.info(`Skipping version: ${version}`);
