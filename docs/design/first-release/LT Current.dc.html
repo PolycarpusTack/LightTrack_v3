@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+@font-face{font-family:"Poppins";font-weight:400;font-display:swap;src:url("lt/fonts/poppins-400.woff2") format("woff2")}
+@font-face{font-family:"Poppins";font-weight:500;font-display:swap;src:url("lt/fonts/poppins-500.woff2") format("woff2")}
+@font-face{font-family:"Poppins";font-weight:600;font-display:swap;src:url("lt/fonts/poppins-600.woff2") format("woff2")}
+body{margin:0}
+</style>
+</helmet>
+<div style="{{ themeVars }}">
+<div style="width:1280px; min-height:800px; display:grid; grid-template-columns:200px 1fr; font-family:Poppins,'Segoe UI',system-ui,sans-serif; font-size:13px; line-height:1.5; background:var(--bg); color:var(--ink); box-sizing:border-box; position:relative;">
+
+  <nav style="background:#000; border-right:1px solid #1e1e22; display:flex; flex-direction:column; gap:2px; padding:0 0 8px;">
+    <div style="display:flex; align-items:center; gap:10px; padding:12px 16px 10px; margin-bottom:6px; color:#fff; font-size:15px; font-weight:600; letter-spacing:-0.2px;">
+      <img src="lt/icon.png" alt="" style="width:28px; height:28px; border-radius:50%; object-fit:contain;">
+      <span>LightTrack</span>
+    </div>
+    <sc-for list="{{ nav }}" as="n" hint-placeholder-count="5">
+      <div style="width:calc(100% - 16px); height:28px; margin:0 8px; padding:0 10px; border-radius:4px; background:{{ n.bg }}; color:{{ n.fg }}; font-weight:{{ n.fw }}; font-size:12.5px; display:flex; align-items:center; gap:10px; box-sizing:border-box;">
+        <svg viewBox="0 0 24 24" style="width:17px; height:17px; flex-shrink:0; fill:{{ n.icon }};"><path d="{{ n.d }}"></path></svg>
+        <span>{{ n.label }}</span>
+      </div>
+    </sc-for>
+    <div style="flex:1;"></div>
+    <div style="border-top:1px solid #1e1e22; padding-top:6px;">
+      <div style="width:calc(100% - 16px); height:28px; margin:0 8px; padding:0 10px; border-radius:4px; color:#c8c8c8; font-size:12.5px; display:flex; align-items:center; gap:10px; box-sizing:border-box;">
+        <svg viewBox="0 0 24 24" style="width:17px; height:17px; fill:#8a8a8a;"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"></path></svg>
+        <span>Settings</span>
+      </div>
+    </div>
+  </nav>
+
+  <main style="background:var(--bg); padding:0 24px 24px; display:grid; gap:16px; align-content:start; min-width:0; overflow:hidden;">
+    <div style="height:52px; margin:0 -24px; padding:0 14px 0 24px; display:flex; align-items:center; gap:6px; background:var(--paper); border-bottom:1px solid var(--divider);">
+      <div style="font-size:15px; font-weight:600; letter-spacing:-0.2px;">{{ title }}</div>
+      <div style="display:flex; align-items:center; gap:2px; margin-left:auto; color:var(--ink-muted);">
+        <div style="width:32px; height:32px; display:grid; place-items:center;"><svg viewBox="0 0 24 24" style="width:19px; height:19px; fill:currentColor;"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"></path></svg></div>
+        <div style="width:32px; height:32px; display:grid; place-items:center;"><svg viewBox="0 0 24 24" style="width:19px; height:19px; fill:currentColor;"><path d="M19 11h-8v6h8v-6zm4 8V4.98C23 3.88 22.1 3 21 3H3c-1.1 0-2 .88-2 1.98V19c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2zm-2 .02H3V4.97h18v14.05z"></path></svg></div>
+        <span style="width:1px; height:24px; margin:0 4px; background:var(--divider);"></span>
+        <div style="width:32px; height:32px; display:grid; place-items:center;"><svg viewBox="0 0 24 24" style="width:19px; height:19px; fill:currentColor;"><path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"></path></svg></div>
+      </div>
+    </div>
+
+    <!-- TIMER -->
+    <sc-if value="{{ isTimer }}" hint-placeholder-val="{{ true }}">
+      <section style="background:var(--paper); border:1px solid var(--divider); border-radius:8px; padding:20px 24px; display:grid; grid-template-columns:2fr 1fr; gap:24px;">
+        <div>
+          <div style="font-family:'JetBrains Mono','Cascadia Mono',Consolas,monospace; font-size:40px; letter-spacing:-0.5px; line-height:1.2; font-variant-numeric:tabular-nums; color:var(--ink);">00:45:12</div>
+          <div style="font-size:12.5px; color:var(--ink-muted); margin-top:4px; min-height:18px;">Started at 13:02</div>
+          <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:8px; position:relative;">
+            <span style="position:relative; border-radius:999px; height:22px; padding:0 8px; background:var(--raised); color:var(--ink-muted); display:inline-flex; align-items:center; white-space:nowrap; font-size:11.5px;">Project: Acme Portal<sc-if value="{{ annotate }}"><span style="position:absolute; top:-12px; right:-12px; width:20px; height:20px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:11px; font-weight:600; display:grid; place-items:center; z-index:30;">2</span></sc-if></span>
+            <span style="border-radius:999px; height:22px; padding:0 8px; background:var(--raised); color:var(--ink-muted); display:inline-flex; align-items:center; white-space:nowrap; font-size:11.5px;">App: Code</span>
+            <span style="position:relative; border-radius:999px; height:22px; padding:0 8px; background:var(--raised); color:var(--ink-muted); display:inline-flex; align-items:center; white-space:nowrap; font-size:11.5px;">Sampling: 5s<sc-if value="{{ annotate }}"><span style="position:absolute; top:-12px; right:-12px; width:20px; height:20px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:11px; font-weight:600; display:grid; place-items:center; z-index:30;">11</span></sc-if></span>
+          </div>
+          <div style="display:flex; gap:10px; margin-top:12px;">
+            <span style="background:#3805e3; height:32px; border-radius:4px; padding:0 14px; font-weight:500; color:#fff; font-size:12.5px; display:inline-flex; align-items:center; white-space:nowrap;">Stop</span>
+            <span style="height:32px; border-radius:4px; border:1px solid var(--border-mid); background:var(--paper); color:var(--ink); padding:0 14px; font-size:12.5px; display:inline-flex; align-items:center; white-space:nowrap; box-sizing:border-box;">Add manual</span>
+            <span style="height:32px; border-radius:4px; border:1px solid var(--border-mid); background:var(--paper); color:var(--ink); padding:0 14px; font-size:12.5px; display:inline-flex; align-items:center; white-space:nowrap; box-sizing:border-box;">Mark break</span>
+          </div>
+        </div>
+        <div style="position:relative;">
+          <sc-if value="{{ annotate }}"><span style="position:absolute; top:-10px; left:-14px; width:20px; height:20px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:11px; font-weight:600; display:grid; place-items:center; z-index:30;">4</span></sc-if>
+          <div style="position:relative; display:inline-block; color:var(--ink-faint); font-size:10px; font-weight:500; letter-spacing:1px; text-transform:uppercase;">Focus score<sc-if value="{{ annotate }}"><span style="position:absolute; top:-6px; right:-26px; width:20px; height:20px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:11px; font-weight:600; display:grid; place-items:center; z-index:30; letter-spacing:0;">12</span></sc-if></div>
+          <div style="font-size:18px; font-weight:500; letter-spacing:-0.2px; margin-top:4px;">78</div>
+          <div style="color:var(--ink-muted); font-size:12.5px; margin-top:4px;">3 focus sessions over 25 min</div>
+          <div style="color:var(--ink-faint); font-size:10px; font-weight:500; letter-spacing:1px; text-transform:uppercase; margin-top:12px;">Goals</div>
+          <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:8px;">
+            <span style="border-radius:999px; height:22px; padding:0 8px; background:var(--raised); color:var(--ink-muted); display:inline-flex; align-items:center; white-space:nowrap; font-size:11.5px;">2.3h / 4h Deep work</span>
+            <span style="border-radius:999px; height:22px; padding:0 8px; background:var(--raised); color:var(--ink-muted); display:inline-flex; align-items:center; white-space:nowrap; font-size:11.5px;">1 / 4 Breaks</span>
+          </div>
+          <div style="height:4px; background:var(--raised); border-radius:2px; margin-top:10px; overflow:hidden;"><div style="height:100%; width:58%; background:#3805e3; border-radius:2px;"></div></div>
+          <div style="color:var(--ink-muted); font-size:12.5px; margin-top:4px;">58% of daily goal</div>
+          <div style="color:var(--ink-faint); font-size:10px; font-weight:500; letter-spacing:1px; text-transform:uppercase; margin-top:12px;">Today's Timeline</div>
+          <div style="margin-top:8px;">
+            <div style="height:12px; background:var(--raised); border-radius:4px; position:relative; overflow:hidden; border:1px solid var(--divider);">
+              <sc-for list="{{ miniSegs }}" as="s" hint-placeholder-count="5"><div style="position:absolute; top:0; height:100%; border-radius:3px; left:{{ s.left }}; width:{{ s.width }}; background:{{ s.color }};"></div></sc-for>
+              <div style="position:absolute; top:-2px; left:53.1%; width:2px; height:calc(100% + 4px); background:#eb652b;"></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-top:4px; font-size:10px; color:var(--ink-faint);"><span>9am</span><span>6pm</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section style="position:relative; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px;">
+        <sc-if value="{{ annotate }}"><span style="position:absolute; top:-10px; left:-10px; width:20px; height:20px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:11px; font-weight:600; display:grid; place-items:center; z-index:30;">5</span></sc-if>
+        <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+          <div style="background:var(--paper); border:1px solid var(--divider); border-radius:8px; padding:16px;">
+            <div style="color:var(--ink-faint); font-size:10px; font-weight:500; letter-spacing:1px; text-transform:uppercase;">{{ k.label }}</div>
+            <div style="font-size:18px; font-weight:500; letter-spacing:-0.2px; margin-top:4px;">{{ k.value }}</div>
+            <div style="color:var(--ink-muted); font-size:12.5px; margin-top:4px;">{{ k.meta }}</div>
+          </div>
+        </sc-for>
+      </section>
+
+      <section style="display:grid; grid-template-columns:1.5fr 1fr; gap:12px;">
+        <div style="display:grid; gap:10px; align-content:start; position:relative;">
+          <div style="font-size:10px; font-weight:500; letter-spacing:1px; color:var(--ink-faint); text-transform:uppercase;">Activity feed</div>
+          <sc-if value="{{ annotate }}"><span style="position:absolute; top:22px; right:-8px; width:20px; height:20px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:11px; font-weight:600; display:grid; place-items:center; z-index:30;">11</span></sc-if>
+          <sc-for list="{{ feed }}" as="a" hint-placeholder-count="5">
+            <div style="background:var(--paper); border:1px solid var(--divider); border-radius:8px; padding:12px 16px; display:flex; justify-content:space-between; gap:12px;">
+              <div style="min-width:0;">
+                <div style="font-weight:500;">{{ a.app }}</div>
+                <div style="font-size:12.5px; color:var(--ink-muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:300px;">{{ a.title }}</div>
+                <div style="color:var(--ink-muted); font-size:12.5px; margin-top:2px; display:flex; gap:10px; flex-wrap:wrap;"><span>{{ a.project }}</span><span>• {{ a.range }}</span><span>• {{ a.dur }}</span></div>
+              </div>
+              <div style="font-family:'JetBrains Mono','Cascadia Mono',Consolas,monospace; font-size:11.5px; font-weight:500; font-variant-numeric:tabular-nums;">{{ a.dur }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:grid; gap:10px; align-content:start;">
+          <div style="font-size:10px; font-weight:500; letter-spacing:1px; color:var(--ink-faint); text-transform:uppercase;">Insights</div>
+          <div style="background:var(--paper); border:1px solid var(--divider); border-radius:8px; padding:14px; display:grid; gap:10px;">
+            <div style="color:var(--ink-faint); font-size:10px; font-weight:500; letter-spacing:1px; text-transform:uppercase;">Top projects</div>
+            <sc-for list="{{ topProjects }}" as="p" hint-placeholder-count="3">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span style="border-radius:999px; height:22px; padding:0 8px; background:{{ p.bg }}; color:{{ p.fg }}; display:inline-flex; align-items:center; white-space:nowrap; font-size:11.5px; white-space:nowrap;">{{ p.name }}</span>
+                <div style="height:8px; border-radius:4px; background:var(--raised); flex:1; overflow:hidden;"><span style="display:block; height:100%; background:#3805e3; width:{{ p.pct }};"></span></div>
+                <div style="font-family:'JetBrains Mono','Cascadia Mono',Consolas,monospace; font-size:11.5px; font-weight:500;">{{ p.dur }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="background:var(--paper); border:1px solid var(--divider); border-radius:8px; padding:14px; display:grid; gap:10px;">
+            <div style="color:var(--ink-faint); font-size:10px; font-weight:500; letter-spacing:1px; text-transform:uppercase;">Focus score (7d)</div>
+            <div style="font-size:18px; font-weight:500; letter-spacing:-0.2px;">72</div>
+            <div style="color:var(--ink-muted); font-size:12.5px;">Steady focus this week</div>
+          </div>
+          <div style="background:var(--paper); border:1px solid var(--divider); border-radius:8px; padding:14px; display:grid; gap:10px;">
+            <div style="color:var(--ink-faint); font-size:10px; font-weight:500; letter-spacing:1px; text-transform:uppercase;">Tracking streak</div>
+            <div style="display:flex; align-items:baseline; gap:6px;"><span style="font-size:24px; letter-spacing:-0.4px;">6</span><span style="font-size:13px; color:var(--ink-faint);">days</span></div>
+            <div style="color:var(--ink-muted); font-size:12.5px;">Keep it going</div>
+          </div>
+          <div style="position:relative; background:var(--paper); border:1px solid var(--divider); border-radius:8px; padding:14px; display:grid; gap:10px;">
+            <sc-if value="{{ annotate }}"><span style="position:absolute; top:-10px; right:-8px; width:20px; height:20px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:11px; font-weight:600; display:grid; place-items:center; z-index:30;">5</span></sc-if>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div style="color:var(--ink-faint); font-size:10px; font-weight:500; letter-spacing:1px; text-transform:uppercase;">Daily Summary</div>
+              <span style="height:26px; padding:0 8px; font-size:10px; background:var(--paper); border:1px solid var(--border-mid); border-radius:4px; display:inline-flex; align-items:center; white-space:nowrap; box-sizing:border-box;">▼</span>
+            </div>
+            <div style="display:grid; gap:8px;">
+              <div style="display:flex; justify-content:space-between; padding:4px 0;"><span style="color:var(--ink-muted); font-size:12.5px;">Total time</span><span style="font-weight:600;">4h 9m</span></div>
+              <div style="display:flex; justify-content:space-between; padding:4px 0;"><span style="color:var(--ink-muted); font-size:12.5px;">Billable</span><span style="font-weight:600;">3.6h (87%)</span></div>
+              <div style="display:flex; justify-content:space-between; padding:4px 0;"><span style="color:var(--ink-muted); font-size:12.5px;">Goal progress</span><span style="font-weight:600;">58%</span></div>
+              <div style="height:1px; background:var(--divider); margin:4px 0;"></div>
+              <div style="font-size:11.5px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-muted); margin-top:4px;">Time by Project</div>
+              <sc-for list="{{ topProjects }}" as="p" hint-placeholder-count="3">
+                <div style="display:flex; justify-content:space-between; font-size:12.5px;"><span>{{ p.name }}</span><span style="color:var(--ink-muted); font-family:'JetBrains Mono',Consolas,monospace; font-size:11.5px;">{{ p.dur }}</span></div>
+              </sc-for>
+              <div style="height:1px; background:var(--divider); margin:4px 0;"></div>
+              <div style="color:var(--ink-muted); font-size:11.5px;">09:12 – 13:47</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </sc-if>
+
+    <!-- TIMELINE -->
+    <sc-if value="{{ isTimeline }}" hint-placeholder-val="{{ false }}">
+      <section style="background:var(--paper); border:1px solid var(--divider); border-radius:8px; padding:16px;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span style="height:32px; border-radius:4px; border:1px solid var(--border-mid); padding:0 14px; display:inline-flex; align-items:center; white-space:nowrap; font-size:12.5px; box-sizing:border-box;">←</span>
+          <div style="flex:1; text-align:center;">
+            <div style="color:var(--ink-faint); font-size:10px; font-weight:500; letter-spacing:1px; text-transform:uppercase;">Timeline for <span>today</span></div>
+            <div style="color:var(--ink-muted); font-size:12.5px; margin-top:4px;">5 activities · 4h 9m tracked</div>
+          </div>
+          <span style="height:32px; border-radius:4px; border:1px solid var(--border-mid); padding:0 14px; display:inline-flex; align-items:center; white-space:nowrap; font-size:12.5px; box-sizing:border-box;">→</span>
+          <span style="height:32px; border-radius:4px; border:1px solid var(--border-mid); padding:0 14px; display:inline-flex; align-items:center; white-space:nowrap; font-size:12.5px; box-sizing:border-box;">Today</span>
+        </div>
+      </section>
+      <section style="display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:0px;">
+        <sc-for list="{{ tlKpis }}" as="k" hint-placeholder-count="4">
+          <div style="background:var(--paper); border:1px solid var(--divider); border-radius:8px; padding:16px;">
+            <div style="color:var(--ink-faint); font-size:10px; font-weight:500; letter-spacing:1px; text-transform:uppercase;">{{ k.label }}</div>
+            <div style="font-size:18px; font-weight:500; letter-spacing:-0.2px; margin-top:4px;">{{ k.value }}</div>
+          </div>
+        </sc-for>
+      </section>
+      <section style="position:relative; background:var(--paper); border:1px solid var(--divider); border-radius:8px; padding:16px;">
+        <sc-if value="{{ annotate }}"><span style="position:absolute; top:-10px; left:-10px; width:20px; height:20px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:11px; font-weight:600; display:grid; place-items:center; z-index:30;">6</span></sc-if>
+        <div style="color:var(--ink-faint); font-size:10px; font-weight:500; letter-spacing:1px; text-transform:uppercase;">Day overview</div>
+        <div style="height:32px; background:var(--paper); border-radius:4px; position:relative; margin:8px 0 20px;">
+          <sc-for list="{{ miniSegs }}" as="s" hint-placeholder-count="5"><div style="position:absolute; top:0; height:100%; border-radius:3px; min-width:2px; left:{{ s.left }}; width:{{ s.width }}; background:{{ s.color }};"></div></sc-for>
+          <sc-for list="{{ markers }}" as="m" hint-placeholder-count="4"><div style="position:absolute; top:0; height:100%; width:1px; background:var(--raised); left:{{ m.left }};"><span style="position:absolute; bottom:-18px; left:50%; transform:translateX(-50%); font-size:10px; color:var(--ink-muted); white-space:nowrap;">{{ m.label }}</span></div></sc-for>
+          <div style="position:absolute; top:-4px; bottom:-4px; left:53.1%; width:2px; background:#eb652b; border-radius:1px;"><div style="position:absolute; top:-3px; left:50%; transform:translateX(-50%); width:6px; height:6px; background:#eb652b; border-radius:50%;"></div></div>
+          <sc-if value="{{ annotate }}"><span style="position:absolute; top:6px; left:21%; width:20px; height:20px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:11px; font-weight:600; display:grid; place-items:center; z-index:30;">13</span></sc-if>
+        </div>
+      </section>
+      <section style="display:grid; gap:10px; align-content:start; position:relative;">
+        <sc-if value="{{ annotate }}"><span style="position:absolute; top:40px; left:-10px; width:20px; height:20px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:11px; font-weight:600; display:grid; place-items:center; z-index:30;">1</span></sc-if>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+          <div style="font-size:10px; font-weight:500; letter-spacing:1px; color:var(--ink-faint); text-transform:uppercase;">Activities</div>
+          <div style="position:relative; display:flex; align-items:center; gap:12px; flex:1; justify-content:center;">
+            <sc-if value="{{ annotate }}"><span style="position:absolute; top:-14px; left:30%; width:20px; height:20px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:11px; font-weight:600; display:grid; place-items:center; z-index:30;">10</span></sc-if>
+            <label style="display:flex; align-items:center; gap:4px; font-size:12.5px; color:var(--ink-muted);"><input type="checkbox" style="width:14px; height:14px; accent-color:#3805e3; margin:0;"><span>Select</span></label>
+            <span style="position:relative; height:26px; padding:0 10px; font-size:12.5px; background:var(--paper); border:1px solid var(--border-mid); border-radius:4px; color:var(--ink); opacity:0.4; display:inline-flex; align-items:center; white-space:nowrap; box-sizing:border-box;">Merge<sc-if value="{{ annotate }}"><span style="position:absolute; top:-12px; right:-12px; width:20px; height:20px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:11px; font-weight:600; display:grid; place-items:center; z-index:30; opacity:1;">2</span></sc-if></span>
+            <span style="color:var(--divider); font-size:13px;">|</span>
+            <span style="padding:4px 8px; background:var(--hover); border:1px solid var(--divider); border-radius:4px; font-size:12.5px; min-width:120px; display:inline-flex; justify-content:space-between; gap:8px; box-sizing:border-box;">All Projects <span>▾</span></span>
+            <label style="display:flex; align-items:center; gap:4px; font-size:12.5px; color:var(--ink-muted);"><input type="checkbox" style="width:14px; height:14px; accent-color:#3805e3; margin:0;"><span>Billable</span></label>
+            <label style="display:flex; align-items:center; gap:4px; font-size:12.5px; color:var(--ink-muted);"><input type="checkbox" style="width:14px; height:14px; accent-color:#3805e3; margin:0;"><span>Group</span></label>
+          </div>
+          <span style="height:32px; border-radius:4px; border:1px solid var(--border-mid); background:var(--paper); padding:0 14px; display:inline-flex; align-items:center; white-space:nowrap; font-size:12.5px; box-sizing:border-box;">+ Add entry</span>
+        </div>
+        <sc-for list="{{ tlRows }}" as="a" hint-placeholder-count="5">
+          <div style="background:{{ a.bg }}; border:1px solid {{ a.border }}; border-radius:8px; padding:12px 16px; display:flex; justify-content:space-between; gap:12px; position:relative;">
+            <div style="flex-shrink:0; margin-right:10px;"><input type="checkbox" style="width:16px; height:16px; accent-color:#3805e3; margin:0;"></div>
+            <div style="flex:1; min-width:0;">
+              <div style="font-weight:500;">{{ a.app }}</div>
+              <div style="font-size:12.5px; color:var(--ink-muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; opacity:0.8;">{{ a.title }}</div>
+              <div style="color:var(--ink-muted); font-size:12.5px; margin-top:2px; display:flex; gap:10px;"><span>{{ a.project }}</span><span>• {{ a.start }} - {{ a.end }}</span></div>
+              <sc-if value="{{ a.hasTicket }}"><div style="display:flex; gap:4px; margin-top:6px;"><span style="background:var(--raised); font-size:10.5px; font-weight:500; padding:1px 6px; border-radius:4px; font-family:'JetBrains Mono',Consolas,monospace;">{{ a.ticket }}</span></div></sc-if>
+              <sc-if value="{{ a.hasTag }}"><div style="display:flex; gap:4px; margin-top:6px;"><span style="font-size:10.5px; height:20px; line-height:20px; padding:0 8px; border-radius:999px; background:var(--changed-bg); color:var(--changed-ink);">{{ a.tag }}</span></div></sc-if>
+            </div>
+            <div style="display:flex; gap:6px; opacity:{{ a.actionsOpacity }}; align-items:flex-start; position:relative;">
+              <span style="background:var(--hover); border:1px solid var(--divider); border-radius:4px; padding:4px 8px; color:var(--ink-muted); font-size:12.5px;">Edit</span>
+              <span style="background:var(--hover); border:1px solid var(--divider); border-radius:4px; padding:4px 8px; color:var(--ink-muted); font-size:12.5px;">Tags</span>
+              <span style="background:var(--hover); border:1px solid var(--divider); border-radius:4px; padding:4px 8px; color:var(--ink-muted); font-size:12.5px;">Delete</span>
+            </div>
+            <sc-if value="{{ a.pin }}"><span style="position:absolute; top:-10px; right:120px; width:20px; height:20px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:11px; font-weight:600; display:grid; place-items:center; z-index:30;">7</span></sc-if>
+            <div style="font-family:'JetBrains Mono','Cascadia Mono',Consolas,monospace; font-size:11.5px; font-weight:500; font-variant-numeric:tabular-nums;">{{ a.dur }}</div>
+          </div>
+        </sc-for>
+      </section>
+    </sc-if>
+
+    <!-- PROJECTS -->
+    <sc-if value="{{ isProjects }}" hint-placeholder-val="{{ false }}">
+      <sc-for list="{{ ruleCards }}" as="c" hint-placeholder-count="4">
+        <section style="background:var(--paper); border:1px solid var(--divider); border-radius:8px; padding:16px; position:relative; overflow:hidden;">
+          <div style="color:var(--ink-faint); font-size:10px; font-weight:500; letter-spacing:1px; text-transform:uppercase;">{{ c.label }}</div>
+          <div style="color:var(--ink-muted); font-size:12.5px; margin-top:4px;">{{ c.meta }}</div>
+          <div style="display:flex; gap:8px; margin:12px 0;">
+            <sc-for list="{{ c.fields }}" as="f" hint-placeholder-count="6">
+              <input type="text" placeholder="{{ f }}" style="flex:1; padding:8px 12px; background:var(--hover); border:1px solid var(--divider); border-radius:8px; color:var(--ink); font-size:13px; font-family:inherit;">
+            </sc-for>
+            <span style="height:32px; border-radius:4px; background:#3805e3; color:#fff; padding:0 14px; font-weight:500; font-size:12.5px; display:inline-flex; align-items:center; white-space:nowrap; white-space:nowrap;">Add</span>
+            <span style="height:32px; border-radius:4px; border:1px solid var(--border-mid); padding:0 14px; font-size:12.5px; display:inline-flex; align-items:center; white-space:nowrap; opacity:0.45; white-space:nowrap; box-sizing:border-box;">Update</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <sc-for list="{{ c.items }}" as="m" hint-placeholder-count="2">
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:var(--paper); border-radius:8px; font-size:13px;">
+                <div><span style="color:var(--ink-muted); font-family:monospace;">{{ m.pattern }}</span><span style="color:var(--ink-muted); margin:0 8px;">→</span><span style="color:var(--accent);">{{ m.project }}</span><span style="color:var(--ink-muted); font-size:0.85em; margin-left:8px;">{{ m.activity }}</span> <span style="color:var(--ink-muted); font-family:'JetBrains Mono',Consolas,monospace; font-size:11.5px;">{{ m.sap }}</span></div>
+                <div style="display:flex; gap:4px; color:var(--ink-muted); font-size:12.5px;"><span style="padding:4px 8px;">✎</span><span style="padding:4px 8px;">✕</span></div>
+              </div>
+            </sc-for>
+          </div>
+          <sc-if value="{{ c.pin }}"><span style="position:absolute; top:6px; right:6px; width:20px; height:20px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:11px; font-weight:600; display:grid; place-items:center; z-index:30;">8</span></sc-if>
+        </section>
+      </sc-for>
+      <section style="position:relative; background:var(--paper); border:1px solid var(--divider); border-radius:8px; padding:16px;">
+        <sc-if value="{{ annotate }}"><span style="position:absolute; top:-10px; left:-10px; width:20px; height:20px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:11px; font-weight:600; display:grid; place-items:center; z-index:30;">9</span></sc-if>
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+          <div>
+            <div style="color:var(--ink-faint); font-size:10px; font-weight:500; letter-spacing:1px; text-transform:uppercase;">All Projects</div>
+            <div style="color:var(--ink-muted); font-size:12.5px; margin-top:4px;">Total time tracked per project</div>
+          </div>
+          <span style="height:32px; border-radius:4px; border:1px solid var(--border-mid); padding:0 14px; display:inline-flex; align-items:center; white-space:nowrap; font-size:12.5px; box-sizing:border-box;">+ New Project</span>
+        </div>
+      </section>
+      <section style="display:grid; gap:10px;">
+        <sc-for list="{{ projects }}" as="p" hint-placeholder-count="4">
+          <div style="background:var(--paper); border:1px solid var(--divider); border-radius:8px; padding:12px 16px; display:flex; justify-content:space-between; gap:12px;">
+            <div>
+              <div style="font-weight:500;">{{ p.name }}</div>
+              <div style="color:var(--ink-muted); font-size:12.5px; margin-top:2px; display:flex; gap:10px;"><span>{{ p.count }} entries</span><span>• Last: {{ p.last }}</span></div>
+            </div>
+            <div style="font-family:'JetBrains Mono','Cascadia Mono',Consolas,monospace; font-size:11.5px; font-weight:500;">{{ p.dur }}</div>
+          </div>
+        </sc-for>
+      </section>
+    </sc-if>
+
+    <!-- SAP EXPORT -->
+    <sc-if value="{{ isSap }}" hint-placeholder-val="{{ false }}">
+      <section style="position:relative; background:var(--paper); border:1px solid var(--divider); border-radius:8px; padding:16px;">
+        <sc-if value="{{ annotate }}"><span style="position:absolute; top:-10px; left:-10px; width:20px; height:20px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:11px; font-weight:600; display:grid; place-items:center; z-index:30;">15</span></sc-if>
+        <div style="color:var(--ink-faint); font-size:10px; font-weight:500; letter-spacing:1px; text-transform:uppercase;">Employee Settings</div>
+        <div style="color:var(--ink-muted); font-size:12.5px; margin-top:4px;">Your employee ID for SAP ByDesign export</div>
+        <div style="display:flex; gap:16px; margin-top:12px;">
+          <div style="flex:1; display:grid; gap:6px;">
+            <label style="font-size:10px; font-weight:500; color:var(--ink-faint); text-transform:uppercase; letter-spacing:1px;">Employee ID</label>
+            <input type="text" value="E10482" style="width:100%; box-sizing:border-box; padding:8px 12px; background:var(--hover); border:1px solid var(--divider); border-radius:8px; color:var(--ink); font-size:13px; font-family:inherit;">
+          </div>
+          <span style="align-self:flex-end; height:32px; border-radius:4px; border:1px solid var(--border-mid); padding:0 14px; display:inline-flex; align-items:center; white-space:nowrap; font-size:12.5px; box-sizing:border-box;">Save</span>
+        </div>
+      </section>
+      <section style="position:relative; background:var(--paper); border:1px solid var(--divider); border-radius:8px; padding:16px;">
+        <sc-if value="{{ annotate }}"><span style="position:absolute; top:-10px; left:-10px; width:20px; height:20px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:11px; font-weight:600; display:grid; place-items:center; z-index:30;">10</span></sc-if>
+        <div style="color:var(--ink-faint); font-size:10px; font-weight:500; letter-spacing:1px; text-transform:uppercase;">Select Period</div>
+        <div style="color:var(--ink-muted); font-size:12.5px; margin-top:4px;">Choose a date range for your timesheet export</div>
+        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;">
+          <span style="height:32px; border-radius:4px; border:1px solid var(--border-mid); padding:0 14px; display:inline-flex; align-items:center; white-space:nowrap; font-size:12.5px; box-sizing:border-box;">This Week</span>
+          <span style="height:32px; border-radius:4px; border:1px solid var(--border-mid); padding:0 14px; display:inline-flex; align-items:center; white-space:nowrap; font-size:12.5px; box-sizing:border-box;">Last Week</span>
+          <span style="height:32px; border-radius:4px; border:1px solid var(--border-mid); padding:0 14px; display:inline-flex; align-items:center; white-space:nowrap; font-size:12.5px; box-sizing:border-box;">This Month</span>
+          <span style="height:32px; border-radius:4px; border:1px solid var(--border-mid); padding:0 14px; display:inline-flex; align-items:center; white-space:nowrap; font-size:12.5px; box-sizing:border-box;">Last Month</span>
+        </div>
+        <div style="color:var(--accent); font-size:12.5px; margin-top:12px;">This week: 05/10/2026 – 11/10/2026</div>
+      </section>
+      <section style="position:relative; background:var(--paper); border:1px solid var(--divider); border-radius:8px; padding:16px;">
+        <sc-if value="{{ annotate }}"><span style="position:absolute; top:-10px; left:-10px; width:20px; height:20px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:11px; font-weight:600; display:grid; place-items:center; z-index:30;">3</span></sc-if>
+        <div style="color:var(--ink-faint); font-size:10px; font-weight:500; letter-spacing:1px; text-transform:uppercase;">Preview</div>
+        <div style="color:var(--ink-muted); font-size:12.5px; margin-top:4px;">6 entries · 13.6 hours</div>
+        <div style="margin-top:12px; overflow-x:auto; overflow-y:hidden; border:1px solid var(--divider); border-radius:8px;">
+          <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
+            <thead><tr>
+              <sc-for list="{{ sapCols }}" as="h" hint-placeholder-count="8"><th style="height:36px; padding:0 12px; text-align:left; background:var(--raised); color:var(--ink-faint); font-size:10px; font-weight:500; letter-spacing:1px; text-transform:uppercase; white-space:nowrap;">{{ h }}</th></sc-for>
+            </tr></thead>
+            <tbody>
+              <sc-for list="{{ sapRows }}" as="r" hint-placeholder-count="6">
+                <tr>
+                  <td style="height:40px; padding:0 12px; border-top:1px solid var(--divider);">{{ r.date }}</td>
+                  <td style="height:40px; padding:0 12px; border-top:1px solid var(--divider);">{{ r.project }}</td>
+                  <td style="height:40px; padding:0 12px; border-top:1px solid var(--divider); color:var(--ink-muted);">{{ r.type }}</td>
+                  <td style="height:40px; padding:0 12px; border-top:1px solid var(--divider); text-align:right; font-family:'JetBrains Mono',Consolas,monospace; font-size:11.5px;">{{ r.hours }}</td>
+                  <td style="height:40px; padding:0 12px; border-top:1px solid var(--divider); color:var(--ink-muted);">{{ r.sap }}</td>
+                  <td style="height:40px; padding:0 12px; border-top:1px solid var(--divider); color:var(--ink-muted);">{{ r.cc }}</td>
+                  <td style="height:40px; padding:0 12px; border-top:1px solid var(--divider); color:var(--ink-muted);">{{ r.wbs }}</td>
+                  <td style="height:40px; padding:0 12px; border-top:1px solid var(--divider); max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ r.desc }}</td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section style="position:relative; background:var(--paper); border:1px solid var(--divider); border-radius:8px; padding:16px;">
+        <sc-if value="{{ annotate }}"><span style="position:absolute; top:-10px; left:-10px; width:20px; height:20px; border-radius:50%; background:#eb652b; color:#1a1a1a; font-size:11px; font-weight:600; display:grid; place-items:center; z-index:30;">1</span></sc-if>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <span style="background:#3805e3; height:32px; border-radius:4px; padding:0 14px; font-weight:500; color:#fff; font-size:12.5px; display:inline-flex; align-items:center; white-space:nowrap;">Export to CSV</span>
+          <span style="color:var(--ink-muted); font-size:12.5px;"></span>
+        </div>
+      </section>
+      <section style="background:var(--paper); border:1px solid var(--divider); border-radius:8px; padding:16px;">
+        <div style="color:var(--ink-faint); font-size:10px; font-weight:500; letter-spacing:1px; text-transform:uppercase;">Export History</div>
+        <div style="color:var(--ink-muted); font-size:12.5px; margin-top:4px;">Recent exports (last 20)</div>
+        <div style="color:var(--ink-muted); font-size:12.5px; margin-top:12px;">No exports yet</div>
+      </section>
+    </sc-if>
+  </main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:900},&quot;screen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;timer&quot;,&quot;timeline&quot;,&quot;projects&quot;,&quot;sap&quot;],&quot;default&quot;:&quot;timer&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;annotate&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme ?? 'light';
+    const screen = this.props.screen ?? 'timer';
+    const annotate = this.props.annotate ?? false;
+    const light = {'--bg':'#f7f7f4','--paper':'#ffffff','--raised':'#f0f0ec','--hover':'#f3f3ef','--divider':'#e6e6e0','--border-mid':'#d2d2ca','--ink':'#1a1a1a','--ink-muted':'#5e5e5e','--ink-faint':'#8c8c88','--accent':'#3805e3','--accent-line':'#c9bef7','--active-bg':'#eeeafd','--changed-bg':'#e7e3f5','--changed-ink':'#3e257c','--risk-ink':'#a8410f'};
+    const dark = {'--bg':'#0b0b0d','--paper':'#131316','--raised':'#1c1c20','--hover':'#1a1a1e','--divider':'#26262b','--border-mid':'#34343a','--ink':'#f2f2ee','--ink-muted':'#a6a6a0','--ink-faint':'#76766f','--accent':'#b8afda','--accent-line':'#4a3f7a','--active-bg':'#221a40','--changed-bg':'#2a2442','--changed-ink':'#cfc8ea','--risk-ink':'#f4915f'};
+    const icons = {
+      timer:'M15 1H9v2h6V1zm-4 13h2V8h-2v6zm8.03-6.61 1.42-1.42c-.43-.51-.9-.99-1.41-1.41l-1.42 1.42A8.96 8.96 0 0 0 12 4c-4.97 0-9 4.03-9 9s4.02 9 9 9 9-4.03 9-9c0-2.12-.74-4.07-1.97-5.61zM12 20c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z',
+      timeline:'M23 8c0 1.1-.9 2-2 2-.18 0-.35-.02-.51-.07l-3.56 3.55c.05.16.07.34.07.52 0 1.1-.9 2-2 2s-2-.9-2-2c0-.18.02-.36.07-.52l-2.55-2.55c-.16.05-.34.07-.52.07s-.36-.02-.52-.07l-4.55 4.56c.05.16.07.33.07.51 0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2c.18 0 .35.02.51.07l4.56-4.55C8.02 9.36 8 9.18 8 9c0-1.1.9-2 2-2s2 .9 2 2c0 .18-.02.36-.07.52l2.55 2.55c.16-.05.34-.07.52-.07s.36.02.52.07l3.55-3.56C19.02 8.35 19 8.18 19 8c0-1.1.9-2 2-2s2 .9 2 2z',
+      analytics:'M5 9.2h3V19H5V9.2zM10.6 5h2.8v14h-2.8V5zm5.6 8H19v6h-2.8v-6z',
+      projects:'M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z',
+      sap:'M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z'
+    };
+    const navDef = [['timer','Timer'],['timeline','Timeline'],['analytics','Analytics'],['projects','Projects'],['sap','SAP export']];
+    const nav = navDef.map(([k,label]) => { const a = k === screen; return { label, d: icons[k], bg: a ? '#3805e3' : 'transparent', fg: a ? '#ffffff' : '#c8c8c8', fw: a ? 500 : 400, icon: a ? '#ffffff' : '#8a8a8a' }; });
+    const titles = { timer:'Timer', timeline:'Timeline', projects:'Projects', sap:'SAP export' };
+    const C = '#3805e3', M = '#b8afda';
+    const miniSegs = [['2.2%','17.6%',C],['20%','5.9%',M],['26.1%','6.9%',C],['33.3%','7.4%',C],['44.8%','8.3%',C]].map(([left,width,color]) => ({left,width,color}));
+    const feed = [
+      {app:'Code', title:'timeline.ts — acme-portal — Visual Studio Code', project:'Acme Portal', range:'13:02–13:47', dur:'45m'},
+      {app:'Microsoft Teams', title:'Sprint review | Acme Portal | Microsoft Teams', project:'Acme Portal', range:'12:00–12:40', dur:'40m'},
+      {app:'Microsoft Edge', title:'[PORTAL-412] Checkout fails on Safari - Jira', project:'Acme Portal', range:'11:21–11:58', dur:'37m'},
+      {app:'Outlook', title:'Inbox - Outlook', project:'General', range:'10:48–11:20', dur:'32m'},
+      {app:'Code', title:'invoice-sync.ts — northwind-erp — Visual Studio Code', project:'Northwind ERP', range:'09:12–10:47', dur:'1h 35m'}
+    ];
+    const tlRows = feed.map((f,i) => { const [s,e] = f.range.split('–'); return { app:f.app, title:f.title, project:f.project, start:s, end:e, dur:f.dur,
+      hasTicket: i === 2, ticket:'PORTAL-412', hasTag: i === 1, tag:'meeting',
+      bg: i === 1 ? 'var(--hover)' : 'var(--paper)', border: i === 1 ? 'var(--border-mid)' : 'var(--divider)', actionsOpacity: i === 1 ? 1 : 0, pin: annotate && i === 1 }; });
+    const field = (first, test) => [first, 'Project name', 'Activity (optional)', 'SAP Code (optional)', 'Cost Center (optional)', 'WBS Element (optional)'];
+    const ruleCards = [
+      {label:'App Rules', meta:'Auto-assign based on app name or window title', fields:field('Pattern (e.g., VS Code)'), pin: annotate,
+        items:[{pattern:'acme-portal', project:'Acme Portal', activity:'[Development]', sap:'(SAP: PRD178-0012)'},{pattern:'northwind-erp', project:'Northwind ERP', activity:'[Development]', sap:'(SAP: PRD201-0003 · CC: 4100)'}]},
+      {label:'URL Rules', meta:'Auto-assign based on browser URL', fields:field('URL pattern (e.g., github.com)'), pin:false,
+        items:[{pattern:'acme.atlassian.net', project:'Acme Portal', activity:'', sap:''}]},
+      {label:'JIRA Rules', meta:'Auto-assign based on JIRA ticket project key (e.g., PROJ-123 → "My Project")', fields:field('Project key (e.g., PROJ)'), pin:false,
+        items:[{pattern:'PORTAL', project:'Acme Portal', activity:'[Development]', sap:'(SAP: PRD178-0012)'}]},
+      {label:'Meeting Rules', meta:'Auto-assign based on Outlook/Teams meeting subject', fields:field('Subject pattern (e.g., Sprint Planning)'), pin:false,
+        items:[{pattern:'Sprint review', project:'Acme Portal', activity:'[Meeting]', sap:''}]}
+    ];
+    const projects = [
+      {name:'Acme Portal', count:142, last:'06/10/2026', dur:'86h 14m'},
+      {name:'Northwind ERP', count:97, last:'06/10/2026', dur:'61h 40m'},
+      {name:'General', count:211, last:'06/10/2026', dur:'38h 05m'},
+      {name:'acme portal', count:3, last:'29/09/2026', dur:'1h 12m'}
+    ];
+    const sapRows = [
+      {date:'2026-10-05', project:'Acme Portal', type:'Development', hours:'5.37', sap:'PRD178-0012', cc:'', wbs:'', desc:'Code, Microsoft Edge, PORTAL-398'},
+      {date:'2026-10-05', project:'Northwind ERP', type:'Development', hours:'2.08', sap:'PRD201-0003', cc:'4100', wbs:'', desc:'Code'},
+      {date:'2026-10-05', project:'General', type:'', hours:'0.83', sap:'', cc:'', wbs:'', desc:'Outlook, Microsoft Teams'},
+      {date:'2026-10-06', project:'Acme Portal', type:'Development', hours:'2.03', sap:'PRD178-0012', cc:'', wbs:'', desc:'Code, Microsoft Teams, PORTAL-412'},
+      {date:'2026-10-06', project:'Northwind ERP', type:'Development', hours:'1.58', sap:'PRD201-0003', cc:'4100', wbs:'', desc:'Code'},
+      {date:'2026-10-06', project:'General', type:'', hours:'0.53', sap:'', cc:'', wbs:'', desc:'Outlook'}
+    ];
+    return {
+      themeVars: theme === 'dark' ? dark : light, annotate,
+      isTimer: screen === 'timer', isTimeline: screen === 'timeline', isProjects: screen === 'projects', isSap: screen === 'sap',
+      title: titles[screen], nav, miniSegs, feed, tlRows, ruleCards, projects, sapRows,
+      markers: [['0%','9:00'],['33.3%','12:00'],['66.6%','15:00'],['100%','18:00']].map(([left,label]) => ({left,label})),
+      kpis: [{label:'Today', value:'4h 9m', meta:'+38m vs yesterday'},{label:'Billable', value:'87%', meta:'3.6h billed'},{label:'Context switches', value:'46', meta:'App changes today'},{label:'Projects', value:'3', meta:'Active today'}],
+      tlKpis: [{label:'Tracked', value:'4h 9m'},{label:'Gaps', value:'0h 37m'},{label:'Billable', value:'87%'},{label:'Projects', value:'3'}],
+      topProjects: [{name:'Acme Portal', dur:'2h 2m', pct:'50%', bg:'#3805e3', fg:'#fff'},{name:'Northwind ERP', dur:'1h 35m', pct:'40%', bg:'#b3fc4f', fg:'#000'},{name:'General', dur:'32m', pct:'15%', bg:'#b8afda', fg:'#000'}],
+      sapCols: ['Date','Project','Activity Type','Hours','SAP Code','Cost Center','WBS','Description']
+    };
+  }
+}
+</script>
+</body>
+</html>

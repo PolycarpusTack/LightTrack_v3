@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+@font-face{font-family:"Poppins";font-weight:400;font-display:swap;src:url("lt/fonts/poppins-400.woff2") format("woff2")}
+@font-face{font-family:"Poppins";font-weight:500;font-display:swap;src:url("lt/fonts/poppins-500.woff2") format("woff2")}
+@font-face{font-family:"Poppins";font-weight:600;font-display:swap;src:url("lt/fonts/poppins-600.woff2") format("woff2")}
+body{margin:0}
+.ltr button{white-space:nowrap}
+.ltr button:focus-visible,.ltr input:focus-visible,.ltr select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+</style>
+</helmet>
+<div class="ltr" style="{{ themeVars }}">
+<div style="width:1280px; min-height:820px; display:grid; grid-template-columns:200px 1fr; font-family:Poppins,'Segoe UI',system-ui,sans-serif; font-size:13px; line-height:1.5; background:var(--bg); color:var(--ink);">
+
+  <nav style="background:#000; border-right:1px solid #1e1e22; display:flex; flex-direction:column; gap:2px; padding:0 0 8px;">
+    <div style="display:flex; align-items:center; gap:10px; padding:12px 16px 10px; margin-bottom:6px; color:#fff; font-size:15px; font-weight:600; letter-spacing:-0.2px;">
+      <img src="lt/icon.png" alt="" style="width:28px; height:28px; border-radius:50%;">
+      <span>LightTrack</span>
+    </div>
+    <sc-for list="{{ nav }}" as="n" hint-placeholder-count="4">
+      <button onClick="{{ n.go }}" style="width:calc(100% - 16px); height:32px; margin:0 8px; padding:0 10px; border:none; border-radius:4px; background:{{ n.bg }}; color:{{ n.fg }}; font-family:inherit; font-size:12.5px; font-weight:{{ n.fw }}; display:flex; align-items:center; gap:10px; cursor:pointer; text-align:left;" style-hover="background:#1a1a1a; color:#fff;">
+        <svg viewBox="0 0 24 24" style="width:17px; height:17px; flex-shrink:0; fill:{{ n.icon }};"><path d="{{ n.d }}"></path></svg>
+        <span style="flex:1;">{{ n.label }}</span>
+        <sc-if value="{{ n.hasCount }}"><span style="min-width:18px; height:18px; padding:0 5px; border-radius:999px; background:#eb652b; color:#1a1a1a; font-size:11px; font-weight:600; display:grid; place-items:center;">{{ n.count }}</span></sc-if>
+      </button>
+    </sc-for>
+    <div style="flex:1;"></div>
+    <div style="margin:0 8px 6px; padding:10px; border:1px solid #1e1e22; border-radius:8px; color:#c8c8c8; font-size:11.5px; display:grid; gap:2px;">
+      <div style="display:flex; align-items:center; gap:6px; color:#fff;"><span style="width:8px; height:8px; border-radius:50%; background:{{ trackDot }};"></span>{{ trackLabel }}</div>
+      <div>{{ trackSub }}</div>
+    </div>
+    <div style="border-top:1px solid #1e1e22; padding-top:6px;">
+      <button onClick="{{ goFirstRun }}" style="width:calc(100% - 16px); height:32px; margin:0 8px; padding:0 10px; border:none; border-radius:4px; background:transparent; color:#c8c8c8; font-family:inherit; font-size:12.5px; display:flex; align-items:center; gap:10px; cursor:pointer;" style-hover="background:#1a1a1a; color:#fff;">
+        <svg viewBox="0 0 24 24" style="width:17px; height:17px; fill:#8a8a8a;"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"></path></svg>
+        <span>Settings · first run</span>
+      </button>
+    </div>
+  </nav>
+
+  <main style="background:var(--bg); padding:0 24px 24px; display:grid; gap:16px; align-content:start; min-width:0;">
+
+    <!-- ========== DAY ========== -->
+    <sc-if value="{{ isDay }}" hint-placeholder-val="{{ true }}">
+      <div style="height:52px; margin:0 -24px; padding:0 14px 0 24px; display:flex; align-items:center; gap:12px; background:var(--paper); border-bottom:1px solid var(--divider);">
+        <div style="font-size:15px; font-weight:600; letter-spacing:-0.2px;">Day</div>
+        <div style="display:flex; align-items:center; gap:4px;">
+          <button aria-label="Previous day" style="width:28px; height:28px; border:1px solid var(--border-mid); border-radius:4px; background:var(--paper); color:var(--ink); cursor:pointer; font-family:inherit;">‹</button>
+          <div style="padding:0 8px; font-weight:500;">Friday 2 October</div>
+          <button aria-label="Next day" style="width:28px; height:28px; border:1px solid var(--border-mid); border-radius:4px; background:var(--paper); color:var(--ink); cursor:pointer; font-family:inherit;">›</button>
+        </div>
+        <span style="height:22px; padding:0 8px; border-radius:999px; background:{{ dayChip.bg }}; color:{{ dayChip.fg }}; font-size:11.5px; font-weight:500; display:inline-flex; align-items:center;">{{ dayChip.label }}</span>
+        <div style="margin-left:auto; display:flex; align-items:center; gap:10px; color:var(--ink-muted); font-size:12.5px;">
+          <span>Tracking stopped at 17:38 (idle)</span>
+          <button style="height:32px; padding:0 14px; border:1px solid var(--border-mid); border-radius:4px; background:var(--paper); color:var(--ink); font-family:inherit; font-size:12.5px; cursor:pointer;" style-hover="border-color:var(--accent); color:var(--accent);">Start tracking</button>
+        </div>
+      </div>
+
+      <section style="display:flex; gap:32px; align-items:baseline; padding:4px 2px 0;">
+        <div><div style="font-size:11px; font-weight:500; letter-spacing:.6px; text-transform:uppercase; color:var(--ink-muted);">Tracked</div><div style="font-size:22px; font-weight:500; font-family:'JetBrains Mono','Cascadia Mono',Consolas,monospace;">7:32</div></div>
+        <div><div style="font-size:11px; font-weight:500; letter-spacing:.6px; text-transform:uppercase; color:var(--ink-muted);">To book (rounded)</div><div style="font-size:22px; font-weight:500; font-family:'JetBrains Mono','Cascadia Mono',Consolas,monospace;">{{ dayRounded }}</div></div>
+        <div><div style="font-size:11px; font-weight:500; letter-spacing:.6px; text-transform:uppercase; color:var(--ink-muted);">Before approval</div><div style="font-size:22px; font-weight:500; color:{{ issueColor }};">{{ issueSummary }}</div></div>
+      </section>
+
+      <section style="display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,1fr); gap:16px; align-items:start;">
+        <div style="background:var(--paper); border:1px solid var(--divider); border-radius:8px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--divider);">
+            <div>
+              <div style="font-weight:500;">Time blocks</div>
+              <div style="color:var(--ink-muted); font-size:12.5px;">What happened. Edit, split or merge here.</div>
+            </div>
+            <button style="height:32px; padding:0 14px; border:1px solid var(--border-mid); border-radius:4px; background:var(--paper); color:var(--ink); font-family:inherit; font-size:12.5px; cursor:pointer;" style-hover="border-color:var(--accent); color:var(--accent);">Add block</button>
+          </div>
+          <sc-for list="{{ blocks }}" as="b" hint-placeholder-count="7">
+            <div style="display:grid; grid-template-columns:96px 3px minmax(0,1fr) 52px; gap:12px; padding:12px 16px; border-bottom:1px solid var(--divider); background:{{ b.rowBg }};">
+              <div style="font-family:'JetBrains Mono','Cascadia Mono',Consolas,monospace; font-size:12px; color:var(--ink-muted); padding-top:1px;">{{ b.range }}</div>
+              <div style="border-radius:2px; background:{{ b.bar }};"></div>
+              <div style="min-width:0; display:grid; gap:2px;">
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                  <span style="font-weight:500; color:{{ b.titleColor }};">{{ b.target }}</span>
+                  <sc-if value="{{ b.hasFlag }}"><span style="height:20px; padding:0 7px; border-radius:999px; background:{{ b.flagBg }}; color:{{ b.flagFg }}; font-size:11px; font-weight:500; display:inline-flex; align-items:center;">{{ b.flag }}</span></sc-if>
+                </div>
+                <sc-if value="{{ b.hasCode }}"><div style="font-family:'JetBrains Mono','Cascadia Mono',Consolas,monospace; font-size:11.5px; color:var(--ink-muted);">{{ b.code }}</div></sc-if>
+                <div style="font-size:12.5px; color:var(--ink-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ b.evidence }}</div>
+                <sc-if value="{{ b.hasActions }}">
+                  <div style="display:flex; gap:6px; margin-top:6px; flex-wrap:wrap;">
+                    <sc-for list="{{ b.actions }}" as="a" hint-placeholder-count="2">
+                      <button onClick="{{ a.run }}" style="height:26px; padding:0 10px; border:1px solid {{ a.border }}; border-radius:4px; background:{{ a.bg }}; color:{{ a.fg }}; font-family:inherit; font-size:12px; font-weight:{{ a.fw }}; cursor:pointer;" style-hover="border-color:var(--accent);">{{ a.label }}</button>
+                    </sc-for>
+                  </div>
+                </sc-if>
+              </div>
+              <div style="text-align:right; font-family:'JetBrains Mono','Cascadia Mono',Consolas,monospace; font-size:12px; font-weight:500; color:{{ b.durColor }};">{{ b.dur }}</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="display:grid; gap:16px;">
+          <div style="background:var(--paper); border:1px solid var(--divider); border-radius:8px;">
+            <div style="padding:14px 16px; border-bottom:1px solid var(--divider);">
+              <div style="font-weight:500;">Booking lines</div>
+              <div style="color:var(--ink-muted); font-size:12.5px;">What gets booked. Summed from the blocks per code and activity type.</div>
+            </div>
+            <div style="display:grid; grid-template-columns:minmax(0,1fr) 52px 52px; gap:4px 12px; padding:8px 16px 0; font-size:11px; font-weight:500; letter-spacing:.6px; text-transform:uppercase; color:var(--ink-muted);">
+              <span>Line</span><span style="text-align:right;">Actual</span><span style="text-align:right;">Book</span>
+            </div>
+            <sc-for list="{{ lines }}" as="l" hint-placeholder-count="4">
+              <div style="display:grid; grid-template-columns:minmax(0,1fr) 52px 52px; gap:2px 12px; padding:10px 16px; border-bottom:1px solid var(--divider);">
+                <div style="min-width:0;">
+                  <div style="font-weight:500; color:{{ l.color }};">{{ l.name }}</div>
+                  <div style="font-family:'JetBrains Mono','Cascadia Mono',Consolas,monospace; font-size:11.5px; color:var(--ink-muted);">{{ l.code }}</div>
+                  <sc-if value="{{ l.hasJira }}"><div style="display:flex; gap:4px; margin-top:4px;"><sc-for list="{{ l.jira }}" as="j" hint-placeholder-count="1"><span style="background:var(--raised); font-size:11px; font-weight:500; padding:1px 6px; border-radius:4px; font-family:'JetBrains Mono',Consolas,monospace;">{{ j }}</span></sc-for></div></sc-if>
+                </div>
+                <div style="text-align:right; font-family:'JetBrains Mono','Cascadia Mono',Consolas,monospace; font-size:12px; color:var(--ink-muted);">{{ l.actual }}</div>
+                <div style="text-align:right; font-family:'JetBrains Mono','Cascadia Mono',Consolas,monospace; font-size:12px; font-weight:600; color:{{ l.color }};">{{ l.book }}</div>
+              </div>
+            </sc-for>
+            <div style="display:grid; grid-template-columns:minmax(0,1fr) 52px 52px; gap:12px; padding:12px 16px; font-weight:500;">
+              <span>Total</span>
+              <span style="text-align:right; font-family:'JetBrains Mono','Cascadia Mono',Consolas,monospace; font-size:12px; color:var(--ink-muted);">{{ dayActual }}</span>
+              <span style="text-align:right; font-family:'JetBrains Mono','Cascadia Mono',Consolas,monospace; font-size:12px; font-weight:600;">{{ dayRounded }}</span>
+            </div>
+            <div style="padding:0 16px 14px; color:var(--ink-muted); font-size:12px;">Each line is rounded to the nearest 15 min. Change in Settings › Booking.</div>
+          </div>
+
+          <div style="background:var(--paper); border:1px solid var(--divider); border-radius:8px; padding:16px; display:grid; gap:12px;">
+            <sc-if value="{{ dayOpen }}" hint-placeholder-val="{{ true }}">
+              <div style="font-weight:500;">Approve Friday</div>
+              <sc-for list="{{ checks }}" as="c" hint-placeholder-count="3">
+                <div style="display:flex; gap:8px; align-items:flex-start; font-size:12.5px;">
+                  <span style="flex-shrink:0; width:18px; height:18px; border-radius:50%; background:{{ c.bg }}; color:{{ c.fg }}; font-size:11px; font-weight:600; display:grid; place-items:center; margin-top:1px;">{{ c.mark }}</span>
+                  <span style="color:{{ c.text }};">{{ c.label }}</span>
+                </div>
+              </sc-for>
+              <div style="display:flex; gap:10px; align-items:center;">
+                <button onClick="{{ approveDay }}" disabled="{{ cannotApprove }}" style="height:32px; padding:0 14px; border:none; border-radius:4px; background:#3805e3; color:#fff; font-family:inherit; font-size:12.5px; font-weight:500; cursor:pointer; opacity:{{ approveOpacity }};" style-hover="background:#3e257c;">Approve day</button>
+                <span style="color:var(--ink-muted); font-size:12px;">Approving locks these blocks. Later changes create a new version.</span>
+              </div>
+            </sc-if>
+            <sc-if value="{{ dayApproved }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex; align-items:center; gap:8px; font-weight:500; color:var(--added-ink);"><svg viewBox="0 0 24 24" style="width:18px; height:18px; fill:currentColor;"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>Friday approved · {{ dayRounded }} in 4 lines</div>
+              <div style="display:flex; gap:10px;">
+                <button onClick="{{ goWeek }}" style="height:32px; padding:0 14px; border:none; border-radius:4px; background:#3805e3; color:#fff; font-family:inherit; font-size:12.5px; font-weight:500; cursor:pointer;" style-hover="background:#3e257c;">Review week</button>
+                <button onClick="{{ reopenDay }}" style="height:32px; padding:0 14px; border:1px solid var(--border-mid); border-radius:4px; background:var(--paper); color:var(--ink); font-family:inherit; font-size:12.5px; cursor:pointer;" style-hover="border-color:var(--accent); color:var(--accent);">Reopen day</button>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </section>
+    </sc-if>
+
+    <!-- ========== WEEK ========== -->
+    <sc-if value="{{ isWeek }}" hint-placeholder-val="{{ false }}">
+      <div style="height:52px; margin:0 -24px; padding:0 14px 0 24px; display:flex; align-items:center; gap:12px; background:var(--paper); border-bottom:1px solid var(--divider);">
+        <div style="font-size:15px; font-weight:600; letter-spacing:-0.2px;">Week</div>
+        <div style="font-weight:500;">Week 40 · 28 Sep – 2 Oct 2026</div>
+        <div style="margin-left:auto; display:flex; gap:8px;">
+          <button style="height:32px; padding:0 14px; border:1px solid var(--border-mid); border-radius:4px; background:var(--paper); color:var(--ink); font-family:inherit; font-size:12.5px; cursor:pointer;" style-hover="border-color:var(--accent); color:var(--accent);">Copy previous week…</button>
+        </div>
+      </div>
+      <section style="background:var(--paper); border:1px solid var(--divider); border-radius:8px; overflow:hidden;">
+        <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
+          <thead>
+            <tr>
+              <th style="text-align:left; padding:12px 16px; font-size:11px; font-weight:500; letter-spacing:.6px; text-transform:uppercase; color:var(--ink-muted); background:var(--raised);">Booking line</th>
+              <sc-for list="{{ weekDays }}" as="d" hint-placeholder-count="5">
+                <th style="padding:10px 12px; text-align:right; background:var(--raised); vertical-align:bottom;">
+                  <div style="font-size:11px; font-weight:500; letter-spacing:.6px; text-transform:uppercase; color:var(--ink-muted);">{{ d.label }}</div>
+                  <span style="margin-top:4px; height:20px; padding:0 7px; border-radius:999px; background:{{ d.bg }}; color:{{ d.fg }}; font-size:11px; font-weight:500; display:inline-flex; align-items:center;">{{ d.status }}</span>
+                </th>
+              </sc-for>
+              <th style="padding:12px 16px; text-align:right; font-size:11px; font-weight:500; letter-spacing:.6px; text-transform:uppercase; color:var(--ink-muted); background:var(--raised);">Week</th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{ weekRows }}" as="r" hint-placeholder-count="4">
+              <tr>
+                <td style="padding:12px 16px; border-top:1px solid var(--divider);"><div style="font-weight:500;">{{ r.name }}</div><div style="font-family:'JetBrains Mono',Consolas,monospace; font-size:11.5px; color:var(--ink-muted);">{{ r.code }}</div></td>
+                <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="5">
+                  <td style="padding:12px; border-top:1px solid var(--divider); text-align:right; font-family:'JetBrains Mono','Cascadia Mono',Consolas,monospace; font-size:12px; color:{{ c.color }}; background:{{ c.bg }};">{{ c.v }}</td>
+                </sc-for>
+                <td style="padding:12px 16px; border-top:1px solid var(--divider); text-align:right; font-family:'JetBrains Mono','Cascadia Mono',Consolas,monospace; font-size:12px; font-weight:600;">{{ r.total }}</td>
+              </tr>
+            </sc-for>
+            <tr>
+              <td style="padding:12px 16px; border-top:1px solid var(--border-mid); font-weight:500;">Total</td>
+              <sc-for list="{{ weekTotals }}" as="t" hint-placeholder-count="5"><td style="padding:12px; border-top:1px solid var(--border-mid); text-align:right; font-family:'JetBrains Mono','Cascadia Mono',Consolas,monospace; font-size:12px; font-weight:600;">{{ t }}</td></sc-for>
+              <td style="padding:12px 16px; border-top:1px solid var(--border-mid); text-align:right; font-family:'JetBrains Mono','Cascadia Mono',Consolas,monospace; font-size:12px; font-weight:600;">{{ weekTotal }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+      <section style="background:var(--paper); border:1px solid var(--divider); border-radius:8px; padding:16px; display:flex; align-items:center; gap:16px;">
+        <div style="flex:1;">
+          <div style="font-weight:500;">{{ weekHeadline }}</div>
+          <div style="color:var(--ink-muted); font-size:12.5px;">{{ weekSub }}</div>
+        </div>
+        <sc-if value="{{ weekNeedsFri }}" hint-placeholder-val="{{ true }}"><button onClick="{{ goDay }}" style="height:32px; padding:0 14px; border:1px solid var(--border-mid); border-radius:4px; background:var(--paper); color:var(--ink); font-family:inherit; font-size:12.5px; cursor:pointer;" style-hover="border-color:var(--accent); color:var(--accent);">Review Friday</button></sc-if>
+        <button onClick="{{ goExport }}" disabled="{{ weekNotReady }}" style="height:32px; padding:0 14px; border:none; border-radius:4px; background:#3805e3; color:#fff; font-family:inherit; font-size:12.5px; font-weight:500; cursor:pointer; opacity:{{ weekBtnOpacity }};" style-hover="background:#3e257c;">Export week…</button>
+      </section>
+    </sc-if>
+
+    <!-- ========== EXPORT ========== -->
+    <sc-if value="{{ isExport }}" hint-placeholder-val="{{ false }}">
+      <div style="height:52px; margin:0 -24px; padding:0 14px 0 24px; display:flex; align-items:center; gap:12px; background:var(--paper); border-bottom:1px solid var(--divider);">
+        <div style="font-size:15px; font-weight:600; letter-spacing:-0.2px;">Export</div>
+        <div style="color:var(--ink-muted);">CSV hand-off of approved booking lines</div>
+      </div>
+      <section style="display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:16px; align-items:start;">
+        <div style="background:var(--paper); border:1px solid var(--divider); border-radius:8px;">
+          <div style="display:flex; gap:24px; padding:14px 16px; border-bottom:1px solid var(--divider); flex-wrap:wrap;">
+            <div><div style="font-size:11px; font-weight:500; letter-spacing:.6px; text-transform:uppercase; color:var(--ink-muted);">Period</div><div style="font-weight:500;">Week 40 · 28 Sep – 2 Oct</div></div>
+            <div><div style="font-size:11px; font-weight:500; letter-spacing:.6px; text-transform:uppercase; color:var(--ink-muted);">Profile</div><div style="font-weight:500;">SAP ByDesign CSV · v2</div></div>
+            <div><div style="font-size:11px; font-weight:500; letter-spacing:.6px; text-transform:uppercase; color:var(--ink-muted);">Format</div><div style="font-weight:500;">; delimiter · decimal comma · UTF-8</div></div>
+          </div>
+          <div style="padding:12px 16px 4px; font-size:11px; font-weight:500; letter-spacing:.6px; text-transform:uppercase; color:var(--ink-muted);">Exact file contents · {{ csvCount }} rows</div>
+          <div style="margin:0 16px 16px; border:1px solid var(--divider); border-radius:4px; background:var(--raised); max-height:420px; overflow:auto; padding:10px 12px; font-family:'JetBrains Mono','Cascadia Mono',Consolas,monospace; font-size:12px; line-height:1.7; white-space:pre;">
+            <sc-for list="{{ csv }}" as="row" hint-placeholder-count="12"><div style="color:{{ row.color }};">{{ row.text }}</div></sc-for>
+          </div>
+        </div>
+        <div style="display:grid; gap:16px;">
+          <sc-if value="{{ notExported }}" hint-placeholder-val="{{ true }}">
+            <div style="background:var(--paper); border:1px solid var(--divider); border-radius:8px; padding:16px; display:grid; gap:10px;">
+              <div style="font-weight:500;">Checks</div>
+              <sc-for list="{{ exportChecks }}" as="c" hint-placeholder-count="4">
+                <div style="display:flex; gap:8px; align-items:flex-start; font-size:12.5px;">
+                  <span style="flex-shrink:0; width:18px; height:18px; border-radius:50%; background:{{ c.bg }}; color:{{ c.fg }}; font-size:11px; font-weight:600; display:grid; place-items:center; margin-top:1px;">{{ c.mark }}</span>
+                  <span>{{ c.label }}</span>
+                </div>
+              </sc-for>
+              <button onClick="{{ doExport }}" disabled="{{ weekNotReady }}" style="margin-top:4px; height:32px; padding:0 14px; border:none; border-radius:4px; background:#3805e3; color:#fff; font-family:inherit; font-size:12.5px; font-weight:500; cursor:pointer; opacity:{{ weekBtnOpacity }};" style-hover="background:#3e257c;">Export {{ csvCount }} rows</button>
+              <div style="color:var(--ink-muted); font-size:12px;">Exported lines are locked. A correction later produces a corrected export, never a silent re-export.</div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ exported }}" hint-placeholder-val="{{ false }}">
+            <div style="background:var(--paper); border:1px solid var(--added-line); border-radius:8px; padding:16px; display:grid; gap:10px;">
+              <div style="display:flex; align-items:center; gap:8px; font-weight:500; color:var(--added-ink);"><svg viewBox="0 0 24 24" style="width:18px; height:18px; fill:currentColor;"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>Exported</div>
+              <div style="display:grid; grid-template-columns:72px 1fr; gap:4px 8px; font-size:12.5px;">
+                <span style="color:var(--ink-muted);">File</span><span style="font-family:'JetBrains Mono',Consolas,monospace; font-size:12px; word-break:break-all;">LightTrack_E10482_2026-W40.csv</span>
+                <span style="color:var(--ink-muted);">Rows</span><span>20 · 40,00 h</span>
+                <span style="color:var(--ink-muted);">SHA-256</span><span style="font-family:'JetBrains Mono',Consolas,monospace; font-size:12px;">3f9a…c21e</span>
+                <span style="color:var(--ink-muted);">At</span><span>Fri 2 Oct 2026, 17:51</span>
+              </div>
+              <div style="display:flex; gap:8px;">
+                <button style="height:32px; padding:0 14px; border:1px solid var(--border-mid); border-radius:4px; background:var(--paper); color:var(--ink); font-family:inherit; font-size:12.5px; cursor:pointer;" style-hover="border-color:var(--accent); color:var(--accent);">Show in folder</button>
+                <button style="height:32px; padding:0 14px; border:1px solid var(--border-mid); border-radius:4px; background:var(--paper); color:var(--ink); font-family:inherit; font-size:12.5px; cursor:pointer;" style-hover="border-color:var(--accent); color:var(--accent);">Copy summary for approver</button>
+              </div>
+              <div style="border-top:1px solid var(--divider); padding-top:10px; font-size:12px; color:var(--ink-muted); white-space:pre-line;">Week 40 · E10482 · 40,00 h
+Northwind ERP · Development 18,00
+Acme Portal · Development 16,00
+Acme Portal · Meeting 3,50
+Internal · Administration 2,50</div>
+            </div>
+          </sc-if>
+          <div style="background:var(--paper); border:1px solid var(--divider); border-radius:8px; padding:16px; display:grid; gap:8px;">
+            <div style="font-weight:500;">Export history</div>
+            <sc-for list="{{ history }}" as="h" hint-placeholder-count="3">
+              <div style="display:flex; justify-content:space-between; gap:8px; font-size:12.5px; padding:6px 0; border-top:1px solid var(--divider);">
+                <span>{{ h.period }}</span><span style="color:var(--ink-muted);">{{ h.meta }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </section>
+    </sc-if>
+
+    <!-- ========== RULES ========== -->
+    <sc-if value="{{ isRules }}" hint-placeholder-val="{{ false }}">
+      <div style="height:52px; margin:0 -24px; padding:0 14px 0 24px; display:flex; align-items:center; gap:12px; background:var(--paper); border-bottom:1px solid var(--divider);">
+        <div style="font-size:15px; font-weight:600; letter-spacing:-0.2px;">Rules</div>
+        <div style="color:var(--ink-muted);">First matching rule wins. Drag to reorder.</div>
+        <div style="margin-left:auto; display:flex; gap:8px;">
+          <button style="height:32px; padding:0 14px; border:1px solid var(--border-mid); border-radius:4px; background:var(--paper); color:var(--ink); font-family:inherit; font-size:12.5px; cursor:pointer;" style-hover="border-color:var(--accent); color:var(--accent);">Booking codes</button>
+          <button style="height:32px; padding:0 14px; border:none; border-radius:4px; background:#3805e3; color:#fff; font-family:inherit; font-size:12.5px; font-weight:500; cursor:pointer;" style-hover="background:#3e257c;">New rule</button>
+        </div>
+      </div>
+      <section style="display:grid; grid-template-columns:minmax(0,1fr) 380px; gap:16px; align-items:start;">
+        <div style="background:var(--paper); border:1px solid var(--divider); border-radius:8px;">
+          <sc-for list="{{ rules }}" as="r" hint-placeholder-count="6">
+            <button onClick="{{ r.select }}" style="width:100%; text-align:left; display:grid; grid-template-columns:28px minmax(0,1fr) 72px; gap:12px; align-items:center; padding:12px 16px; border:none; border-bottom:1px solid var(--divider); background:{{ r.bg }}; box-shadow:{{ r.shadow }}; color:var(--ink); font-family:inherit; font-size:13px; cursor:pointer;" style-hover="background:var(--hover);">
+              <span style="font-family:'JetBrains Mono',Consolas,monospace; font-size:12px; color:var(--ink-muted);">{{ r.n }}</span>
+              <span style="min-width:0;">
+                <span style="display:block;"><span style="color:var(--ink-muted);">{{ r.kind }}</span> <span style="font-family:'JetBrains Mono',Consolas,monospace; font-size:12px; background:var(--raised); padding:1px 6px; border-radius:4px;">{{ r.value }}</span></span>
+                <span style="display:block; margin-top:2px;">→ <span style="font-weight:500;">{{ r.target }}</span></span>
+              </span>
+              <span style="text-align:right; font-family:'JetBrains Mono',Consolas,monospace; font-size:12px; color:var(--ink-muted);">{{ r.hours }}</span>
+            </button>
+          </sc-for>
+          <div style="padding:12px 16px; color:var(--ink-muted); font-size:12.5px;">Hours: time each rule assigned in the last 7 days.</div>
+        </div>
+        <div style="background:var(--paper); border:1px solid var(--divider); border-radius:8px; padding:16px; display:grid; gap:14px;">
+          <div style="font-weight:500;">Rule {{ sel.n }}</div>
+          <div style="display:grid; gap:6px;">
+            <label style="font-size:11px; font-weight:500; letter-spacing:.6px; text-transform:uppercase; color:var(--ink-muted);">When</label>
+            <div style="display:grid; grid-template-columns:150px 1fr; gap:8px;">
+              <select style="height:32px; padding:0 8px; border:1px solid var(--border-mid); border-radius:4px; background:var(--paper); color:var(--ink); font-family:inherit; font-size:12.5px;"><option>{{ sel.kind }}</option></select>
+              <input type="text" value="{{ sel.value }}" style="height:32px; padding:0 10px; border:1px solid var(--border-mid); border-radius:4px; background:var(--paper); color:var(--ink); font-family:'JetBrains Mono',Consolas,monospace; font-size:12px;">
+            </div>
+          </div>
+          <div style="display:grid; gap:6px;">
+            <label style="font-size:11px; font-weight:500; letter-spacing:.6px; text-transform:uppercase; color:var(--ink-muted);">Book to</label>
+            <select style="height:32px; padding:0 8px; border:1px solid var(--border-mid); border-radius:4px; background:var(--paper); color:var(--ink); font-family:inherit; font-size:12.5px;"><option>{{ sel.target }}</option></select>
+            <div style="font-family:'JetBrains Mono',Consolas,monospace; font-size:11.5px; color:var(--ink-muted);">{{ sel.code }}</div>
+          </div>
+          <div style="border-top:1px solid var(--divider); padding-top:12px; display:grid; gap:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-weight:500;">Test on last 7 days</span>
+              <button style="height:26px; padding:0 10px; border:1px solid var(--border-mid); border-radius:4px; background:var(--paper); color:var(--ink); font-family:inherit; font-size:12px; cursor:pointer;" style-hover="border-color:var(--accent); color:var(--accent);">Run again</button>
+            </div>
+            <div style="font-size:12.5px;">{{ sel.test1 }}</div>
+            <div style="font-size:12.5px; color:var(--ink-muted);">{{ sel.test2 }}</div>
+            <div style="font-size:12px; color:var(--ink-muted);">Testing never changes existing blocks.</div>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button style="height:32px; padding:0 14px; border:none; border-radius:4px; background:#3805e3; color:#fff; font-family:inherit; font-size:12.5px; font-weight:500; cursor:pointer;" style-hover="background:#3e257c;">Save rule</button>
+            <button style="height:32px; padding:0 14px; border:1px solid var(--border-mid); border-radius:4px; background:var(--paper); color:var(--ink); font-family:inherit; font-size:12.5px; cursor:pointer;" style-hover="border-color:var(--accent); color:var(--accent);">Disable</button>
+          </div>
+        </div>
+      </section>
+    </sc-if>
+
+    <!-- ========== FIRST RUN ========== -->
+    <sc-if value="{{ isFirstRun }}" hint-placeholder-val="{{ false }}">
+      <div style="height:52px; margin:0 -24px; padding:0 14px 0 24px; display:flex; align-items:center; gap:12px; background:var(--paper); border-bottom:1px solid var(--divider);">
+        <div style="font-size:15px; font-weight:600; letter-spacing:-0.2px;">Set up LightTrack</div>
+        <div style="color:var(--ink-muted);">Four steps. Everything stays on this computer.</div>
+      </div>
+      <section style="display:grid; grid-template-columns:220px minmax(0,640px); gap:32px; padding-top:8px;">
+        <div style="display:grid; gap:4px; align-content:start;">
+          <sc-for list="{{ steps }}" as="s" hint-placeholder-count="4">
+            <button onClick="{{ s.go }}" style="display:flex; gap:10px; align-items:center; height:36px; padding:0 10px; border:none; border-radius:4px; background:{{ s.bg }}; color:{{ s.fg }}; font-family:inherit; font-size:13px; font-weight:{{ s.fw }}; cursor:pointer; text-align:left;">
+              <span style="width:20px; height:20px; border-radius:50%; border:1px solid {{ s.ring }}; background:{{ s.dotBg }}; color:{{ s.dotFg }}; font-size:11px; display:grid; place-items:center;">{{ s.mark }}</span>{{ s.label }}
+            </button>
+          </sc-for>
+        </div>
+        <div style="background:var(--paper); border:1px solid var(--divider); border-radius:8px; padding:24px; display:grid; gap:16px;">
+          <sc-if value="{{ step0 }}" hint-placeholder-val="{{ true }}">
+            <div style="font-size:18px; font-weight:500;">How long should LightTrack keep raw activity?</div>
+            <div style="color:var(--ink-muted);">Raw activity is the window and app evidence behind your time blocks. Approved and exported booking lines are kept regardless.</div>
+            <sc-for list="{{ retention }}" as="o" hint-placeholder-count="3">
+              <button onClick="{{ o.pick }}" style="display:flex; gap:12px; align-items:flex-start; padding:12px 14px; border:1px solid {{ o.border }}; border-radius:8px; background:{{ o.bg }}; color:var(--ink); font-family:inherit; font-size:13px; text-align:left; cursor:pointer;">
+                <span style="margin-top:3px; width:14px; height:14px; border-radius:50%; border:1px solid {{ o.border }}; box-shadow:inset 0 0 0 3px var(--paper); background:{{ o.dot }}; flex-shrink:0;"></span>
+                <span><span style="display:block; font-weight:500;">{{ o.label }}</span><span style="display:block; color:var(--ink-muted); font-size:12.5px;">{{ o.sub }}</span></span>
+              </button>
+            </sc-for>
+          </sc-if>
+          <sc-if value="{{ step1 }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:18px; font-weight:500;">Your booking details</div>
+            <div style="display:grid; gap:6px;"><label style="font-size:11px; font-weight:500; letter-spacing:.6px; text-transform:uppercase; color:var(--ink-muted);">Employee ID</label><input type="text" value="E10482" style="height:32px; padding:0 10px; border:1px solid var(--border-mid); border-radius:4px; background:var(--paper); color:var(--ink); font-family:inherit; font-size:12.5px;"></div>
+            <div style="display:grid; gap:6px;"><label style="font-size:11px; font-weight:500; letter-spacing:.6px; text-transform:uppercase; color:var(--ink-muted);">Round booking lines to</label>
+              <div style="display:flex; gap:8px;"><sc-for list="{{ rounding }}" as="o" hint-placeholder-count="4"><button onClick="{{ o.pick }}" style="height:32px; padding:0 14px; border:1px solid {{ o.border }}; border-radius:4px; background:{{ o.bg }}; color:{{ o.fg }}; font-family:inherit; font-size:12.5px; cursor:pointer;">{{ o.label }}</button></sc-for></div>
+              <div style="color:var(--ink-muted); font-size:12.5px;">Nearest, per day and line. Your blocks keep their exact times.</div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ step2 }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:18px; font-weight:500;">Add the codes you book to</div>
+            <div style="color:var(--ink-muted);">A booking code is a project element plus an activity type. Until LightTrack reads them from Timmy, add them here or import a list.</div>
+            <div style="border:1px solid var(--divider); border-radius:8px;">
+              <sc-for list="{{ codes }}" as="c" hint-placeholder-count="4">
+                <div style="display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; padding:10px 14px; border-bottom:1px solid var(--divider);">
+                  <span><span style="font-weight:500;">{{ c.name }}</span><span style="display:block; font-family:'JetBrains Mono',Consolas,monospace; font-size:11.5px; color:var(--ink-muted);">{{ c.code }}</span></span>
+                  <span style="align-self:center; height:20px; padding:0 7px; border-radius:999px; background:var(--added-bg); color:var(--added-ink); font-size:11px; font-weight:500; display:inline-flex; align-items:center;">Valid</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button style="height:32px; padding:0 14px; border:1px solid var(--border-mid); border-radius:4px; background:var(--paper); color:var(--ink); font-family:inherit; font-size:12.5px; cursor:pointer;">Add code</button>
+              <button style="height:32px; padding:0 14px; border:1px solid var(--border-mid); border-radius:4px; background:var(--paper); color:var(--ink); font-family:inherit; font-size:12.5px; cursor:pointer;">Import CSV…</button>
+            </div>
+          </sc-if>
+          <sc-if value="{{ step3 }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:18px; font-weight:500;">Ready to track</div>
+            <div style="color:var(--ink-muted);">LightTrack records which app and window are active, proposes a booking code per block, and waits for you to approve each day. Nothing leaves this computer until you export.</div>
+            <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" checked style="width:16px; height:16px; accent-color:#3805e3; margin:0;">Start tracking when Windows starts</label>
+            <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" checked style="width:16px; height:16px; accent-color:#3805e3; margin:0;">Remind me at 17:30 to approve the day</label>
+            <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" style="width:16px; height:16px; accent-color:#3805e3; margin:0;">Pair the browser extension now (optional)</label>
+          </sc-if>
+          <div style="display:flex; gap:8px; justify-content:flex-end; border-top:1px solid var(--divider); padding-top:16px;">
+            <button onClick="{{ stepBack }}" style="height:32px; padding:0 14px; border:1px solid var(--border-mid); border-radius:4px; background:var(--paper); color:var(--ink); font-family:inherit; font-size:12.5px; cursor:pointer;" style-hover="border-color:var(--accent); color:var(--accent);">Back</button>
+            <button onClick="{{ stepNext }}" style="height:32px; padding:0 14px; border:none; border-radius:4px; background:#3805e3; color:#fff; font-family:inherit; font-size:12.5px; font-weight:500; cursor:pointer;" style-hover="background:#3e257c;">{{ nextLabel }}</button>
+          </div>
+        </div>
+      </section>
+    </sc-if>
+  </main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:860},&quot;screen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;day&quot;,&quot;week&quot;,&quot;export&quot;,&quot;rules&quot;,&quot;firstrun&quot;],&quot;default&quot;:&quot;day&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = { screen: null, assigned: false, rdpOk: false, gapBreak: false, approved: false, exported: false, rule: 0, step: 0, retention: 1, rounding: 1 };
+  set(p) { this.setState(p); }
+  componentDidMount() {
+    const p = this.props.preset;
+    if (p === 'resolved') this.setState({ assigned: true, rdpOk: true });
+    if (p === 'approved') this.setState({ assigned: true, rdpOk: true, approved: true });
+    if (p === 'exported') this.setState({ assigned: true, rdpOk: true, approved: true, exported: true });
+  }
+  renderVals() {
+    const S = this.state;
+    const screen = S.screen ?? this.props.screen ?? 'day';
+    const theme = this.props.theme ?? 'light';
+    const light = {'--bg':'#f7f7f4','--paper':'#ffffff','--raised':'#f0f0ec','--hover':'#f3f3ef','--divider':'#e6e6e0','--border-mid':'#d2d2ca','--ink':'#1a1a1a','--ink-muted':'#5e5e5e','--accent':'#3805e3','--accent-line':'#c9bef7','--active-bg':'#eeeafd','--added-bg':'#dcfebc','--added-ink':'#1e5a0a','--added-line':'#b6e59a','--changed-bg':'#e7e3f5','--changed-ink':'#3e257c','--risk-bg':'#fce3d7','--risk-ink':'#a8410f','--seg-nb':'#7d70b8'};
+    const dark = {'--bg':'#0b0b0d','--paper':'#131316','--raised':'#1c1c20','--hover':'#1a1a1e','--divider':'#26262b','--border-mid':'#34343a','--ink':'#f2f2ee','--ink-muted':'#a6a6a0','--accent':'#b8afda','--accent-line':'#4a3f7a','--active-bg':'#221a40','--added-bg':'#22330f','--added-ink':'#b3fc4f','--added-line':'#3d5a1c','--changed-bg':'#2a2442','--changed-ink':'#cfc8ea','--risk-bg':'#3a1e12','--risk-ink':'#f4915f','--seg-nb':'#b8afda'};
+    const go = s => () => this.set({ screen: s });
+    const icons = {
+      day:'M15 1H9v2h6V1zm-4 13h2V8h-2v6zm8.03-6.61 1.42-1.42c-.43-.51-.9-.99-1.41-1.41l-1.42 1.42A8.96 8.96 0 0 0 12 4c-4.97 0-9 4.03-9 9s4.02 9 9 9 9-4.03 9-9c0-2.12-.74-4.07-1.97-5.61zM12 20c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z',
+      week:'M5 9.2h3V19H5V9.2zM10.6 5h2.8v14h-2.8V5zm5.6 8H19v6h-2.8v-6z',
+      export:'M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z',
+      rules:'M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z'
+    };
+    const issues = (S.assigned ? 0 : 1) + (S.rdpOk ? 0 : 1);
+    const navDef = [['day','Day', S.approved ? 0 : issues],['week','Week',0],['export','Export',0],['rules','Rules',0]];
+    const nav = navDef.map(([k,label,count]) => { const a = k === screen; return { label, d: icons[k], go: go(k), count, hasCount: count > 0, bg: a ? '#3805e3' : 'transparent', fg: a ? '#fff' : '#c8c8c8', fw: a ? 500 : 400, icon: a ? '#fff' : '#8a8a8a' }; });
+
+    const mono = 'var(--ink)';
+    const chip = { draft:{label:'Draft', bg:'var(--raised)', fg:'var(--ink-muted)'}, approved:{label:'Approved', bg:'var(--added-bg)', fg:'var(--added-ink)'}, exported:{label:'Exported', bg:'var(--changed-bg)', fg:'var(--changed-ink)'}, issue:{label:'1 issue', bg:'var(--risk-bg)', fg:'var(--risk-ink)'} };
+    const ghost = (label, run) => ({ label, run, border:'var(--border-mid)', bg:'var(--paper)', fg:'var(--ink)', fw:400 });
+    const primary = (label, run) => ({ label, run, border:'#3805e3', bg:'#3805e3', fg:'#fff', fw:500 });
+    const locked = S.approved;
+    const std = locked ? [] : [ghost('Split'), ghost('Edit')];
+    const blocks = [
+      { range:'09:12–10:47', target:'Northwind ERP · Development', code:'PRD201-0003 · P0940003', evidence:'Code — invoice-sync.ts — northwind-erp', dur:'1:35', bar:'#3805e3', actions:std },
+      S.assigned
+        ? { range:'10:48–11:20', target:'Internal · Administration', code:'INT-0001 · P0940010', evidence:'Outlook — Inbox', dur:'0:32', bar:'var(--seg-nb)', actions:std, flag: locked ? '' : 'You assigned', fk:'changed' }
+        : { range:'10:48–11:20', target:'No booking code', code:'', evidence:'Outlook — Inbox', dur:'0:32', bar:'var(--risk-ink)', danger:true, flag:'Blocks approval', fk:'risk',
+            actions:[primary('Book to Internal · Administration', () => this.set({ assigned:true })), ghost('Choose code…'), ghost('Delete')] },
+      { range:'11:21–11:58', target:'Acme Portal · Development', code:'PRD178-0012 · P0940003', evidence:'Microsoft Edge — [PORTAL-412] Checkout fails on Safari - Jira', dur:'0:37', bar:'#3805e3', actions:std },
+      { range:'12:00–12:40', target:'Acme Portal · Meeting', code:'PRD178-0012 · P0940005', evidence:'Microsoft Teams — Sprint review | Acme Portal', dur:'0:40', bar:'#3805e3', actions:std },
+      S.gapBreak
+        ? { range:'12:40–13:30', target:'Break', code:'', evidence:'Not booked', dur:'0:50', bar:'var(--border-mid)', muted:true, actions:[] }
+        : { range:'12:40–13:30', target:'No activity recorded', code:'', evidence:'Gaps do not block approval.', dur:'0:50', bar:'transparent', muted:true, gap:true,
+            actions: locked ? [] : [ghost('Mark as break', () => this.set({ gapBreak:true })), ghost('Add block')] },
+      { range:'13:30–16:05', target:'Acme Portal · Development', code:'PRD178-0012 · P0940003', evidence:'Code, Microsoft Edge — PORTAL-412, PORTAL-415', dur:'2:35', bar:'#3805e3', actions:std },
+      S.rdpOk
+        ? { range:'16:05–17:38', target:'Northwind ERP · Development', code:'PRD201-0003 · P0940003', evidence:'Remote session — mstsc → NW-APP01', dur:'1:33', bar:'#3805e3', actions:std, flag: locked ? 'Remote session' : 'You confirmed', fk:'changed' }
+        : { range:'16:05–17:38', target:'Northwind ERP · Development', code:'PRD201-0003 · P0940003', evidence:'Remote session — mstsc → NW-APP01. Rule 4 proposed this; window titles inside the session are not visible.', dur:'1:33', bar:'#3805e3', flag:'Confirm remote session', fk:'risk',
+            actions:[primary('Confirm', () => this.set({ rdpOk:true })), ghost('Choose code…'), ghost('Split')] }
+    ].map(b => ({ ...b, hasCode: !!b.code, hasFlag: !!b.flag, hasActions: b.actions.length > 0,
+      flagBg: b.fk === 'risk' ? 'var(--risk-bg)' : 'var(--changed-bg)', flagFg: b.fk === 'risk' ? 'var(--risk-ink)' : 'var(--changed-ink)',
+      rowBg: b.gap ? 'repeating-linear-gradient(135deg, transparent 0 6px, var(--hover) 6px 12px)' : 'var(--paper)',
+      titleColor: b.danger ? 'var(--risk-ink)' : (b.muted ? 'var(--ink-muted)' : 'var(--ink)'), durColor: b.muted ? 'var(--ink-muted)' : 'var(--ink)' }));
+
+    const lines = [
+      { name:'Northwind ERP · Development', code:'PRD201-0003 · P0940003', actual:'3:08', book:'3:15', jira:[] },
+      { name:'Acme Portal · Development', code:'PRD178-0012 · P0940003', actual:'3:12', book:'3:15', jira:['PORTAL-412','PORTAL-415'] },
+      { name:'Acme Portal · Meeting', code:'PRD178-0012 · P0940005', actual:'0:40', book:'0:45', jira:[] },
+      S.assigned ? { name:'Internal · Administration', code:'INT-0001 · P0940010', actual:'0:32', book:'0:30', jira:[] }
+                 : { name:'Not bookable yet', code:'1 block without a code', actual:'0:32', book:'—', jira:[], warn:true }
+    ].map(l => ({ ...l, hasJira: l.jira.length > 0, color: l.warn ? 'var(--risk-ink)' : 'var(--ink)' }));
+    const dayRounded = S.assigned ? '7:45' : '7:15';
+    const ok = { mark:'✓', bg:'var(--added-bg)', fg:'var(--added-ink)', text:'var(--ink)' };
+    const bad = { mark:'!', bg:'var(--risk-bg)', fg:'var(--risk-ink)', text:'var(--ink)' };
+    const info = { mark:'i', bg:'var(--raised)', fg:'var(--ink-muted)', text:'var(--ink-muted)' };
+    const checks = [
+      S.assigned ? { ...ok, label:'Every block has a booking code' } : { ...bad, label:'32 min (10:48–11:20) has no booking code' },
+      S.rdpOk ? { ...ok, label:'Remote session confirmed' } : { ...bad, label:'Remote session 16:05–17:38 needs your confirmation' },
+      S.gapBreak ? { ...ok, label:'Gap 12:40–13:30 marked as break' } : { ...info, label:'50 min gap at 12:40. Fine to leave as is.' },
+      { ...ok, label:'All codes valid on 2 October' }
+    ];
+    const canApprove = issues === 0;
+    const dayChip = S.exported ? chip.exported : S.approved ? chip.approved : chip.draft;
+
+    const W = { 'Northwind ERP · Development':['4:00','3:15','2:30','5:00','3:15','18:00','PRD201-0003 · P0940003'], 'Acme Portal · Development':['3:00','3:30','4:15','2:00','3:15','16:00','PRD178-0012 · P0940003'], 'Acme Portal · Meeting':['0:45','0:30','0:45','0:45','0:45','3:30','PRD178-0012 · P0940005'], 'Internal · Administration':['0:30','0:45','0:30','0:15','0:30','2:30','INT-0001 · P0940010'] };
+    const friDone = S.approved;
+    const weekRows = Object.entries(W).map(([name, v]) => ({ name, code:v[6], total: (name.startsWith('Internal') && !S.assigned) ? '2:00' : v[5],
+      cells: v.slice(0,5).map((x,i) => { const fri = i === 4; const missing = fri && name.startsWith('Internal') && !S.assigned;
+        return { v: missing ? '—' : x, color: missing ? 'var(--risk-ink)' : 'var(--ink)', bg: fri && !friDone ? 'var(--active-bg)' : 'transparent' }; }) }));
+    const done = S.exported ? chip.exported : chip.approved;
+    const friChip = S.exported ? chip.exported : S.approved ? chip.approved : (issues ? { ...chip.issue, label: issues + (issues > 1 ? ' issues' : ' issue') } : chip.draft);
+    const weekDays = ['Mon 28','Tue 29','Wed 30','Thu 1','Fri 2'].map((label,i) => ({ label, ...(i < 4 ? done : friChip), status: (i < 4 ? done : friChip).label }));
+    const weekTotals = ['8:15','8:00','8:00','8:00', S.assigned ? '7:45' : '7:15'];
+    const weekReady = S.approved;
+
+    const csvRows = [];
+    const days = ['28.09.2026','29.09.2026','30.09.2026','01.10.2026','02.10.2026'];
+    const jira = { 'Acme Portal · Development': ['PORTAL-398','PORTAL-401','PORTAL-405','PORTAL-409','PORTAL-412 PORTAL-415'] };
+    days.forEach((d,i) => Object.entries(W).forEach(([name,v]) => { const [pe, sp] = v[6].split(' · '); const h = v[i].split(':'); const dec = (Number(h[0]) + Number(h[1])/60).toFixed(2).replace('.', ',');
+      csvRows.push({ text: ['E10482', d, pe, sp, dec, (jira[name] || [])[i] || ''].join(';'), color:'var(--ink)' }); }));
+    const csv = [{ text:'EmployeeID;Date;ProjectElement;ServiceProduct;Hours;Comment', color:'var(--ink-muted)' }, ...csvRows];
+    const exportChecks = weekReady
+      ? [{ ...ok, label:'20 rows from 20 approved booking lines' }, { ...ok, label:'All booking codes valid on their dates' }, { ...ok, label:'None of these lines exported before' }, { ...ok, label:'Window titles and remote-session data excluded' }]
+      : [{ ...bad, label:'Friday 2 Oct is not approved yet' }, { ...ok, label:'All booking codes valid on their dates' }, { ...ok, label:'None of these lines exported before' }, { ...ok, label:'Window titles and remote-session data excluded' }];
+    const history = [ ...(S.exported ? [{ period:'Week 40', meta:'20 rows · 40,00 h · 2 Oct' }] : []), { period:'Week 39', meta:'20 rows · 40,25 h · 25 Sep' }, { period:'Week 38', meta:'18 rows · 38,00 h · 18 Sep' }, { period:'Week 37 (corrected)', meta:'21 rows · 40,00 h · 14 Sep' } ];
+
+    const R = [
+      { kind:'Jira key', value:'PORTAL-*', target:'Acme Portal · Development', code:'PRD178-0012 · P0940003', hours:'14:20', test1:'Matches 23 activities, 14 h 20 min.', test2:'None of these were matched by a higher rule.' },
+      { kind:'Meeting subject', value:'*Acme*', target:'Acme Portal · Meeting', code:'PRD178-0012 · P0940005', hours:'3:30', test1:'Matches 6 meetings, 3 h 30 min.', test2:'Rule 1 matched none of these first.' },
+      { kind:'Window title', value:'northwind-erp', target:'Northwind ERP · Development', code:'PRD201-0003 · P0940003', hours:'12:05', test1:'Matches 31 activities, 13 h 40 min.', test2:'Rule 1 claimed 4 of these first (1 h 35 min) because their titles contain a PORTAL key.' },
+      { kind:'Remote host', value:'NW-*', target:'Northwind ERP · Development', code:'PRD201-0003 · P0940003', hours:'5:55', test1:'Matches 4 remote sessions, 5 h 55 min.', test2:'Remote sessions are proposed, never approved automatically.' },
+      { kind:'App', value:'Outlook', target:'Internal · Administration', code:'INT-0001 · P0940010', hours:'2:30', test1:'Matches 12 activities, 2 h 30 min.', test2:'Rule 2 claimed 0 of these first.' },
+      { kind:'URL domain', value:'github.com', target:'Acme Portal · Development', code:'PRD178-0012 · P0940003', hours:'0:45', test1:'Matches 5 activities, 1 h 10 min.', test2:'Rules 1 and 3 claimed 3 of these first (25 min).' }
+    ];
+    const rules = R.map((r,i) => ({ ...r, n: i + 1, select: () => this.set({ rule:i }), bg: S.rule === i ? 'var(--active-bg)' : 'var(--paper)', shadow: S.rule === i ? 'inset 3px 0 0 #3805e3' : 'none' }));
+
+    const stepLabels = ['Data retention','Booking details','Booking codes','Start'];
+    const steps = stepLabels.map((label,i) => { const cur = i === S.step, past = i < S.step;
+      return { label, go: () => this.set({ step:i }), mark: past ? '✓' : String(i + 1), bg: cur ? 'var(--active-bg)' : 'transparent', fg: cur ? 'var(--accent)' : 'var(--ink)', fw: cur ? 500 : 400,
+        ring: cur || past ? '#3805e3' : 'var(--border-mid)', dotBg: past ? '#3805e3' : 'transparent', dotFg: past ? '#fff' : 'inherit' }; });
+    const retention = [['3 months','Shortest evidence trail; enough to fix last month.'],['1 year (recommended)','Lets you answer questions about past bookings.'],['2 years','For projects with long audit periods.']]
+      .map(([label,sub],i) => ({ label, sub, pick: () => this.set({ retention:i }), border: S.retention === i ? '#3805e3' : 'var(--border-mid)', bg: S.retention === i ? 'var(--active-bg)' : 'var(--paper)', dot: S.retention === i ? '#3805e3' : 'transparent' }));
+    const rounding = ['None','15 min','30 min','1 hour'].map((label,i) => ({ label, pick: () => this.set({ rounding:i }), border: S.rounding === i ? '#3805e3' : 'var(--border-mid)', bg: S.rounding === i ? 'var(--active-bg)' : 'var(--paper)', fg: S.rounding === i ? 'var(--accent)' : 'var(--ink)' }));
+
+    return {
+      themeVars: theme === 'dark' ? dark : light, nav,
+      isDay: screen === 'day', isWeek: screen === 'week', isExport: screen === 'export', isRules: screen === 'rules', isFirstRun: screen === 'firstrun',
+      goDay: go('day'), goWeek: go('week'), goExport: go('export'), goFirstRun: go('firstrun'),
+      trackDot: '#8a8a8a', trackLabel: 'Not tracking', trackSub: 'Stopped 17:38 · idle',
+      dayChip, blocks, lines, checks, dayRounded, dayActual: '7:32',
+      issueSummary: issues ? issues + (issues > 1 ? ' issues' : ' issue') : 'Ready', issueColor: issues ? 'var(--risk-ink)' : 'var(--added-ink)',
+      dayOpen: !S.approved, dayApproved: S.approved, cannotApprove: !canApprove, approveOpacity: canApprove ? 1 : 0.45,
+      approveDay: () => canApprove && this.set({ approved:true }), reopenDay: () => this.set({ approved:false, exported:false }),
+      weekDays, weekRows, weekTotals, weekTotal: S.assigned ? '40:00' : '39:30',
+      weekHeadline: weekReady ? 'All five days approved' : '4 of 5 days approved',
+      weekSub: weekReady ? (S.exported ? 'Exported on 2 Oct, 17:51.' : '40:00 booked in 20 lines. Ready to export.') : 'Friday is still a draft. Approve it to export the week.',
+      weekNeedsFri: !weekReady, weekNotReady: !weekReady || S.exported, weekBtnOpacity: (weekReady && !S.exported) ? 1 : 0.45,
+      csv, csvCount: csvRows.length, exportChecks, history, notExported: !S.exported, exported: S.exported,
+      doExport: () => weekReady && this.set({ exported:true }),
+      rules, sel: rules[S.rule],
+      steps, retention, rounding, step0: S.step === 0, step1: S.step === 1, step2: S.step === 2, step3: S.step === 3,
+      codes: [{name:'Northwind ERP · Development', code:'PRD201-0003 · P0940003'},{name:'Acme Portal · Development', code:'PRD178-0012 · P0940003'},{name:'Acme Portal · Meeting', code:'PRD178-0012 · P0940005'},{name:'Internal · Administration', code:'INT-0001 · P0940010'}],
+      stepBack: () => this.set({ step: Math.max(0, S.step - 1) }),
+      stepNext: () => S.step < 3 ? this.set({ step: S.step + 1 }) : this.set({ screen:'day' }),
+      nextLabel: S.step < 3 ? 'Continue' : 'Start tracking'
+    };
+  }
+}
+</script>
+</body>
+</html>
