@@ -24,7 +24,6 @@ const CONSTANTS = {
 
   // Limits
   MAX_EXPORT_HISTORY: 20,
-  MAX_BACKUP_SIZE_MB: 50,
   MAX_REGEX_LENGTH: 500,
   MAX_TEST_INPUT_LENGTH: 2000,
 
@@ -45,10 +44,6 @@ const ERRORS = {
   MERGE_FAILED: 'Unable to merge activities',
   MERGE_ROLLBACK: 'Merge failed - changes rolled back',
   BACKUP_FAILED: 'Unable to create backup',
-  RESTORE_FAILED: 'Unable to restore backup',
-  RESTORE_VERSION: 'Incompatible backup version',
-  RESTORE_FORMAT: 'Invalid backup format',
-  RESTORE_SIZE: 'Backup file too large',
   STORAGE_FULL: 'Storage full - please export or clear data'
 };
 
@@ -3061,14 +3056,10 @@ function initSettingsGroups() {
   return window.LightTrack.SettingsView?.initSettingsGroups?.();
 }
 
-// ============= Backup & Restore (delegated to SettingsView module) =============
+// ============= Backup (delegated to SettingsView module) =============
 
 function createBackup(statusEl) {
   return window.LightTrack.SettingsView?.createBackup?.(statusEl);
-}
-
-function restoreFromBackup(file, statusEl) {
-  return window.LightTrack.SettingsView?.restoreFromBackup?.(file, statusEl);
 }
 
 // ============= Calendar Sync (delegated to SettingsView module) =============
