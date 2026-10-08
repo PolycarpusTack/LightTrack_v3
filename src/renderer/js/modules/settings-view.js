@@ -1,7 +1,7 @@
 /**
  * LightTrack Settings View Module
  * Handles settings load/save/render, URL/JIRA/Meeting mappings CRUD,
- * backup & restore, and calendar sync functions.
+ * backup, and calendar sync functions.
  */
 (function() {
   'use strict';
@@ -1119,34 +1119,14 @@
         });
       }
 
-      // Wire up backup/restore buttons
+      // Wire up the backup button. Restore is not offered until backup and restore are rebuilt (#16, #40).
       const backupBtn = document.getElementById('backup-data-btn');
-      const restoreBtn = document.getElementById('restore-data-btn');
-      const restoreInput = document.getElementById('restore-file-input');
       const backupStatus = document.getElementById('backup-status');
 
       if (backupBtn && !backupBtn.dataset.wired) {
         backupBtn.dataset.wired = 'true';
         backupBtn.addEventListener('click', async () => {
           await createBackup(backupStatus);
-        });
-      }
-
-      if (restoreBtn && !restoreBtn.dataset.wired) {
-        restoreBtn.dataset.wired = 'true';
-        restoreBtn.addEventListener('click', () => {
-          restoreInput?.click();
-        });
-      }
-
-      if (restoreInput && !restoreInput.dataset.wired) {
-        restoreInput.dataset.wired = 'true';
-        restoreInput.addEventListener('change', async (e) => {
-          const file = e.target.files?.[0];
-          if (file) {
-            await restoreFromBackup(file, backupStatus);
-            e.target.value = ''; // Reset input
-          }
         });
       }
 
@@ -1213,7 +1193,7 @@
     });
   }
 
-  // ============= Backup & Restore Functions =============
+  // ============= Backup =============
 
   /**
    * Create a full backup of all data
@@ -1280,138 +1260,6 @@
         statusEl.textContent = 'Backup failed: ' + error.message;
       }
       showNotification('Backup failed', 'error');
-    }
-  }
-
-  /**
-   * Restore from a backup file
-   */
-  async function restoreFromBackup(file, statusEl) {
-    try {
-      if (statusEl) {
-        statusEl.style.display = 'block';
-        statusEl.textContent = 'Validating backup file...';
-      }
-
-      // Security: Check file size before processing
-      const maxSize = CONSTANTS.MAX_BACKUP_SIZE_MB * 1024 * 1024;
-      if (file.size > maxSize) {
-        throw new Error(ERRORS.RESTORE_SIZE + ` (max ${CONSTANTS.MAX_BACKUP_SIZE_MB}MB)`);
-      }
-
-      const text = await file.text();
-      let backupData;
-
-      try {
-        backupData = JSON.parse(text);
-      } catch {
-        throw new Error(ERRORS.RESTORE_FORMAT);
-      }
-
-      // Validate backup structure
-      if (!backupData.version || !backupData.data) {
-        throw new Error(ERRORS.RESTORE_FORMAT);
-      }
-
-      // Version compatibility check
-      if (!backupData.version.startsWith('3.')) {
-        throw new Error(ERRORS.RESTORE_VERSION + ` (found v${backupData.version})`);
-      }
-
-      // Structure validation for activities
-      if (backupData.data.activities && !Array.isArray(backupData.data.activities)) {
-        throw new Error(ERRORS.RESTORE_FORMAT + ': activities must be an array');
-      }
-
-      // Prototype pollution prevention
-      const sanitizeObject = (obj) => {
-        if (obj && typeof obj === 'object') {
-          delete obj.__proto__;
-          delete obj.constructor;
-          delete obj.prototype;
-        }
-        return obj;
-      };
-      backupData.data = sanitizeObject(backupData.data);
-      if (backupData.data.settings) {
-        backupData.data.settings = sanitizeObject(backupData.data.settings);
-      }
-
-      if (statusEl) statusEl.textContent = 'Reading backup file...';
-
-      // Show confirmation
-      const stats = backupData.stats || {};
-      const confirmMsg = 'This will restore:\n' +
-        `\u2022 ${stats.activitiesCount || 0} activities\n` +
-        `\u2022 ${stats.projectsCount || 0} projects\n` +
-        `\u2022 ${stats.tagsCount || 0} tags\n\n` +
-        'Existing data will be merged. Continue?';
-
-      if (!confirm(confirmMsg)) {
-        if (statusEl) statusEl.textContent = 'Restore cancelled';
-        return;
-      }
-
-      if (statusEl) statusEl.textContent = 'Restoring data...';
-
-      const data = backupData.data;
-
-      // Restore settings
-      if (data.settings && window.lightTrackAPI.saveSettings) {
-        await window.lightTrackAPI.saveSettings(data.settings);
-      }
-
-      // Restore project mappings
-      if (data.mappings?.app && window.lightTrackAPI.setProjectMappings) {
-        await window.lightTrackAPI.setProjectMappings(data.mappings.app);
-      }
-      if (data.mappings?.url && window.lightTrackAPI.setUrlMappings) {
-        await window.lightTrackAPI.setUrlMappings(data.mappings.url);
-      }
-      if (data.mappings?.jira && window.lightTrackAPI.setJiraMappings) {
-        await window.lightTrackAPI.setJiraMappings(data.mappings.jira);
-      }
-      if (data.mappings?.meeting && window.lightTrackAPI.setMeetingMappings) {
-        await window.lightTrackAPI.setMeetingMappings(data.mappings.meeting);
-      }
-
-      // Restore tags
-      if (data.tags && window.lightTrackAPI.restoreTags) {
-        await window.lightTrackAPI.restoreTags(data.tags);
-      }
-
-      // Restore projects
-      if (data.projects && window.lightTrackAPI.restoreProjects) {
-        await window.lightTrackAPI.restoreProjects(data.projects);
-      }
-
-      // Restore activity types
-      if (data.activityTypes && window.lightTrackAPI.restoreActivityTypes) {
-        await window.lightTrackAPI.restoreActivityTypes(data.activityTypes);
-      }
-
-      // Restore activities (merge with existing)
-      if (data.activities && window.lightTrackAPI.importActivities) {
-        await window.lightTrackAPI.importActivities(data.activities);
-      }
-
-      if (statusEl) {
-        statusEl.textContent = `Restored from backup (${backupData.backupDate?.split('T')[0] || 'unknown date'})`;
-      }
-      showNotification('Data restored successfully', 'success');
-
-      // Reload settings view
-      await loadSettingsView();
-
-      // Reload activities
-      await loadActivities();
-
-    } catch (error) {
-      console.error('Restore failed:', error);
-      if (statusEl) {
-        statusEl.textContent = 'Restore failed: ' + error.message;
-      }
-      showNotification('Restore failed: ' + error.message, 'error');
     }
   }
 
@@ -1754,7 +1602,6 @@
     loadSettingsView,
     initSettingsGroups,
     createBackup,
-    restoreFromBackup,
     loadCalendarSettings,
     loadUpcomingMeetings,
     showCalendarHelpModal,
@@ -1785,7 +1632,6 @@
   window.loadSettingsView = loadSettingsView;
   window.initSettingsGroups = initSettingsGroups;
   window.createBackup = createBackup;
-  window.restoreFromBackup = restoreFromBackup;
   window.loadCalendarSettings = loadCalendarSettings;
   window.loadUpcomingMeetings = loadUpcomingMeetings;
   window.showCalendarHelpModal = showCalendarHelpModal;

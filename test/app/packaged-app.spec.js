@@ -200,6 +200,17 @@ test.describe('packaged application', () => {
     await app.close();
   });
 
+  // #40: restore is not offered until backup and restore are rebuilt (#16).
+  test('offers backup but not restore', async () => {
+    const { app, page, errors } = await launch(userData);
+    await page.locator('.nav-btn[data-view="settings"]').click();
+    await expect(page.locator('#backup-data-btn')).toHaveCount(1);
+    await expect(page.locator('#restore-data-btn')).toHaveCount(0);
+    expect(await page.evaluate(() => typeof window.restoreFromBackup)).toBe('undefined');
+    expect(errors).toEqual([]);
+    await app.close();
+  });
+
   // #45: a failed request shows an error toast instead of an empty view.
   test('shows a failed request to the user', async () => {
     const { app, page } = await launch(userData);
