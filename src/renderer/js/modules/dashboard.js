@@ -170,11 +170,6 @@
     }
 
     try {
-      if (!window.lightTrackAPI) {
-        weeklyFocusEl.textContent = '--';
-        return;
-      }
-
       // Get last 7 days of activities (fetch each day individually for better caching)
       const weekActivities = [];
       const today = new Date();
@@ -184,7 +179,7 @@
         date.setDate(date.getDate() - i);
         const dateStr = getLocalDateString(date);
 
-        const activities = await window.lightTrackAPI.getActivities(dateStr) || [];
+        const activities = await window.lightTrackAPI.getActivities(dateStr);
         weekActivities.push(...activities);
       }
 
@@ -251,6 +246,7 @@
     } catch (error) {
       console.error('Failed to calculate weekly focus:', error);
       weeklyFocusEl.textContent = '--';
+      showNotification(error.message, 'error');
     }
   }
 
@@ -275,11 +271,6 @@
     }
 
     try {
-      if (!window.lightTrackAPI) {
-        streakCountEl.textContent = '0';
-        return;
-      }
-
       // Check consecutive days going back from today
       let streak = 0;
       const today = new Date();
@@ -290,7 +281,7 @@
         date.setDate(date.getDate() - i);
         const dateStr = getLocalDateString(date);
 
-        const activities = await window.lightTrackAPI.getActivities(dateStr) || [];
+        const activities = await window.lightTrackAPI.getActivities(dateStr);
         const totalSeconds = activities.reduce((sum, a) => sum + (a.duration || 0), 0);
         const totalMinutes = Math.floor(totalSeconds / 60);
 
@@ -340,6 +331,7 @@
     } catch (error) {
       console.error('Failed to calculate streak:', error);
       streakCountEl.textContent = '0';
+      showNotification(error.message, 'error');
     }
   }
 

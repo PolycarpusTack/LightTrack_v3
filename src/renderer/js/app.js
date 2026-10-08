@@ -79,10 +79,10 @@ function safeLocalStorageSet(key, value) {
  */
 async function fetchAllMappings() {
   const [app, url, jira, meeting] = await Promise.all([
-    window.lightTrackAPI?.getProjectMappings?.() || {},
-    window.lightTrackAPI?.getUrlMappings?.() || {},
-    window.lightTrackAPI?.getJiraMappings?.() || {},
-    window.lightTrackAPI?.getMeetingMappings?.() || {}
+    window.lightTrackAPI.getProjectMappings(),
+    window.lightTrackAPI.getUrlMappings(),
+    window.lightTrackAPI.getJiraMappings(),
+    window.lightTrackAPI.getMeetingMappings()
   ]);
   return { app, url, jira, meeting };
 }
@@ -703,10 +703,6 @@ async function startTracking() {
   console.log('Starting tracking...');
 
   try {
-    if (!window.lightTrackAPI) {
-      throw new Error('LightTrack API not available');
-    }
-
     const result = await window.lightTrackAPI.startTracking();
     console.log('Start tracking result:', result);
 
@@ -737,7 +733,7 @@ async function startTracking() {
 
   } catch (error) {
     console.error('Failed to start tracking:', error);
-    showNotification(`Failed to start: ${error.message}`, 'error');
+    showNotification(error.message, 'error');
   }
 }
 
@@ -748,10 +744,6 @@ async function stopTracking() {
   console.log('Stopping tracking...');
 
   try {
-    if (!window.lightTrackAPI) {
-      throw new Error('LightTrack API not available');
-    }
-
     const result = await window.lightTrackAPI.stopTracking();
     console.log('Stop tracking result:', result);
 
@@ -781,7 +773,7 @@ async function stopTracking() {
 
   } catch (error) {
     console.error('Failed to stop tracking:', error);
-    showNotification(`Failed to stop: ${error.message}`, 'error');
+    showNotification(error.message, 'error');
   }
 }
 
@@ -807,8 +799,6 @@ async function toggleTracking() {
  */
 async function loadActivities(date) {
   try {
-    if (!window.lightTrackAPI) return;
-
     const targetDate = date || AppState.filterDate;
     const activities = await window.lightTrackAPI.getActivities(targetDate);
 
@@ -1000,8 +990,6 @@ function attachActivityListeners() {
  * Caches results to avoid repeated API calls
  */
 async function loadComparisonData() {
-  if (!window.lightTrackAPI) return;
-
   const today = getLocalDateString(new Date());
 
   // Skip if already loaded for today
@@ -1022,7 +1010,7 @@ async function loadComparisonData() {
     }
 
     // Fetch yesterday's data
-    const yesterdayActivities = await window.lightTrackAPI.getActivities(yesterdayStr) || [];
+    const yesterdayActivities = await window.lightTrackAPI.getActivities(yesterdayStr);
     const yesterdayTotal = yesterdayActivities.reduce((sum, a) => sum + (a.duration || 0), 0);
 
     // Fetch weekly data (in parallel)
@@ -1047,7 +1035,7 @@ async function loadComparisonData() {
 
   } catch (error) {
     console.error('Failed to load comparison data:', error);
-    // Non-critical: return empty data instead of showing notification
+    showNotification(error.message, 'error');
     return null;
   }
 }
@@ -1227,11 +1215,6 @@ function initDailySummary() {
  */
 async function getCurrentStatus() {
   try {
-    if (!window.lightTrackAPI) {
-      console.warn('LightTrack API not available yet');
-      return;
-    }
-
     const status = await window.lightTrackAPI.getTrackingStatus();
     console.log('Current status:', status);
 
@@ -1264,7 +1247,7 @@ async function getCurrentStatus() {
 
   } catch (error) {
     console.error('Failed to get tracking status:', error);
-    showNotification('Failed to sync tracking status', 'warning');
+    showNotification(error.message, 'error');
   }
 }
 
@@ -1448,12 +1431,10 @@ function setupEventListeners() {
   if (exportBtn) {
     exportBtn.addEventListener('click', async () => {
       try {
-        if (window.lightTrackAPI) {
-          await window.lightTrackAPI.exportData();
-          showNotification('Data exported', 'success');
-        }
+        await window.lightTrackAPI.exportData();
+        showNotification('Data exported', 'success');
       } catch (error) {
-        showNotification('Export failed', 'error');
+        showNotification(error.message, 'error');
       }
     });
   }
@@ -1591,54 +1572,50 @@ function setupEventListeners() {
   }
 
   // Listen for tracking updates from main process
-  if (window.lightTrackAPI?.onTrackingUpdate) {
-    window.lightTrackAPI.onTrackingUpdate((data) => {
-      console.log('Tracking update:', data);
-      if (typeof data.isTracking === 'boolean') {
-        AppState.isTracking = data.isTracking;
-      }
+  window.lightTrackAPI.onTrackingUpdate((data) => {
+    console.log('Tracking update:', data);
+    if (typeof data.isTracking === 'boolean') {
+      AppState.isTracking = data.isTracking;
+    }
 
-      if (data.sessionStartTime) {
-        AppState.startTime = data.sessionStartTime;
-      }
+    if (data.sessionStartTime) {
+      AppState.startTime = data.sessionStartTime;
+    }
 
-      if (data.currentActivity || data.currentActivity === null) {
-        AppState.currentActivity = data.currentActivity;
-      }
+    if (data.currentActivity || data.currentActivity === null) {
+      AppState.currentActivity = data.currentActivity;
+    }
 
-      if (AppState.isTracking) {
-        if (!AppState.timerInterval) {
-          AppState.timerInterval = setInterval(updateTimerDisplay, 1000);
-        }
-      } else if (AppState.timerInterval) {
+    if (AppState.isTracking) {
+      if (!AppState.timerInterval) {
+        AppState.timerInterval = setInterval(updateTimerDisplay, 1000);
+      }
+    } else if (AppState.timerInterval) {
+      clearInterval(AppState.timerInterval);
+      AppState.timerInterval = null;
+      AppState.startTime = null;
+      AppState.currentActivity = null;
+    }
+
+    updateTrackingUI();
+    updateTimerDisplay();
+  });
+
+  window.lightTrackAPI.onTrackingStatusChanged((isTracking) => {
+    AppState.isTracking = Boolean(isTracking);
+    if (AppState.isTracking) {
+      getCurrentStatus();
+    } else {
+      AppState.startTime = null;
+      AppState.currentActivity = null;
+      if (AppState.timerInterval) {
         clearInterval(AppState.timerInterval);
         AppState.timerInterval = null;
-        AppState.startTime = null;
-        AppState.currentActivity = null;
       }
-
       updateTrackingUI();
       updateTimerDisplay();
-    });
-  }
-
-  if (window.lightTrackAPI?.onTrackingStatusChanged) {
-    window.lightTrackAPI.onTrackingStatusChanged((isTracking) => {
-      AppState.isTracking = Boolean(isTracking);
-      if (AppState.isTracking) {
-        getCurrentStatus();
-      } else {
-        AppState.startTime = null;
-        AppState.currentActivity = null;
-        if (AppState.timerInterval) {
-          clearInterval(AppState.timerInterval);
-          AppState.timerInterval = null;
-        }
-        updateTrackingUI();
-        updateTimerDisplay();
-      }
-    });
-  }
+    }
+  });
 
   // Clear tag filters button
   const clearTagFiltersBtn = document.getElementById('clear-tag-filters');
@@ -2004,7 +1981,7 @@ async function switchProject(projectName) {
   }
 
   // If tracking, update the current activity on the backend
-  if (AppState.isTracking && window.lightTrackAPI?.switchProject) {
+  if (AppState.isTracking) {
     try {
       await window.lightTrackAPI.switchProject(projectName);
       showNotification(`Switched to ${projectName}`, 'success');
@@ -2012,9 +1989,6 @@ async function switchProject(projectName) {
       console.error('Failed to switch project:', error);
       showNotification('Failed to switch project', 'error');
     }
-  } else if (AppState.isTracking) {
-    // Fallback: just show notification, backend will pick up on next poll
-    showNotification(`Switched to ${projectName}`, 'success');
   }
 }
 
@@ -2069,11 +2043,6 @@ async function markBreak() {
   const DEFAULT_BREAK_MINUTES = 15;
 
   try {
-    if (!window.lightTrackAPI) {
-      showNotification('API not available', 'error');
-      return;
-    }
-
     // Prompt for break duration
     const input = prompt('Break duration in minutes:', DEFAULT_BREAK_MINUTES.toString());
     if (input === null) return; // Cancelled
@@ -2107,7 +2076,7 @@ async function markBreak() {
 
   } catch (error) {
     console.error('Failed to mark break:', error);
-    showNotification('Failed to log break', 'error');
+    showNotification(error.message, 'error');
   }
 }
 
@@ -2359,8 +2328,6 @@ async function loadProjectsView() {
   if (projectsList) projectsList.classList.add('view-loading');
 
   try {
-    if (!window.lightTrackAPI) return;
-
     // Load and display all mapping types (in parallel for better performance)
     await Promise.all([
       loadProjectMappings(),
@@ -2408,7 +2375,7 @@ async function loadProjectsView() {
     }
 
     // Load activities and aggregate by project
-    const allActivities = await window.lightTrackAPI.getActivities() || [];
+    const allActivities = await window.lightTrackAPI.getActivities();
 
     const projectStats = {};
     allActivities.forEach(a => {
@@ -2467,10 +2434,10 @@ async function loadProjectsView() {
  */
 async function loadProjectMappings() {
   const mappingsList = document.getElementById('mappings-list');
-  if (!mappingsList || !window.lightTrackAPI?.getProjectMappings) return;
+  if (!mappingsList) return;
 
   try {
-    const mappings = await window.lightTrackAPI.getProjectMappings() || {};
+    const mappings = await window.lightTrackAPI.getProjectMappings();
     const entries = Object.entries(mappings);
 
     if (entries.length === 0) {
@@ -2514,6 +2481,7 @@ async function loadProjectMappings() {
   } catch (error) {
     console.error('Failed to load project mappings:', error);
     mappingsList.innerHTML = '<div class="meta-line">Failed to load rules</div>';
+    showNotification(error.message, 'error');
   }
 }
 
@@ -2573,8 +2541,6 @@ async function findAndDisplayMatchedRule(activity) {
   // Hide by default
   Elements.matchedRuleInfo.style.display = 'none';
   Elements.matchedRuleText.textContent = '';
-
-  if (!window.lightTrackAPI) return;
 
   try {
     // Fetch all mapping types (with caching)
@@ -2660,6 +2626,7 @@ async function findAndDisplayMatchedRule(activity) {
     // No rule matched - activity may have been manually assigned
   } catch (error) {
     console.error('Error finding matched rule:', error);
+    showNotification(error.message, 'error');
   }
 }
 
@@ -2906,27 +2873,16 @@ async function saveNewProject() {
 
   try {
     // Add project via API
-    if (window.lightTrackAPI?.addProject) {
-      await window.lightTrackAPI.addProject({
-        name,
-        sapCode: sapCode || '',
-        costCenter: costCenter || '',
-        wbsElement: wbsElement || ''
-      });
-      showNotification(`Project "${name}" created`, 'success');
-      closeNewProjectModal();
-      // Reload projects view
-      await loadProjectsView();
-    } else {
-      // Fallback: open manual entry modal with project pre-filled
-      closeNewProjectModal();
-      openManualEntryModal();
-      const projectInput = document.getElementById('entry-project');
-      if (projectInput) {
-        projectInput.value = name;
-      }
-      showNotification(`Enter a time entry for "${name}" to create the project`, 'info');
-    }
+    await window.lightTrackAPI.addProject({
+      name,
+      sapCode: sapCode || '',
+      costCenter: costCenter || '',
+      wbsElement: wbsElement || ''
+    });
+    showNotification(`Project "${name}" created`, 'success');
+    closeNewProjectModal();
+    // Reload projects view
+    await loadProjectsView();
   } catch (error) {
     console.error('Failed to create project:', error);
     showNotification('Failed to create project', 'error');

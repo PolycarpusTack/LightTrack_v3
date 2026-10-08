@@ -31,7 +31,7 @@
     }
 
     // Fetch fresh data
-    const activities = await window.lightTrackAPI?.getActivities() || [];
+    const activities = await window.lightTrackAPI.getActivities();
 
     // Update cache
     cache.activities = activities;
@@ -361,8 +361,6 @@
    */
   async function loadAnalyticsView() {
     try {
-      if (!window.lightTrackAPI) return;
-
       // Use cached elements
       const { analyticsWeekTotal, analyticsWeekDays, analyticsAvgDay,
         analyticsTopProject, analyticsTopTime, analyticsFocusTime,
@@ -892,9 +890,7 @@
    */
   async function exportAnalyticsToCSV() {
     try {
-      if (!window.lightTrackAPI) return;
-
-      const allActivities = await window.lightTrackAPI.getActivities() || [];
+      const allActivities = await window.lightTrackAPI.getActivities();
       const weekStartDay = AppState.settings.weekStartDay ?? 1;
       const customRange = AppState.analyticsRange === 'custom' ? AppState.customDateRange : null;
       const { rangeStart, rangeEnd } = getAnalyticsDateRange(AppState.analyticsRange, weekStartDay, customRange);
