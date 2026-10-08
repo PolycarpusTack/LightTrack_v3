@@ -83,17 +83,17 @@
                     <div class="timer" id="timer">00:00:00</div>
                     <div class="timer-start-time" id="timer-start-time"></div>
                     <div class="meta" id="activity-meta">
-                        <span class="badge clickable" id="current-project-badge" title="Click to switch project">Project: General</span>
+                        <button type="button" class="badge clickable" id="current-project-badge" title="Switch project">Project: General</button>
                         <span class="badge" id="current-app-badge">App: --</span>
                         <span class="badge" id="sampling-badge">Sampling: 5s</span>
                         <!-- Quick Project Switcher Dropdown -->
                         <div class="project-switcher" id="project-switcher">
-                            <div class="project-switcher-header">Switch Project</div>
+                            <div class="project-switcher-header">Switch project</div>
                             <div class="project-switcher-list" id="project-switcher-list"></div>
                         </div>
                     </div>
                     <div class="actions">
-                        <button class="solid primary" id="toggle-tracking">
+                        <button class="solid" id="toggle-tracking">
                             <span id="toggle-tracking-text">Start</span>
                         </button>
                         <button class="ghost" id="add-manual-entry">Add manual</button>
@@ -196,8 +196,8 @@
                     <!-- Daily Summary Card -->
                     <div class="insight-card daily-summary-card" id="daily-summary-card">
                         <div class="daily-summary-header">
-                            <div class="label">Daily Summary</div>
-                            <button class="ghost btn-small" id="toggle-daily-summary" title="Toggle summary">▼</button>
+                            <div class="label">Daily summary</div>
+                            <button class="ghost small" id="toggle-daily-summary" title="Toggle summary">▼</button>
                         </div>
                         <div class="daily-summary-content" id="daily-summary-content">
                             <div class="summary-stat">
@@ -278,10 +278,10 @@
                             <input type="checkbox" id="timeline-select-all">
                             <span>Select</span>
                         </label>
-                        <button class="ghost btn-small" id="timeline-merge-selected" disabled title="Merge selected activities">Merge</button>
+                        <button class="ghost small" id="timeline-merge-selected" disabled title="Merge selected activities">Merge</button>
                         <span class="filter-divider">|</span>
                         <select id="timeline-project-filter" class="filter-select" title="Filter by project">
-                            <option value="">All Projects</option>
+                            <option value="">All projects</option>
                         </select>
                         <label class="filter-checkbox" title="Show billable only">
                             <input type="checkbox" id="timeline-billable-filter">
@@ -307,11 +307,11 @@
             <!-- Analytics Controls -->
             <section class="analytics-controls">
                 <div class="date-range-selector">
-                    <button class="range-btn active" data-range="week">This Week</button>
-                    <button class="range-btn" data-range="month">This Month</button>
-                    <button class="range-btn" data-range="year">This Year</button>
-                    <button class="range-btn" data-range="all">All Time</button>
-                    <button class="range-btn" data-range="custom" id="custom-range-btn">Custom</button>
+                    <button class="ghost range-btn active" data-range="week">This week</button>
+                    <button class="ghost range-btn" data-range="month">This month</button>
+                    <button class="ghost range-btn" data-range="year">This year</button>
+                    <button class="ghost range-btn" data-range="all">All time</button>
+                    <button class="ghost range-btn" data-range="custom" id="custom-range-btn">Custom</button>
                 </div>
                 <div class="custom-range-picker" id="custom-range-picker" hidden>
                     <div class="date-inputs">
@@ -323,30 +323,30 @@
                             <span>To:</span>
                             <input type="date" id="analytics-date-to">
                         </label>
-                        <button class="ghost btn-sm" id="apply-custom-range">Apply</button>
+                        <button class="ghost small" id="apply-custom-range">Apply</button>
                     </div>
                 </div>
                 <div class="pill-row analytics-filter-row">
-                    <div class="pill active" data-analytics-filter="all">All</div>
-                    <div class="pill" data-analytics-filter="billable">Billable</div>
-                    <div class="pill" data-analytics-filter="non-billable">Non-billable</div>
-                    <div class="pill" data-analytics-filter="meetings">Meetings</div>
+                    <button type="button" class="ghost small active" data-analytics-filter="all">All</button>
+                    <button type="button" class="ghost small" data-analytics-filter="billable">Billable</button>
+                    <button type="button" class="ghost small" data-analytics-filter="non-billable">Non-billable</button>
+                    <button type="button" class="ghost small" data-analytics-filter="meetings">Meetings</button>
                 </div>
                 <div class="analytics-actions">
-                    <button class="btn btn-sm ghost" id="toggle-comparison" title="Compare with previous period">Compare</button>
-                    <button class="btn btn-sm ghost" id="export-analytics-csv" title="Export to CSV">Export CSV</button>
+                    <button class="ghost small" id="toggle-comparison" title="Compare with previous period">Compare</button>
+                    <button class="ghost small" id="export-analytics-csv" title="Export to CSV">Export CSV</button>
                 </div>
             </section>
 
             <!-- Period Comparison (hidden by default) -->
             <section class="card comparison-card" id="comparison-section" hidden>
-                <div class="label">Period Comparison</div>
+                <div class="label">Period comparison</div>
                 <div class="comparison-grid">
                     <div class="comparison-col">
-                        <div class="comparison-header" id="comparison-current-label">This Week</div>
+                        <div class="comparison-header" id="comparison-current-label">This week</div>
                         <div class="comparison-stats">
                             <div class="comparison-stat">
-                                <span class="stat-label">Total Time</span>
+                                <span class="stat-label">Total time</span>
                                 <span class="stat-value" id="comparison-current-total">0h</span>
                             </div>
                             <div class="comparison-stat">
@@ -354,7 +354,7 @@
                                 <span class="stat-value" id="comparison-current-billable">0h</span>
                             </div>
                             <div class="comparison-stat">
-                                <span class="stat-label">Focus Time</span>
+                                <span class="stat-label">Focus time</span>
                                 <span class="stat-value" id="comparison-current-focus">0h</span>
                             </div>
                             <div class="comparison-stat">
@@ -365,10 +365,10 @@
                     </div>
                     <div class="comparison-divider"></div>
                     <div class="comparison-col">
-                        <div class="comparison-header" id="comparison-prev-label">Last Week</div>
+                        <div class="comparison-header" id="comparison-prev-label">Last week</div>
                         <div class="comparison-stats">
                             <div class="comparison-stat">
-                                <span class="stat-label">Total Time</span>
+                                <span class="stat-label">Total time</span>
                                 <span class="stat-value" id="comparison-prev-total">0h</span>
                             </div>
                             <div class="comparison-stat">
@@ -376,7 +376,7 @@
                                 <span class="stat-value" id="comparison-prev-billable">0h</span>
                             </div>
                             <div class="comparison-stat">
-                                <span class="stat-label">Focus Time</span>
+                                <span class="stat-label">Focus time</span>
                                 <span class="stat-value" id="comparison-prev-focus">0h</span>
                             </div>
                             <div class="comparison-stat">
@@ -412,7 +412,7 @@
             <!-- KPI Cards -->
             <section class="kpi-grid">
                 <div class="card">
-                    <div class="label">Total Time</div>
+                    <div class="label">Total time</div>
                     <div class="value" id="analytics-week-total">0h 0m</div>
                     <div class="meta-line" id="analytics-week-days">0 days tracked</div>
                 </div>
@@ -422,17 +422,17 @@
                     <div class="meta-line">When active</div>
                 </div>
                 <div class="card">
-                    <div class="label">Top Project</div>
+                    <div class="label">Top project</div>
                     <div class="value" id="analytics-top-project">--</div>
                     <div class="meta-line" id="analytics-top-time">0h</div>
                 </div>
                 <div class="card">
-                    <div class="label">Focus Time</div>
+                    <div class="label">Focus time</div>
                     <div class="value" id="analytics-focus-time">0h 0m</div>
                     <div class="meta-line" id="analytics-focus-percent">Sessions 25+ min</div>
                 </div>
                 <div class="card">
-                    <div class="label">Billable Hours</div>
+                    <div class="label">Billable hours</div>
                     <div class="value" id="analytics-billable-time">0h 0m</div>
                     <div class="billable-breakdown" id="analytics-billable-breakdown">
                         <div class="billable-bar">
@@ -445,11 +445,11 @@
                     </div>
                 </div>
                 <div class="card">
-                    <div class="label">Daily Goals</div>
+                    <div class="label">Daily goals</div>
                     <div id="goals-progress" class="goals-progress">
                         <div class="goal-item">
                             <div class="goal-header">
-                                <span class="goal-name">Deep Work</span>
+                                <span class="goal-name">Deep work</span>
                                 <span class="goal-value" id="goal-deepwork-value">0h / 4h</span>
                             </div>
                             <div class="goal-bar">
@@ -458,7 +458,7 @@
                         </div>
                         <div class="goal-item">
                             <div class="goal-header">
-                                <span class="goal-name">Focus Sessions</span>
+                                <span class="goal-name">Focus sessions</span>
                                 <span class="goal-value" id="goal-focus-value">0 / 4</span>
                             </div>
                             <div class="goal-bar">
@@ -471,7 +471,7 @@
 
             <!-- Daily Activity Chart -->
             <section class="card chart-card">
-                <div class="label">Daily Activity</div>
+                <div class="label">Daily activity</div>
                 <div class="chart-container">
                     <canvas id="daily-chart" width="600" height="200"></canvas>
                 </div>
@@ -479,7 +479,7 @@
 
             <!-- Project Breakdown -->
             <section class="card">
-                <div class="label">Project Breakdown</div>
+                <div class="label">Project breakdown</div>
                 <div class="chart-breakdown-grid">
                     <div class="chart-container chart-container-small">
                         <canvas id="project-pie-chart" width="200" height="200"></canvas>
@@ -525,19 +525,19 @@
         <div class="view" data-view="projects">
             <!-- App/Window Mapping Rules -->
             <section class="card">
-                <div class="label">App Rules</div>
+                <div class="label">App rules</div>
                 <div class="meta-line">Auto-assign based on app name or window title</div>
                 <div class="mapping-form">
                     <input type="text" id="mapping-pattern" placeholder="Pattern (e.g., VS Code)">
-                    <button type="button" class="ghost btn-small btn-test-pattern" data-pattern-input="mapping-pattern" title="Test pattern">Test</button>
+                    <button type="button" class="ghost btn-test-pattern" data-pattern-input="mapping-pattern" title="Test pattern">Test</button>
                     <input type="text" id="mapping-project" placeholder="Project name">
                     <input type="text" id="mapping-activity" placeholder="Activity (optional)">
-                    <input type="text" id="mapping-sap-code" placeholder="SAP Code (optional)">
-                    <input type="text" id="mapping-cost-center" placeholder="Cost Center (optional)">
-                    <input type="text" id="mapping-wbs" placeholder="WBS Element (optional)">
-                    <button class="solid primary" id="add-mapping-btn">Add</button>
+                    <input type="text" id="mapping-sap-code" placeholder="SAP code (optional)">
+                    <input type="text" id="mapping-cost-center" placeholder="Cost center (optional)">
+                    <input type="text" id="mapping-wbs" placeholder="WBS element (optional)">
+                    <button class="solid" id="add-mapping-btn">Add</button>
                     <button class="ghost" id="update-mapping-btn" disabled>Update</button>
-                    <button class="ghost danger" id="cancel-mapping-btn" hidden>Cancel</button>
+                    <button class="ghost" id="cancel-mapping-btn" hidden>Cancel</button>
                 </div>
                 <div id="mappings-list" class="mappings-list"></div>
             </section>
@@ -548,15 +548,15 @@
                 <div class="meta-line">Auto-assign based on browser URL</div>
                 <div class="mapping-form">
                     <input type="text" id="url-mapping-pattern" placeholder="URL pattern (e.g., github.com)">
-                    <button type="button" class="ghost btn-small btn-test-pattern" data-pattern-input="url-mapping-pattern" title="Test pattern">Test</button>
+                    <button type="button" class="ghost btn-test-pattern" data-pattern-input="url-mapping-pattern" title="Test pattern">Test</button>
                     <input type="text" id="url-mapping-project" placeholder="Project name">
                     <input type="text" id="url-mapping-activity" placeholder="Activity (optional)">
-                    <input type="text" id="url-mapping-sap-code" placeholder="SAP Code (optional)">
-                    <input type="text" id="url-mapping-cost-center" placeholder="Cost Center (optional)">
-                    <input type="text" id="url-mapping-wbs" placeholder="WBS Element (optional)">
-                    <button class="solid primary" id="add-url-mapping-btn">Add</button>
+                    <input type="text" id="url-mapping-sap-code" placeholder="SAP code (optional)">
+                    <input type="text" id="url-mapping-cost-center" placeholder="Cost center (optional)">
+                    <input type="text" id="url-mapping-wbs" placeholder="WBS element (optional)">
+                    <button class="solid" id="add-url-mapping-btn">Add</button>
                     <button class="ghost" id="update-url-mapping-btn" disabled>Update</button>
-                    <button class="ghost danger" id="cancel-url-mapping-btn" hidden>Cancel</button>
+                    <button class="ghost" id="cancel-url-mapping-btn" hidden>Cancel</button>
                 </div>
                 <div id="url-mappings-list" class="mappings-list"></div>
             </section>
@@ -569,12 +569,12 @@
                     <input type="text" id="jira-mapping-key" placeholder="Project key (e.g., PROJ)">
                     <input type="text" id="jira-mapping-project" placeholder="Project name">
                     <input type="text" id="jira-mapping-activity" placeholder="Activity (optional)">
-                    <input type="text" id="jira-mapping-sap-code" placeholder="SAP Code (optional)">
-                    <input type="text" id="jira-mapping-cost-center" placeholder="Cost Center (optional)">
-                    <input type="text" id="jira-mapping-wbs" placeholder="WBS Element (optional)">
-                    <button class="solid primary" id="add-jira-mapping-btn">Add</button>
+                    <input type="text" id="jira-mapping-sap-code" placeholder="SAP code (optional)">
+                    <input type="text" id="jira-mapping-cost-center" placeholder="Cost center (optional)">
+                    <input type="text" id="jira-mapping-wbs" placeholder="WBS element (optional)">
+                    <button class="solid" id="add-jira-mapping-btn">Add</button>
                     <button class="ghost" id="update-jira-mapping-btn" disabled>Update</button>
-                    <button class="ghost danger" id="cancel-jira-mapping-btn" hidden>Cancel</button>
+                    <button class="ghost" id="cancel-jira-mapping-btn" hidden>Cancel</button>
                 </div>
                 <div id="jira-mappings-list" class="mappings-list"></div>
             </section>
@@ -588,19 +588,19 @@
 
             <!-- Meeting Subject Mapping Rules -->
             <section class="card">
-                <div class="label">Meeting Rules</div>
+                <div class="label">Meeting rules</div>
                 <div class="meta-line">Auto-assign based on Outlook/Teams meeting subject</div>
                 <div class="mapping-form">
                     <input type="text" id="meeting-mapping-pattern" placeholder="Subject pattern (e.g., Sprint Planning)">
-                    <button type="button" class="ghost btn-small btn-test-pattern" data-pattern-input="meeting-mapping-pattern" title="Test pattern">Test</button>
+                    <button type="button" class="ghost btn-test-pattern" data-pattern-input="meeting-mapping-pattern" title="Test pattern">Test</button>
                     <input type="text" id="meeting-mapping-project" placeholder="Project name">
                     <input type="text" id="meeting-mapping-activity" placeholder="Activity (optional)">
-                    <input type="text" id="meeting-mapping-sap-code" placeholder="SAP Code (optional)">
-                    <input type="text" id="meeting-mapping-cost-center" placeholder="Cost Center (optional)">
-                    <input type="text" id="meeting-mapping-wbs" placeholder="WBS Element (optional)">
-                    <button class="solid primary" id="add-meeting-mapping-btn">Add</button>
+                    <input type="text" id="meeting-mapping-sap-code" placeholder="SAP code (optional)">
+                    <input type="text" id="meeting-mapping-cost-center" placeholder="Cost center (optional)">
+                    <input type="text" id="meeting-mapping-wbs" placeholder="WBS element (optional)">
+                    <button class="solid" id="add-meeting-mapping-btn">Add</button>
                     <button class="ghost" id="update-meeting-mapping-btn" disabled>Update</button>
-                    <button class="ghost danger" id="cancel-meeting-mapping-btn" hidden>Cancel</button>
+                    <button class="ghost" id="cancel-meeting-mapping-btn" hidden>Cancel</button>
                 </div>
                 <div id="meeting-mappings-list" class="mappings-list"></div>
             </section>
@@ -609,10 +609,10 @@
             <section class="card">
                 <div class="section-title-row">
                     <div>
-                        <div class="label">All Projects</div>
+                        <div class="label">All projects</div>
                         <div class="meta-line">Total time tracked per project</div>
                     </div>
-                    <button class="ghost" id="create-project-btn">+ New Project</button>
+                    <button class="ghost" id="create-project-btn">+ New project</button>
                 </div>
             </section>
             <section class="list">
@@ -629,7 +629,7 @@
         <!-- SAP Export View -->
         <div class="view" data-view="sap-export">
             <section class="card">
-                <div class="label">Employee Settings</div>
+                <div class="label">Employee settings</div>
                 <div class="meta-line">Your employee ID for SAP ByDesign export</div>
                 <div class="settings-row">
                     <div class="form-group flex-1">
@@ -641,13 +641,13 @@
             </section>
 
             <section class="card">
-                <div class="label">Select Period</div>
+                <div class="label">Select period</div>
                 <div class="meta-line">Choose a date range for your timesheet export</div>
                 <div class="sap-period-buttons">
-                    <button class="ghost" id="sap-this-week">This Week</button>
-                    <button class="ghost" id="sap-last-week">Last Week</button>
-                    <button class="ghost" id="sap-this-month">This Month</button>
-                    <button class="ghost" id="sap-last-month">Last Month</button>
+                    <button class="ghost" id="sap-this-week">This week</button>
+                    <button class="ghost" id="sap-last-week">Last week</button>
+                    <button class="ghost" id="sap-this-month">This month</button>
+                    <button class="ghost" id="sap-last-month">Last month</button>
                 </div>
                 <div id="sap-selected-period" class="meta-line mt-12">
                     No period selected
@@ -663,10 +663,10 @@
                             <tr>
                                 <th>Date</th>
                                 <th>Project</th>
-                                <th>Activity Type</th>
+                                <th>Activity type</th>
                                 <th class="num">Hours</th>
-                                <th>SAP Code</th>
-                                <th>Cost Center</th>
+                                <th>SAP code</th>
+                                <th>Cost center</th>
                                 <th>WBS</th>
                                 <th>Description</th>
                             </tr>
@@ -684,14 +684,14 @@
 
             <section class="card">
                 <div class="actions align-center">
-                    <button class="solid primary" id="sap-export-btn" disabled>Export to CSV</button>
+                    <button class="solid" id="sap-export-btn" disabled>Export to CSV</button>
                     <span id="sap-export-status" class="meta-line"></span>
                 </div>
             </section>
 
             <!-- Export History -->
             <section class="card">
-                <div class="label">Export History</div>
+                <div class="label">Export history</div>
                 <div class="meta-line">Recent exports (last 20)</div>
                 <div id="export-history-list" class="mt-12">
                     <div class="meta-line">No exports yet</div>
@@ -709,7 +709,7 @@
                 </summary>
                 <div class="settings-group-content">
                     <section class="card">
-                        <div class="label">Startup & Window Behavior</div>
+                        <div class="label">Startup & window behavior</div>
                         <div class="meta-line">Configure how LightTrack behaves when you start your computer and close the window</div>
                         <div class="settings-row">
                             <div class="form-group checkbox-group">
@@ -742,7 +742,7 @@
                         </div>
                     </section>
                     <section class="card">
-                        <div class="label">Activity Consolidation</div>
+                        <div class="label">Activity consolidation</div>
                         <div class="meta-line">Control how similar activities are merged together</div>
                         <div class="settings-row">
                             <div class="form-group checkbox-group">
@@ -778,7 +778,7 @@
                 </summary>
                 <div class="settings-group-content">
                     <section class="card">
-                        <div class="label">Work Day</div>
+                        <div class="label">Work day</div>
                         <div class="meta-line">Define your typical work hours for timeline display</div>
                         <div class="settings-row">
                             <div class="form-group">
@@ -800,7 +800,7 @@
                         </div>
                     </section>
                     <section class="card">
-                        <div class="label">Daily Goals</div>
+                        <div class="label">Daily goals</div>
                         <div class="meta-line">Set your daily targets</div>
                         <div class="settings-row">
                             <div class="form-group">
@@ -835,7 +835,7 @@
                 </summary>
                 <div class="settings-group-content">
                     <section class="card">
-                        <div class="label">Break Reminder</div>
+                        <div class="label">Break reminder</div>
                         <div class="meta-line">Get notified to take breaks during long work sessions</div>
                         <div class="settings-row">
                             <div class="form-group checkbox-group">
@@ -862,18 +862,18 @@
                 </summary>
                 <div class="settings-group-content">
                     <section class="card">
-                        <div class="label">Calendar Sync</div>
+                        <div class="label">Calendar sync</div>
                         <div class="meta-line">Sync meetings from Outlook/Exchange via ICS subscription</div>
                         <div class="settings-row column">
                             <div class="form-group w-full">
                                 <label for="settings-calendar-url">Calendar ICS URL</label>
                                 <div class="inline-row">
                                     <input type="url" id="settings-calendar-url" placeholder="https://outlook.office365.com/owa/calendar/.../calendar.ics" class="flex-1">
-                                    <button class="solid primary" id="calendar-sync-btn">Sync Now</button>
+                                    <button class="solid" id="calendar-sync-btn">Sync now</button>
                                 </div>
                                 <div class="meta-line text-xs">
                                     <strong>Privacy:</strong> This URL is typically public. Do not share it.
-                                    <a href="#" id="calendar-help-link" class="ml-8">How to get your calendar URL</a>
+                                    <button type="button" id="calendar-help-link" class="ghost small ml-8">How to get your calendar URL</button>
                                 </div>
                             </div>
                             <div id="calendar-sync-status" class="meta-line" hidden></div>
@@ -891,10 +891,10 @@
                 </summary>
                 <div class="settings-group-content">
                     <section class="card">
-                        <div class="label">Data Management</div>
+                        <div class="label">Data management</div>
                         <div class="meta-line">Export and manage your time tracking data</div>
                         <div class="actions">
-                            <button class="solid primary" id="settings-export">Export CSV</button>
+                            <button class="solid" id="settings-export">Export CSV</button>
                             <button class="ghost" id="settings-clear-old">Clear old data (30+ days)</button>
                         </div>
                     </section>
@@ -914,7 +914,7 @@
                         <div class="label">Backup & Restore</div>
                         <div class="meta-line">Create a full backup or restore from a previous backup</div>
                         <div class="actions wrap">
-                            <button class="solid primary" id="backup-data-btn">Create Backup</button>
+                            <button class="solid" id="backup-data-btn">Create backup</button>
                             <button class="ghost" id="restore-data-btn">Restore from Backup</button>
                         </div>
                         <input type="file" id="restore-file-input" accept=".json" hidden>
@@ -940,21 +940,21 @@
                         </div>
                     </section>
                     <section class="card">
-                        <div class="label">Tag Management</div>
+                        <div class="label">Tag management</div>
                         <div class="meta-line">Manage system and custom tags for activity categorization</div>
                         <div id="tag-manager">
                             <!-- Tag manager content loaded dynamically -->
                         </div>
                     </section>
                     <section class="card">
-                        <div class="label">Project Management</div>
+                        <div class="label">Project management</div>
                         <div class="meta-line">Configure projects with SAP ByDesign fields for export</div>
                         <div id="project-manager">
                             <!-- Project manager content loaded dynamically -->
                         </div>
                     </section>
                     <section class="card">
-                        <div class="label">Activity Types</div>
+                        <div class="label">Activity types</div>
                         <div class="meta-line">Define work categories for time entries</div>
                         <div id="activity-type-manager">
                             <!-- Activity type manager content loaded dynamically -->
@@ -991,7 +991,7 @@
     <div class="modal-overlay" id="modal-overlay">
         <div class="modal" id="manual-entry-modal">
             <div class="modal-header">
-                <h3 id="modal-title">Add Manual Entry</h3>
+                <h3 id="modal-title">Add manual entry</h3>
                 <button class="modal-close" id="modal-close">&times;</button>
             </div>
             <div class="modal-body">
@@ -1010,11 +1010,11 @@
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="entry-start">Start Time</label>
+                        <label for="entry-start">Start time</label>
                         <input type="time" id="entry-start">
                     </div>
                     <div class="form-group">
-                        <label for="entry-end">End Time</label>
+                        <label for="entry-end">End time</label>
                         <input type="time" id="entry-end">
                     </div>
                 </div>
@@ -1033,7 +1033,7 @@
             </div>
             <div class="modal-footer">
                 <button class="ghost" id="modal-cancel">Cancel</button>
-                <button class="solid primary" id="modal-save">Save</button>
+                <button class="solid" id="modal-save">Save</button>
             </div>
         </div>
     </div>
@@ -1042,7 +1042,7 @@
     <div class="modal-overlay" id="delete-modal-overlay">
         <div class="modal modal-small">
             <div class="modal-header">
-                <h3>Delete Entry?</h3>
+                <h3>Delete entry?</h3>
             </div>
             <div class="modal-body">
                 <p>This action cannot be undone.</p>
@@ -1050,7 +1050,7 @@
             </div>
             <div class="modal-footer">
                 <button class="ghost" id="delete-cancel">Cancel</button>
-                <button class="solid danger" id="delete-confirm">Delete</button>
+                <button class="solid" id="delete-confirm">Delete</button>
             </div>
         </div>
     </div>
@@ -1059,7 +1059,7 @@
     <div class="modal-overlay" id="clear-data-modal-overlay">
         <div class="modal modal-small">
             <div class="modal-header">
-                <h3>Clear Old Data?</h3>
+                <h3>Clear old data?</h3>
             </div>
             <div class="modal-body">
                 <p>This will permanently delete all activities older than 30 days.</p>
@@ -1067,7 +1067,7 @@
             </div>
             <div class="modal-footer">
                 <button class="ghost" id="clear-data-cancel">Cancel</button>
-                <button class="solid danger" id="clear-data-confirm">Clear Data</button>
+                <button class="solid" id="clear-data-confirm">Clear data</button>
             </div>
         </div>
     </div>
@@ -1092,30 +1092,30 @@
     <div class="modal-overlay" id="new-project-modal-overlay">
         <div class="modal modal-small">
             <div class="modal-header">
-                <h3>Create New Project</h3>
+                <h3>Create new project</h3>
                 <button class="modal-close" id="new-project-modal-close">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label for="new-project-name">Project Name</label>
+                    <label for="new-project-name">Project name</label>
                     <input type="text" id="new-project-name" placeholder="Enter project name">
                 </div>
                 <div class="form-group">
-                    <label for="new-project-sap-code">SAP Code (optional)</label>
-                    <input type="text" id="new-project-sap-code" placeholder="SAP Project Code">
+                    <label for="new-project-sap-code">SAP code (optional)</label>
+                    <input type="text" id="new-project-sap-code" placeholder="SAP project code">
                 </div>
                 <div class="form-group">
-                    <label for="new-project-cost-center">Cost Center (optional)</label>
-                    <input type="text" id="new-project-cost-center" placeholder="Cost Center">
+                    <label for="new-project-cost-center">Cost center (optional)</label>
+                    <input type="text" id="new-project-cost-center" placeholder="Cost center">
                 </div>
                 <div class="form-group">
-                    <label for="new-project-wbs">WBS Element (optional)</label>
-                    <input type="text" id="new-project-wbs" placeholder="WBS Element">
+                    <label for="new-project-wbs">WBS element (optional)</label>
+                    <input type="text" id="new-project-wbs" placeholder="WBS element">
                 </div>
             </div>
             <div class="modal-footer">
                 <button class="ghost" id="new-project-cancel">Cancel</button>
-                <button class="solid primary" id="new-project-save">Create Project</button>
+                <button class="solid" id="new-project-save">Create project</button>
             </div>
         </div>
     </div>

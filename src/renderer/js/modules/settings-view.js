@@ -47,8 +47,8 @@
               ${sapCodeHtml}
             </div>
             <div class="mapping-actions">
-              <button data-action="edit-url-mapping" data-pattern="${escapeAttr(pattern)}" title="Edit rule">&#9998;</button>
-              <button data-action="remove-url-mapping" data-pattern="${escapeAttr(pattern)}" title="Remove rule">&#10005;</button>
+              <button data-action="edit-url-mapping" data-pattern="${escapeAttr(pattern)}" class="ghost small">Edit</button>
+              <button data-action="remove-url-mapping" data-pattern="${escapeAttr(pattern)}" class="ghost small">Remove</button>
             </div>
           </div>
         `;}).join('');
@@ -287,8 +287,8 @@
               ${sapCodeHtml}
             </div>
             <div class="mapping-actions">
-              <button data-action="edit-jira-mapping" data-key="${escapeAttr(key)}" title="Edit rule">&#9998;</button>
-              <button data-action="remove-jira-mapping" data-key="${escapeAttr(key)}" title="Remove rule">&#10005;</button>
+              <button data-action="edit-jira-mapping" data-key="${escapeAttr(key)}" class="ghost small">Edit</button>
+              <button data-action="remove-jira-mapping" data-key="${escapeAttr(key)}" class="ghost small">Remove</button>
             </div>
           </div>
         `;}).join('');
@@ -395,7 +395,7 @@
               <span class="project">${escapeHtml(project)}</span>
             </div>
             <div class="mapping-actions">
-              <button data-action="remove-salesforce-case" data-key="${escapeAttr(caseNumber)}" title="Forget this case">&#10005;</button>
+              <button data-action="remove-salesforce-case" data-key="${escapeAttr(caseNumber)}" class="ghost small">Forget</button>
             </div>
           </div>`;
         }).join('');
@@ -576,8 +576,8 @@
               ${sapCodeHtml}
             </div>
             <div class="mapping-actions">
-              <button data-action="edit-meeting-mapping" data-pattern="${escapeAttr(pattern)}" title="Edit rule">&#9998;</button>
-              <button data-action="remove-meeting-mapping" data-pattern="${escapeAttr(pattern)}" title="Remove rule">&#10005;</button>
+              <button data-action="edit-meeting-mapping" data-pattern="${escapeAttr(pattern)}" class="ghost small">Edit</button>
+              <button data-action="remove-meeting-mapping" data-pattern="${escapeAttr(pattern)}" class="ghost small">Remove</button>
             </div>
           </div>
         `;}).join('');
@@ -1553,7 +1553,7 @@
           showNotification('Calendar sync failed', 'error');
         } finally {
           syncBtn.disabled = false;
-          syncBtn.textContent = 'Sync Now';
+          syncBtn.textContent = 'Sync now';
         }
       });
     }

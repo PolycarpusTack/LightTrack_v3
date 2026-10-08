@@ -64,7 +64,7 @@
   function openManualEntryModal(dateOverride) {
     AppState.editingActivityId = null;
     showCaseOption(null);
-    if (Elements.modalTitle) Elements.modalTitle.textContent = 'Add Manual Entry';
+    if (Elements.modalTitle) Elements.modalTitle.textContent = 'Add manual entry';
     if (Elements.editActivityId) Elements.editActivityId.value = '';
 
     // Set defaults
@@ -96,7 +96,7 @@
 
     AppState.editingActivityId = activityId;
     showCaseOption(activity.salesforceCase);
-    if (Elements.modalTitle) Elements.modalTitle.textContent = 'Edit Entry';
+    if (Elements.modalTitle) Elements.modalTitle.textContent = 'Edit entry';
     if (Elements.editActivityId) Elements.editActivityId.value = activityId;
 
     // Find and display matched rule
@@ -423,7 +423,7 @@
 
     editor.innerHTML = `
       <div class="tag-editor-header">
-        <span>Edit Tags</span>
+        <span>Edit tags</span>
         <button type="button" class="tag-editor-close" aria-label="Close">\u00d7</button>
       </div>
       <div class="tag-editor-list">
@@ -440,10 +440,10 @@
       </div>
       <div class="tag-editor-actions">
         <input type="text" id="new-tag-input" placeholder="Add new tag..." class="tag-editor-input">
-        <button type="button" class="btn-small tag-editor-add">Add</button>
+        <button type="button" class="ghost small tag-editor-add">Add</button>
       </div>
       <div class="tag-editor-footer">
-        <button type="button" class="btn-small primary tag-editor-save">Save</button>
+        <button type="button" class="solid small tag-editor-save">Save</button>
       </div>
     `;
 
@@ -581,7 +581,7 @@
 
     container.innerHTML = `
       <div class="tag-manager-section">
-        <h4>System Tags</h4>
+        <h4>System tags</h4>
         <div class="tag-manager-list system">
           ${systemTags.map(tag => `
             <span class="tag-manager-item system">${escapeHtml(tag)}</span>
@@ -590,7 +590,7 @@
         <p class="meta-line">System tags are auto-detected from activity titles</p>
       </div>
       <div class="tag-manager-section">
-        <h4>Custom Tags</h4>
+        <h4>Custom tags</h4>
         <div class="tag-manager-list custom" id="custom-tags-list">
           ${customTags.length === 0 ? '<span class="meta-line">No custom tags yet</span>' :
     customTags.map(tag => `
@@ -602,7 +602,7 @@
         </div>
         <div class="tag-manager-add">
           <input type="text" id="new-custom-tag" placeholder="New tag name...">
-          <button data-action="add-tag" class="btn-small">Add Tag</button>
+          <button data-action="add-tag" class="ghost small">Add tag</button>
         </div>
       </div>
     `;
@@ -718,7 +718,7 @@
 
     container.innerHTML = `
       <div class="tag-manager-section">
-        <h4>System Projects</h4>
+        <h4>System projects</h4>
         <div class="tag-manager-list system">
           ${systemProjects.map(project => `
             <span class="tag-manager-item system" title="SAP: ${escapeHtml(project.sapCode || 'Not set')}">${escapeHtml(project.name)}</span>
@@ -727,7 +727,7 @@
         <p class="meta-line">System projects cannot be removed</p>
       </div>
       <div class="tag-manager-section">
-        <h4>Custom Projects</h4>
+        <h4>Custom projects</h4>
         <div class="project-list" id="custom-projects-list">
           ${customProjects.length === 0 ? '<span class="meta-line">No custom projects yet</span>' :
     customProjects.map(project => `
@@ -741,25 +741,25 @@
                   </span>
                 </div>
                 <div class="project-actions">
-                  <button data-action="edit-project" data-project-id="${escapeHtml(project.id)}" class="btn-small ghost" title="Edit project">Edit</button>
-                  <button data-action="remove-project" data-project-id="${escapeHtml(project.id)}" class="btn-small ghost" title="Remove project">&times;</button>
+                  <button data-action="edit-project" data-project-id="${escapeHtml(project.id)}" class="ghost small">Edit</button>
+                  <button data-action="remove-project" data-project-id="${escapeHtml(project.id)}" class="ghost small">Remove</button>
                 </div>
               </div>
             `).join('')}
         </div>
       </div>
       <div class="tag-manager-section">
-        <h4>Add New Project</h4>
+        <h4>Add new project</h4>
         <div class="project-form">
           <div class="project-form-row">
             <input type="text" id="new-project-name" placeholder="Project name *" class="flex-2">
-            <input type="text" id="new-project-sap" placeholder="SAP Code">
+            <input type="text" id="new-project-sap" placeholder="SAP code">
           </div>
           <div class="project-form-row">
             <input type="text" id="new-project-cc" placeholder="Cost Center">
-            <input type="text" id="new-project-wbs" placeholder="WBS Element">
+            <input type="text" id="new-project-wbs" placeholder="WBS element">
           </div>
-          <button data-action="add-project" class="solid primary">Add Project</button>
+          <button data-action="add-project" class="solid">Add project</button>
         </div>
       </div>
     `;
@@ -934,7 +934,7 @@
 
     container.innerHTML = `
       <div class="tag-manager-section">
-        <h4>System Types</h4>
+        <h4>System types</h4>
         <div class="tag-manager-list system">
           ${systemTypes.map(type => `
             <span class="tag-manager-item system">${escapeHtml(type.name)}</span>
@@ -943,7 +943,7 @@
         <p class="meta-line">System activity types cannot be removed</p>
       </div>
       <div class="tag-manager-section">
-        <h4>Custom Types</h4>
+        <h4>Custom types</h4>
         <div class="tag-manager-list custom" id="custom-activity-types-list">
           ${customTypes.length === 0 ? '<span class="meta-line">No custom activity types yet</span>' :
     customTypes.map(type => `
@@ -955,7 +955,7 @@
         </div>
         <div class="tag-manager-add">
           <input type="text" id="new-activity-type" placeholder="New activity type...">
-          <button data-action="add-activity-type" class="btn-small">Add Type</button>
+          <button data-action="add-activity-type" class="ghost small">Add type</button>
         </div>
       </div>
     `;

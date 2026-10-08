@@ -434,6 +434,9 @@ Red indicator = Disconnected
 |----------|--------|
 | `Ctrl+Shift+T` | Toggle tracking |
 | `Ctrl+Shift+F` | Toggle floating timer |
+| `Ctrl+Shift+B` | Mark a break (Timer view) |
+| `Ctrl+Shift+N` | Add a manual entry (Timer view) |
+| `←` / `→`, `Home` | Previous day, next day, today (Timeline view) |
 | `Ctrl+Y` | Toggle developer tools |
 
 ---

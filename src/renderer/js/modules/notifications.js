@@ -107,7 +107,7 @@ window.LightTrack.UI = (function() {
     });
 
     const confirmBtn = document.createElement('button');
-    confirmBtn.className = 'solid primary confirm-ok';
+    confirmBtn.className = 'solid confirm-ok';
     confirmBtn.textContent = 'Confirm';
     confirmBtn.addEventListener('click', () => {
       overlay.remove();

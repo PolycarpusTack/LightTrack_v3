@@ -440,9 +440,7 @@ const ChartRenderer = {
       ctx.fill();
 
       // Format duration for tooltip
-      const hours = Math.floor(value / 3600);
-      const mins = Math.floor((value % 3600) / 60);
-      const valueStr = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+      const valueStr = formatDuration(value);
       const percent = Math.round((value / total) * 100);
 
       // Store slice geometry for hit testing
@@ -614,15 +612,10 @@ function formatTime(seconds) {
 }
 
 /**
- * Format duration for display (e.g., "2h 15m")
+ * Format duration for display as H:MM (see ts/utils.ts)
  */
 function formatDuration(seconds) {
-  const hrs = Math.floor(seconds / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  if (hrs > 0) {
-    return `${hrs}h ${mins}m`;
-  }
-  return `${mins}m`;
+  return LT.Utils.formatDuration(seconds);
 }
 
 /**
@@ -654,15 +647,10 @@ function updateTrackingUI() {
 
   // Update toggle button
   if (Elements.toggleBtn && Elements.toggleText) {
-    if (isTracking) {
-      Elements.toggleBtn.classList.remove('primary');
-      Elements.toggleBtn.classList.add('danger');
-      Elements.toggleText.textContent = 'Stop';
-    } else {
-      Elements.toggleBtn.classList.remove('danger');
-      Elements.toggleBtn.classList.add('primary');
-      Elements.toggleText.textContent = 'Start';
-    }
+    // Start is the primary action; Stop is a ghost button (#44: two button kinds only).
+    Elements.toggleBtn.classList.toggle('solid', !isTracking);
+    Elements.toggleBtn.classList.toggle('ghost', isTracking);
+    Elements.toggleText.textContent = isTracking ? 'Stop' : 'Start';
   }
 
   // Update timer color
@@ -897,9 +885,9 @@ function renderActivityList() {
           ${tagsHtml}
         </div>
         <div class="activity-actions">
-          <button class="btn-edit" data-id="${activityId}">Edit</button>
-          <button class="btn-tags btn-small" data-id="${activityId}">Tags</button>
-          <button class="btn-delete delete" data-id="${activityId}">Delete</button>
+          <button class="ghost small btn-edit" data-id="${activityId}">Edit</button>
+          <button class="ghost small btn-tags" data-id="${activityId}">Tags</button>
+          <button class="ghost small btn-delete" data-id="${activityId}">Delete</button>
         </div>
         <div class="duration">${duration}</div>
       </div>
@@ -908,7 +896,7 @@ function renderActivityList() {
 
   // Add load more button if there are more activities
   const loadMoreHtml = hasMore ? `
-    <button class="load-more-btn" id="load-more-activities">
+    <button class="ghost load-more-btn" id="load-more-activities">
       Load more (${remaining} remaining)
     </button>
   ` : '';
@@ -1658,7 +1646,7 @@ function setupEventListeners() {
       } else if (e.key === 'ArrowRight' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         navigateTimeline(1);
-      } else if (e.key === 'Home' || (e.key === 't' && !e.ctrlKey && !e.metaKey)) {
+      } else if (e.key === 'Home') {
         e.preventDefault();
         AppState.timelineDate = getLocalDateString(new Date());
         loadTimelineView();
@@ -1945,10 +1933,10 @@ function openProjectSwitcher() {
     const isCurrent = project === currentProject;
     const time = seconds > 0 ? formatDuration(seconds) : '';
     return `
-      <div class="project-switcher-item${isCurrent ? ' current' : ''}" data-project="${escapeHtml(project)}">
+      <button type="button" class="project-switcher-item${isCurrent ? ' current' : ''}" data-project="${escapeHtml(project)}">
         ${escapeHtml(project)}
         ${time ? `<span class="project-time">${time}</span>` : ''}
-      </div>
+      </button>
     `;
   }).join('');
 
@@ -2228,7 +2216,7 @@ async function mergeSelectedActivities() {
 
 /**
  * Set up keyboard shortcuts for Timer view
- * Space: Toggle tracking, M: Mark break, A: Add manual, F: Floating timer
+ * Ctrl+Shift+B: Mark break, Ctrl+Shift+N: Add manual entry
  */
 function setupTimerKeyboardShortcuts() {
   return window.LightTrack.Timeline?.setupTimerKeyboardShortcuts?.();
@@ -2472,8 +2460,8 @@ async function loadProjectMappings() {
             ${sapCodeHtml}
           </div>
           <div class="mapping-actions">
-            <button data-action="edit-mapping" data-pattern="${escapeAttr(pattern)}" title="Edit rule">✎</button>
-            <button data-action="remove-mapping" data-pattern="${escapeAttr(pattern)}" title="Remove rule">✕</button>
+            <button data-action="edit-mapping" data-pattern="${escapeAttr(pattern)}" class="ghost small">Edit</button>
+            <button data-action="remove-mapping" data-pattern="${escapeAttr(pattern)}" class="ghost small">Remove</button>
           </div>
         </div>
       `;}).join('');
@@ -3268,9 +3256,9 @@ function renderFilteredActivityList() {
           ${tagsHtml}
         </div>
         <div class="activity-actions">
-          <button class="btn-edit" data-id="${activityId}">Edit</button>
-          <button class="btn-tags btn-small" data-id="${activityId}" title="Edit tags">Tags</button>
-          <button class="btn-delete delete" data-id="${activityId}">Delete</button>
+          <button class="ghost small btn-edit" data-id="${activityId}">Edit</button>
+          <button class="ghost small btn-tags" data-id="${activityId}" title="Edit tags">Tags</button>
+          <button class="ghost small btn-delete" data-id="${activityId}">Delete</button>
         </div>
         <div class="duration">${duration}</div>
       </div>

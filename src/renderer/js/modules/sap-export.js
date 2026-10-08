@@ -31,7 +31,7 @@ window.LightTrack.SAPExport = (function() {
     const sunday = new Date(monday);
     sunday.setDate(monday.getDate() + 6);
     sunday.setHours(23, 59, 59, 999);
-    return { start: monday, end: sunday, label: 'This Week' };
+    return { start: monday, end: sunday, label: 'This week' };
   }
 
   /**
@@ -41,7 +41,7 @@ window.LightTrack.SAPExport = (function() {
     const range = getThisWeekRange();
     range.start.setDate(range.start.getDate() - 7);
     range.end.setDate(range.end.getDate() - 7);
-    range.label = 'Last Week';
+    range.label = 'Last week';
     return range;
   }
 
@@ -52,7 +52,7 @@ window.LightTrack.SAPExport = (function() {
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth(), 1);
     const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-    return { start, end, label: 'This Month' };
+    return { start, end, label: 'This month' };
   }
 
   /**
@@ -62,7 +62,7 @@ window.LightTrack.SAPExport = (function() {
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
-    return { start, end, label: 'Last Month' };
+    return { start, end, label: 'Last month' };
   }
 
   /**
