@@ -1,8 +1,8 @@
 # LightTrack v3: status and pickup
 
 **Last updated:** 2026-10-08, end of session
-**`main`:** `7615165`, CI green. Open: #57 (#41, CI green, waiting for approval).
-**Next step:** merge #57, then LT3-102 (#13), branch `feat/lt3-102-repositories` from `main`.
+**`main`:** `7615165`, CI green. Open, CI green, waiting for approval: #57 (#41) and #58 (this status update).
+**Next step:** merge #57 and #58 once approved, then LT3-102 (#13) on branch `feat/lt3-102-repositories` from `main`.
 
 ## Where we are
 
@@ -20,7 +20,7 @@ The app is in daily use by the owner as a time tracker. The first-release workfl
 - #55 restore from backup removed until LT3-105 (closes #40)
 - #56 timeline merge through a new `activities:merge` channel, one store write (closes #39)
 
-Open: #57 removes the Timer's project switcher (closes #41; owner chose removal over a new channel).
+Open: #57 removes the Timer's project switcher (closes #41). The owner answered "yes" to a question that offered removal (recommended) or a new channel; this was read as removal. Confirm before merging #57.
 
 Seen, not fixed: the old storage combines two saves with the same app, title and project made within 5 minutes, whatever their times (`lightweight-storage.js`, `canMergeActivities`). LT3-102 replaces this storage.
 
@@ -48,8 +48,8 @@ Seen, not fixed: the old storage combines two saves with the same app, title and
 
 ## Next (in order)
 
-1. Merge **#57** (#41).
-2. **LT3-102 (#13)** Typed repositories on the LT3-101 schema, then LT3-103 to LT3-105 (#14 to #16): v3 export, import with reconciliation, backup and restore.
+1. Merge **#57** (#41, after confirming removal) and **#58** (status).
+2. **LT3-102 (#13)** Typed repositories on the LT3-101 schema (`src/main/persistence/`: `database.ts`, `schema.ts`, `sqlite-db.ts`). Acceptance: repositories for raw activity, projects, mapping rules, worklogs, allocations, audit records, profiles and export runs; transactions where several records change together; domain errors for validation, conflict, not-found and persistence failures; performance tests for date-range queries. The app still uses the old JSON storage; the LT3-101 database is not used by the app yet. Then LT3-103 to LT3-105 (#14 to #16): v3 export, import with reconciliation, backup and restore.
 3. Increment C (#17 to #21), the CSV hand-off (#22, #23), RDP (#26, #27), #31, #33.
 
 ## Working notes
@@ -64,4 +64,4 @@ Seen, not fixed: the old storage combines two saves with the same app, title and
 
 ## Pickup prompt
 
-> Continue LightTrack v3 in `C:\Projects\Other\LightTrack_v3`. Read `docs/handover/STATUS.md` first and check "Waiting on the owner" for anything I have answered. Then start with the first item under "Next" (LT3-102, #13): branch from `main`, implement, keep lint, typecheck, `test:ci`, build and the packaged-app harness green, open a PR and report CI. Use `docs/design/first-release` for any UI work. Keep the plain, concise writing style used in the docs. Ask me before merging.
+> Continue LightTrack v3 in `C:\Projects\Other\LightTrack_v3`. Read `docs/handover/STATUS.md` first and check "Waiting on the owner" for anything I have answered. Ask me to approve merging the open PRs (#57, #58), confirming the #41 removal. Then start the first open item under "Next" (LT3-102, #13): branch from `main`, implement, keep lint, typecheck, `test:ci`, build and the packaged-app harness green, open a PR and report CI. Use `docs/design/first-release` for any UI work. Keep the plain, concise writing style used in the docs. Ask me before merging.
