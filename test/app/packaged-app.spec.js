@@ -184,6 +184,22 @@ test.describe('packaged application', () => {
     await app.close();
   });
 
+  // #44: row actions are always visible, and a bare key press does not toggle tracking.
+  test('keeps row actions visible and ignores a bare Space', async () => {
+    const { app, page, errors } = await launch(userData);
+
+    const actions = page.locator('#activity-list .activity-actions').first();
+    await expect(actions).toBeVisible();
+    expect(await actions.evaluate(el => getComputedStyle(el).opacity)).toBe('1');
+
+    await page.locator('body').press('Space');
+    await page.waitForTimeout(500);
+    await expect(page.locator('#toggle-tracking-text')).toHaveText('Start');
+
+    expect(errors).toEqual([]);
+    await app.close();
+  });
+
   // #45: a failed request shows an error toast instead of an empty view.
   test('shows a failed request to the user', async () => {
     const { app, page } = await launch(userData);

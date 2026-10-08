@@ -33,6 +33,10 @@
     --accent-line: #c9bef7;
     --active-bg: #eeeafd;
 
+    /* Time segments: billable client work, internal non-billable (differs from cobalt in lightness, >= 3:1 on paper) */
+    --seg-billable: #3805e3;
+    --seg-nb: #7d70b8;
+
     /* Role tints: background / ink */
     --added-bg: #dcfebc;
     --added-ink: #1e5a0a;
@@ -64,7 +68,7 @@
     /* Legacy names still referenced by older rules and modules */
     --card: var(--paper);
     --border: var(--divider);
-    --chalk: var(--ink-faint);
+    --chalk: var(--ink-muted);
     --coral: var(--risk-ink);
     --mint: var(--added-ink);
     --surface-base: var(--paper);
@@ -92,6 +96,9 @@
     --accent: #b8afda;
     --accent-line: #4a3f7a;
     --active-bg: #221a40;
+
+    --seg-billable: #6b4cf0;
+    --seg-nb: #b8afda;
 
     --added-bg: #22330f;
     --added-ink: #b3fc4f;
@@ -135,6 +142,109 @@ textarea {
 :focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
+}
+
+/* Inputs and selects: one style everywhere (#44) */
+input:not([type]),
+input[type="text"],
+input[type="number"],
+input[type="time"],
+input[type="date"],
+input[type="url"],
+input[type="search"],
+select,
+textarea {
+    height: 32px;
+    padding: 0 10px;
+    background: var(--paper);
+    border: 1px solid var(--border-mid);
+    border-radius: var(--r-ctl);
+    color: var(--ink);
+    font-size: 12.5px;
+    outline: none;
+    transition: border-color var(--speed);
+}
+
+textarea {
+    height: auto;
+    padding: 8px 10px;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--accent);
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--ink-muted);
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: var(--picker-filter, none);
+    cursor: pointer;
+}
+
+/* Buttons: .solid (primary) and .ghost, plus .small (#44) */
+.solid,
+.ghost {
+    height: 32px;
+    padding: 0 14px;
+    border-radius: var(--r-ctl);
+    font-size: 12.5px;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: background var(--speed), color var(--speed), border-color var(--speed);
+}
+
+.solid {
+    background: var(--accent-fill);
+    border: 1px solid var(--accent-fill);
+    color: #fff;
+    font-weight: 500;
+}
+
+.solid:hover {
+    background: var(--accent-fill-hover);
+    border-color: var(--accent-fill-hover);
+}
+
+.ghost {
+    background: var(--paper);
+    border: 1px solid var(--border-mid);
+    color: var(--ink);
+}
+
+.ghost:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+/* Selected state for toggles (period and filter buttons) */
+.ghost.active,
+.ghost[aria-pressed="true"] {
+    border-color: var(--accent-line);
+    color: var(--accent);
+    background: var(--active-bg);
+    font-weight: 500;
+}
+
+.solid.small,
+.ghost.small {
+    height: 26px;
+    padding: 0 10px;
+    font-size: 12px;
+}
+
+.solid:disabled,
+.ghost:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
 }
 
 /* Left rail: black in both modes */
@@ -321,9 +431,9 @@ body.splash-hidden #splash-screen {
 
 /* Tag count badge */
 .pill .tag-count {
-    color: var(--ink-faint);
+    color: var(--ink-muted);
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: 11px;
     margin-left: 2px;
 }
 
@@ -332,35 +442,6 @@ body.splash-hidden #splash-screen {
     margin-top: 8px;
     display: flex;
     gap: 8px;
-}
-
-.btn-small {
-    height: 26px;
-    padding: 0 10px;
-    font-size: 12.5px;
-    background: var(--paper);
-    border: 1px solid var(--border-mid);
-    border-radius: var(--r-ctl);
-    color: var(--ink);
-    cursor: pointer;
-    transition: background var(--speed), color var(--speed), border-color var(--speed);
-}
-
-.btn-small:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-}
-
-.btn-small.primary {
-    background: var(--accent-fill);
-    border-color: var(--accent-fill);
-    color: #fff;
-}
-
-.btn-small.primary:hover {
-    background: var(--accent-fill-hover);
-    border-color: var(--accent-fill-hover);
-    color: #fff;
 }
 
 /* Activity tag badges */
@@ -372,7 +453,7 @@ body.splash-hidden #splash-screen {
 }
 
 .activity-tag {
-    font-size: 10.5px;
+    font-size: 11px;
     height: 20px;
     line-height: 20px;
     padding: 0 8px;
@@ -475,16 +556,7 @@ body.splash-hidden #splash-screen {
 
 .tag-editor-input {
     flex: 1;
-    padding: 6px 10px;
-    background: var(--paper);
-    border: 1px solid var(--border);
-    border-radius: var(--r-ctl);
-    color: var(--ink);
-    font-size: 11.5px;
-}
-
-.tag-editor-input::placeholder {
-    color: var(--ink-muted);
+    min-width: 0;
 }
 
 .tag-editor-footer {
@@ -558,16 +630,7 @@ body.splash-hidden #splash-screen {
 
 .tag-manager-add input {
     flex: 1;
-    padding: 6px 10px;
-    background: var(--paper);
-    border: 1px solid var(--border);
-    border-radius: var(--r-ctl);
-    color: var(--ink);
-    font-size: 12.5px;
-}
-
-.tag-manager-add input::placeholder {
-    color: var(--ink-muted);
+    min-width: 0;
 }
 
 /* Tag pill in sidebar - specific styles */
@@ -608,16 +671,7 @@ body.splash-hidden #splash-screen {
 
 .project-form-row input {
     flex: 1;
-    padding: 6px 10px;
-    background: var(--paper);
-    border: 1px solid var(--border);
-    border-radius: var(--r-ctl);
-    color: var(--ink);
-    font-size: 12.5px;
-}
-
-.project-form-row input::placeholder {
-    color: var(--ink-muted);
+    min-width: 0;
 }
 
 .project-list {
@@ -735,33 +789,6 @@ body.splash-hidden #splash-screen {
 }
 
 /* Ghost Button */
-.ghost {
-    height: 32px;
-    border-radius: var(--r-ctl);
-    border: 1px solid var(--border-mid);
-    background: var(--paper);
-    color: var(--ink);
-    padding: 0 14px;
-    cursor: pointer;
-    transition: background var(--speed), color var(--speed), border-color var(--speed);
-    font-size: 12.5px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-}
-
-.ghost:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-}
-
-.ghost.active {
-    border-color: var(--accent-line);
-    color: var(--accent);
-    background: var(--active-bg);
-}
-
 /* Hero Section (Timer) */
 .hero {
     background: var(--paper);
@@ -851,8 +878,9 @@ body.splash-hidden #splash-screen {
 
 /* Quick Project Switcher */
 .badge.clickable {
+    font-family: inherit;
     cursor: pointer;
-    transition: all var(--speed);
+    transition: color var(--speed), background var(--speed);
 }
 
 .badge.clickable:hover {
@@ -881,12 +909,12 @@ body.splash-hidden #splash-screen {
 
 .project-switcher-header {
     padding: 8px 12px;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 500;
-    color: var(--ink-faint);
+    color: var(--ink-muted);
     border-bottom: 1px solid var(--divider);
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.6px;
 }
 
 .project-switcher-list {
@@ -895,6 +923,12 @@ body.splash-hidden #splash-screen {
 }
 
 .project-switcher-item {
+    width: 100%;
+    border: none;
+    background: none;
+    color: var(--ink);
+    text-align: left;
+    font-family: inherit;
     padding: 10px 14px;
     cursor: pointer;
     transition: background var(--speed);
@@ -916,8 +950,9 @@ body.splash-hidden #splash-screen {
 
 .project-switcher-item .project-time {
     margin-left: auto;
-    font-size: 12.5px;
-    color: var(--chalk);
+    font-size: 12px;
+    font-family: var(--mono);
+    color: var(--ink-muted);
 }
 
 .meta {
@@ -931,45 +966,12 @@ body.splash-hidden #splash-screen {
 }
 
 /* Solid Button */
-.solid {
-    background: var(--accent-fill);
-    height: 32px;
-    border: none;
-    border-radius: var(--r-ctl);
-    padding: 0 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background var(--speed);
-    color: #fff;
-    font-size: 12.5px;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.solid.primary {
-    background: var(--accent-fill);
-}
-
-.solid.danger {
-    background: var(--risk-ink);
-}
-
-.solid:hover {
-    filter: none;
-}
-
-.solid:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-}
-
 /* Label and Value */
 .label {
-    color: var(--ink-faint);
-    font-size: 10px;
+    color: var(--ink-muted);
+    font-size: 11px;
     font-weight: 500;
-    letter-spacing: 1px;
+    letter-spacing: 0.6px;
     text-transform: uppercase;
 }
 
@@ -1002,14 +1004,6 @@ body.splash-hidden #splash-screen {
     padding: 16px;
     position: relative;
     overflow: hidden;
-}
-
-.card .label {
-    color: var(--ink-faint);
-    font-size: 10px;
-    font-weight: 500;
-    letter-spacing: 1px;
-    text-transform: uppercase;
 }
 
 .card .value {
@@ -1046,10 +1040,10 @@ body.splash-hidden #splash-screen {
 }
 
 .section-title {
-    font-size: 10px;
+    color: var(--ink-muted);
+    font-size: 11px;
     font-weight: 500;
-    letter-spacing: 1px;
-    color: var(--ink-faint);
+    letter-spacing: 0.6px;
     text-transform: uppercase;
 }
 
@@ -1097,7 +1091,7 @@ body.splash-hidden #splash-screen {
 
 .duration {
     font-family: var(--mono);
-    font-size: 11.5px;
+    font-size: 12px;
     font-weight: 500;
     color: var(--ink);
     font-variant-numeric: tabular-nums;
@@ -1125,7 +1119,7 @@ body.splash-hidden #splash-screen {
     display: inline-block;
     background: var(--changed-bg);
     color: var(--changed-ink);
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 500;
     padding: 1px 6px;
     border-radius: var(--r-ctl);
@@ -1147,7 +1141,7 @@ body.splash-hidden #splash-screen {
     display: inline-block;
     background: var(--raised);
     color: var(--ink);
-    font-size: 10.5px;
+    font-size: 11px;
     font-weight: 500;
     padding: 1px 6px;
     border-radius: var(--r-ctl);
@@ -1215,7 +1209,7 @@ body.splash-hidden #splash-screen {
 
 .daily-summary-header button {
     padding: 2px 6px;
-    font-size: 10px;
+    font-size: 11px;
     transition: transform 0.2s ease;
 }
 
@@ -1334,7 +1328,7 @@ body.splash-hidden #splash-screen {
     display: flex;
     justify-content: space-between;
     margin-top: 4px;
-    font-size: 10px;
+    font-size: 11px;
     color: var(--chalk);
 }
 
@@ -1506,30 +1500,6 @@ body.splash-hidden #splash-screen {
     flex-wrap: wrap;
 }
 
-.range-btn {
-    height: 32px;
-    padding: 0 12px;
-    background: var(--paper);
-    border: 1px solid var(--border-mid);
-    border-radius: var(--r-ctl);
-    color: var(--ink-muted);
-    font-size: 12.5px;
-    cursor: pointer;
-    transition: background var(--speed), color var(--speed), border-color var(--speed);
-}
-
-.range-btn:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-}
-
-.range-btn.active {
-    background: var(--active-bg);
-    border-color: var(--accent-line);
-    color: var(--accent);
-    font-weight: 500;
-}
-
 /* Custom date range picker */
 .custom-range-picker {
     margin-top: 12px;
@@ -1564,27 +1534,6 @@ body.splash-hidden #splash-screen {
     gap: 8px;
     font-size: 12.5px;
     color: var(--ink-muted);
-}
-
-.custom-range-picker input[type="date"] {
-    padding: 6px 10px;
-    background: var(--hover);
-    border: 1px solid var(--border);
-    border-radius: var(--r-ctl);
-    color: var(--ink);
-    font-size: 12.5px;
-    cursor: pointer;
-}
-
-.custom-range-picker input[type="date"]::-webkit-calendar-picker-indicator {
-    filter: var(--picker-filter, none);
-    opacity: 0.6;
-    cursor: pointer;
-}
-
-.btn-sm {
-    padding: 6px 14px;
-    font-size: 12.5px;
 }
 
 /* Chart Containers */
@@ -1750,7 +1699,7 @@ body.splash-hidden #splash-screen {
     display: flex;
     justify-content: space-between;
     margin-left: 82px;
-    font-size: 10px;
+    font-size: 11px;
     color: var(--ink-muted);
 }
 
@@ -1972,10 +1921,6 @@ body.splash-hidden #splash-screen {
 .hero-right {
     border-left: 1px solid var(--divider);
     padding-left: 24px;
-}
-
-.solid.primary:hover {
-    background: var(--accent-fill-hover);
 }
 
 /* Settings > Appearance */
@@ -2392,10 +2337,10 @@ body.splash-hidden #splash-screen {
     padding: 8px 12px;
     background: var(--raised);
     border: 1px solid var(--divider);
-    color: var(--ink-faint);
-    font-size: 10px;
+    color: var(--ink-muted);
+    font-size: 11px;
     font-weight: 500;
-    letter-spacing: 1px;
+    letter-spacing: 0.6px;
     text-transform: uppercase;
 }
 
@@ -2480,11 +2425,11 @@ body.splash-hidden #splash-screen {
 }
 
 .form-group label {
-    font-size: 10px;
+    color: var(--ink-muted);
+    font-size: 11px;
     font-weight: 500;
-    color: var(--ink-faint);
+    letter-spacing: 0.6px;
     text-transform: uppercase;
-    letter-spacing: 1px;
 }
 
 /* Matched rule info in edit modal */
@@ -2504,25 +2449,6 @@ body.splash-hidden #splash-screen {
 .matched-rule-info #matched-rule-text {
     color: var(--added-ink);
     font-family: var(--mono);
-}
-
-.form-group input[type="text"],
-.form-group input[type="time"],
-.form-group input[type="date"],
-.form-group select {
-    background: var(--paper);
-    border: 1px solid var(--border-mid);
-    border-radius: var(--r-ctl);
-    height: 32px;
-    padding: 0 10px;
-    color: var(--ink);
-    font-size: 12.5px;
-    outline: none;
-    transition: border-color var(--speed);
-}
-
-.form-group input:focus {
-    border-color: var(--accent);
 }
 
 .form-row {
@@ -2575,68 +2501,18 @@ body.splash-hidden #splash-screen {
 /* Date filter in sidebar */
 .date-filter {
     width: 100%;
-    background: var(--paper);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 8px 10px;
-    color: var(--ink);
-    font-size: 12.5px;
-}
-
-.date-filter::-webkit-calendar-picker-indicator {
-    filter: var(--picker-filter, none);
 }
 
 /* Activity actions */
 .activity-actions {
     display: flex;
     gap: 6px;
-    opacity: 0;
-    transition: opacity var(--speed);
-}
-
-.activity:hover .activity-actions {
-    opacity: 1;
-}
-
-.activity-actions button {
-    background: var(--hover);
-    border: 1px solid var(--border);
-    border-radius: var(--r-ctl);
-    padding: 4px 8px;
-    color: var(--ink-muted);
-    cursor: pointer;
-    font-size: 12.5px;
-    transition: all var(--speed);
-}
-
-.activity-actions button:hover {
-    color: var(--ink);
-    border-color: var(--accent);
-}
-
-.activity-actions button.delete:hover {
-    color: var(--color-error);
-    border-color: var(--color-error);
 }
 
 /* Load More Button */
 .load-more-btn {
     width: 100%;
-    height: 32px;
     margin-top: 12px;
-    background: var(--paper);
-    border: 1px dashed var(--border-mid);
-    border-radius: var(--r-ctl);
-    color: var(--ink-muted);
-    font-size: 12.5px;
-    cursor: pointer;
-    transition: border-color var(--speed), color var(--speed);
-}
-
-.load-more-btn:hover {
-    border-color: var(--accent);
-    color: var(--accent);
 }
 
 /* Timeline View Styles */
@@ -2674,23 +2550,7 @@ body.splash-hidden #splash-screen {
 }
 
 .filter-select {
-    padding: 4px 8px;
-    background: var(--hover);
-    border: 1px solid var(--border);
-    border-radius: var(--r-ctl);
-    color: var(--ink);
-    font-size: 12.5px;
-    cursor: pointer;
     min-width: 120px;
-}
-
-.filter-select:hover {
-    background: var(--raised);
-}
-
-.filter-select:focus {
-    outline: none;
-    border-color: var(--accent);
 }
 
 .filter-checkbox {
@@ -2717,23 +2577,6 @@ body.splash-hidden #splash-screen {
 .filter-divider {
     color: var(--border);
     font-size: 13px;
-}
-
-.btn-small {
-    height: 26px;
-    padding: 0 10px;
-    font-size: 12.5px;
-    background: var(--paper);
-    border: 1px solid var(--border-mid);
-    border-radius: var(--r-ctl);
-    color: var(--ink);
-    cursor: pointer;
-    transition: background var(--speed), color var(--speed), border-color var(--speed);
-}
-
-.btn-small:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
 }
 
 /* Activity selection checkbox */
@@ -2855,11 +2698,11 @@ body.splash-hidden #splash-screen {
 }
 
 .timeline-bar-segment.billable {
-    background: var(--cobalt);
+    background: var(--seg-billable);
 }
 
 .timeline-bar-segment.non-billable {
-    background: var(--mauve);
+    background: var(--seg-nb);
 }
 
 .timeline-bar-segment.break {
@@ -2903,7 +2746,7 @@ body.splash-hidden #splash-screen {
     bottom: -18px;
     left: 50%;
     transform: translateX(-50%);
-    font-size: 10px;
+    font-size: 11px;
     color: var(--ink-muted);
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
@@ -2958,17 +2801,6 @@ body.splash-hidden #splash-screen {
 .settings-row input[type="time"],
 .settings-row input[type="text"] {
     width: 100%;
-    padding: 8px 12px;
-    background: var(--hover);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--ink);
-    font-size: 13px;
-}
-
-.settings-row input:focus {
-    outline: none;
-    border-color: var(--accent);
 }
 
 /* Settings Collapsible Sections */
@@ -3025,7 +2857,7 @@ body.splash-hidden #splash-screen {
 .settings-group > summary .group-count {
     margin-left: auto;
     font-family: var(--mono);
-    font-size: 10.5px;
+    font-size: 11px;
     color: var(--ink-muted);
     background: var(--raised);
     height: 22px;
@@ -3101,17 +2933,7 @@ body.splash-hidden #splash-screen {
 
 .mapping-form input {
     flex: 1;
-    padding: 8px 12px;
-    background: var(--hover);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--ink);
-    font-size: 13px;
-}
-
-.mapping-form input:focus {
-    outline: none;
-    border-color: var(--accent);
+    min-width: 0;
 }
 
 .mapping-form button {
@@ -3154,39 +2976,14 @@ body.splash-hidden #splash-screen {
     margin-left: 8px;
 }
 
-.mapping-item button {
-    background: none;
-    border: none;
-    color: var(--ink-muted);
-    cursor: pointer;
-    padding: 4px 8px;
-    font-size: 12.5px;
-}
-
-.mapping-item button:hover {
-    color: var(--color-error);
-}
-
 .mapping-actions {
     display: flex;
-    gap: 4px;
-}
-
-.mapping-actions button[data-action^="edit"]:hover {
-    color: var(--accent);
+    gap: 6px;
 }
 
 .mapping-item.editing {
     background: var(--active-bg);
     border: 1px solid var(--accent-line);
-}
-
-.mapping-form .ghost.danger {
-    color: var(--color-error);
-}
-
-.mapping-form .ghost.danger:hover {
-    background: var(--risk-bg);
 }
 
 /* ==========================================
@@ -3328,7 +3125,7 @@ body.splash-hidden #splash-screen {
     padding: 0 8px;
     border-radius: var(--pill);
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 600;
 }
 
@@ -3433,10 +3230,10 @@ body.splash-hidden #splash-screen {
     padding: 0 12px;
     text-align: left;
     background: var(--raised);
-    color: var(--ink-faint);
-    font-size: 10px;
+    color: var(--ink-muted);
+    font-size: 11px;
     font-weight: 500;
-    letter-spacing: 1px;
+    letter-spacing: 0.6px;
     text-transform: uppercase;
     white-space: nowrap;
 }

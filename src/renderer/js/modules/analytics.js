@@ -298,11 +298,11 @@
 
     // Labels based on range
     const labels = {
-      week: ['This Week', 'Last Week'],
-      month: ['This Month', 'Last Month'],
-      year: ['This Year', 'Last Year'],
-      all: ['All Time', 'N/A'],
-      custom: ['Selected Period', 'Previous Period']
+      week: ['This week', 'Last week'],
+      month: ['This month', 'Last month'],
+      year: ['This year', 'Last year'],
+      all: ['All time', 'N/A'],
+      custom: ['Selected period', 'Previous period']
     };
     const [currentLabel, prevLabel] = labels[range] || labels.week;
 
@@ -436,7 +436,7 @@
       }
 
       // Wire up analytics filter pills
-      const filterPills = document.querySelectorAll('.analytics-filter-row .pill');
+      const filterPills = document.querySelectorAll('.analytics-filter-row [data-analytics-filter]');
       filterPills.forEach(pill => {
         if (!pill.dataset.wired) {
           pill.dataset.wired = 'true';
@@ -508,26 +508,6 @@
             if (newRange !== 'custom') {
               loadAnalyticsView();
             }
-          } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-            // Navigate filter pills
-            e.preventDefault();
-            const filterOrder = ['all', 'billable', 'non-billable', 'meetings'];
-            const currentIdx = filterOrder.indexOf(AppState.analyticsFilter);
-            let newIdx;
-            if (e.key === 'ArrowUp') {
-              newIdx = currentIdx > 0 ? currentIdx - 1 : filterOrder.length - 1;
-            } else {
-              newIdx = currentIdx < filterOrder.length - 1 ? currentIdx + 1 : 0;
-            }
-            AppState.analyticsFilter = filterOrder[newIdx];
-
-            // Update UI
-            const filterPills = document.querySelectorAll('.analytics-filter-row .pill');
-            filterPills.forEach(p => p.classList.toggle('active', (p.dataset.analyticsFilter || 'all') === AppState.analyticsFilter));
-            loadAnalyticsView();
-          } else if (e.key === 'e' && !e.ctrlKey && !e.metaKey) {
-            // 'E' to export
-            exportAnalyticsToCSV();
           }
         });
       }
@@ -770,14 +750,14 @@
         insights.push({
           type: 'positive',
           icon: 'money',
-          title: 'High Billable Ratio',
+          title: 'High billable ratio',
           description: `${Math.round(billablePercent)}% of your time is billable. Great productivity!`
         });
       } else if (billablePercent < 50 && billablePercent > 0) {
         insights.push({
           type: 'tip',
           icon: 'chart',
-          title: 'Billable Time Review',
+          title: 'Billable time review',
           description: `Only ${Math.round(billablePercent)}% billable. Check if activities are categorized correctly.`
         });
       }
@@ -797,21 +777,21 @@
       insights.push({
         type: 'warning',
         icon: 'calendar',
-        title: 'Meeting Heavy',
+        title: 'Meeting heavy',
         description: `${Math.round(meetingPercent)}% of time in meetings (${meetingHours.toFixed(1)}h). Consider blocking focus time.`
       });
     } else if (meetingPercent >= 20 && meetingPercent < 40 && totalSeconds > 7200) {
       insights.push({
         type: 'tip',
         icon: 'calendar',
-        title: 'Meeting Balance',
+        title: 'Meeting balance',
         description: `${Math.round(meetingPercent)}% of time in meetings. Good balance with focus work.`
       });
     } else if (meetingPercent < 10 && meetingSeconds > 0 && daysWithData >= 3) {
       insights.push({
         type: 'positive',
         icon: 'check',
-        title: 'Low Meeting Load',
+        title: 'Low meeting load',
         description: `Only ${Math.round(meetingPercent)}% in meetings. More time for deep work!`
       });
     }
@@ -822,14 +802,14 @@
       insights.push({
         type: 'positive',
         icon: 'target',
-        title: 'Excellent Focus',
+        title: 'Excellent focus',
         description: `${Math.round(focusPercent)}% of your time is in focused sessions (25+ min). Great deep work!`
       });
     } else if (focusPercent < 30 && totalSeconds > 3600) {
       insights.push({
         type: 'tip',
         icon: 'lightbulb',
-        title: 'Increase Focus Sessions',
+        title: 'Increase focus sessions',
         description: 'Try working in longer uninterrupted blocks. Consider the Pomodoro technique.'
       });
     }
@@ -840,14 +820,14 @@
       insights.push({
         type: 'warning',
         icon: 'warning',
-        title: 'High Workload',
+        title: 'High workload',
         description: `You're averaging ${avgHoursPerDay.toFixed(1)} hours per day. Remember to take breaks!`
       });
     } else if (avgHoursPerDay >= 4 && avgHoursPerDay < 6) {
       insights.push({
         type: 'positive',
         icon: 'check',
-        title: 'Healthy Work Pattern',
+        title: 'Healthy work pattern',
         description: `Averaging ${avgHoursPerDay.toFixed(1)} hours per day is a sustainable pace.`
       });
     }
@@ -857,14 +837,14 @@
       insights.push({
         type: 'tip',
         icon: 'folder',
-        title: 'Single Project Focus',
+        title: 'Single project focus',
         description: `All time spent on "${sortedProjects[0][0]}". Consider categorizing by task type.`
       });
     } else if (sortedProjects.length > 5) {
       insights.push({
         type: 'tip',
         icon: 'sync',
-        title: 'Many Projects',
+        title: 'Many projects',
         description: `Tracking ${sortedProjects.length} projects. Context switching may impact productivity.`
       });
     }
@@ -876,7 +856,7 @@
         insights.push({
           type: 'positive',
           icon: 'target',
-          title: 'Main Focus',
+          title: 'Main focus',
           description: `"${sortedProjects[0][0]}" takes ${Math.round(topPercent)}% of your time.`
         });
       }

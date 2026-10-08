@@ -56,7 +56,7 @@
           currentValue = '';
           AppState.timelineFilters.project = '';
         }
-        timelineProjectFilter.innerHTML = '<option value="">All Projects</option>' +
+        timelineProjectFilter.innerHTML = '<option value="">All projects</option>' +
         projectsInDay.map(p => `<option value="${escapeHtml(p)}"${p === currentValue ? ' selected' : ''}>${escapeHtml(p)}</option>`).join('');
       }
 
@@ -254,9 +254,9 @@
             ${tagsHtml}
           </div>
           <div class="activity-actions">
-            <button class="btn-edit" data-id="${activityId}">Edit</button>
-            <button class="btn-tags btn-small" data-id="${activityId}">Tags</button>
-            <button class="btn-delete delete" data-id="${activityId}">Delete</button>
+            <button class="ghost small btn-edit" data-id="${activityId}">Edit</button>
+            <button class="ghost small btn-tags" data-id="${activityId}">Tags</button>
+            <button class="ghost small btn-delete" data-id="${activityId}">Delete</button>
           </div>
           <div class="duration">${duration}</div>
         </div>
@@ -510,18 +510,11 @@
       const hasOpenModal = document.querySelector('.modal.active, .modal-overlay.active');
       if (hasOpenModal) return;
 
-      // Skip if not in timer view (except for global shortcuts)
-      const isTimerView = AppState.currentView === 'timer';
-
-      // Timer view specific shortcuts (no modifier keys)
-      if (isTimerView && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      // Timer view shortcuts. Every shortcut needs Ctrl+Shift so a stray key press does nothing (#44);
+      // Ctrl+Shift+T (tracking) and Ctrl+Shift+F (floating timer) are handled in app.js.
+      if (AppState.currentView === 'timer' && e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey) {
         switch (e.key.toLowerCase()) {
-          case ' ': // Space - toggle tracking
-            e.preventDefault();
-            toggleTracking();
-            return;
-
-          case 'm': // M - mark break
+          case 'b': // Ctrl+Shift+B - mark break
             e.preventDefault();
             if (AppState.isTracking) {
               markBreak();
@@ -530,18 +523,9 @@
             }
             return;
 
-          case 'a': // A - add manual entry
+          case 'n': // Ctrl+Shift+N - add manual entry
             e.preventDefault();
             openManualEntryModal();
-            return;
-
-          case 'f': // F - toggle floating timer
-            e.preventDefault();
-            if (Elements.floatingTimer) {
-              Elements.floatingTimer.classList.toggle('active');
-              const isActive = Elements.floatingTimer.classList.contains('active');
-              showNotification(isActive ? 'Floating timer shown' : 'Floating timer hidden', 'info');
-            }
             return;
         }
       }
