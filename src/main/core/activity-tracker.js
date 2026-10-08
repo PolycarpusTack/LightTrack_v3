@@ -834,8 +834,12 @@ class ActivityTracker {
     if (!this.isTracking) return;
 
     try {
-      // Parse the browser activity title for project/ticket extraction
-      const parsed = this.titleParser.parse(activity.title, activity.url);
+      // parse() takes a window object; the browser is the app the user is in (#49)
+      const parsed = this.titleParser.parse({
+        title: activity.title,
+        url: activity.url,
+        owner: { name: this.currentActivity?.app || 'Browser' }
+      });
 
       // If we have a current activity, enrich it with browser context
       if (this.currentActivity) {
@@ -874,11 +878,12 @@ class ActivityTracker {
             ...new Set([...(this.currentActivity.tickets || []), context.data.issueKey])
           ];
 
-          // Look up project mapping for this JIRA project
+          // Look up project mapping for this JIRA project (keys are stored upper case)
           const jiraMappings = this.storage.store.get('jiraProjectMappings', {});
-          const projectKey = context.data.projectKey || context.data.issueKey.split('-')[0];
-          if (jiraMappings[projectKey]) {
-            this.currentActivity.project = jiraMappings[projectKey];
+          const projectKey = (context.data.projectKey || context.data.issueKey.split('-')[0]).toUpperCase();
+          const project = mappedProject(jiraMappings[projectKey] || jiraMappings[projectKey.toLowerCase()]);
+          if (project) {
+            this.currentActivity.project = project;
           }
         }
       } else if (context.type === 'github' && context.data) {
@@ -888,8 +893,9 @@ class ActivityTracker {
           const urlMappings = this.storage.store.get('urlProjectMappings', {});
 
           // Check if this repo is mapped
-          for (const [pattern, project] of Object.entries(urlMappings)) {
-            if (repoKey.includes(pattern) || pattern.includes(context.data.repo)) {
+          for (const [pattern, mapping] of Object.entries(urlMappings)) {
+            const project = mappedProject(mapping);
+            if (project && (repoKey.includes(pattern) || pattern.includes(context.data.repo))) {
               this.currentActivity.project = project;
               break;
             }
@@ -902,6 +908,12 @@ class ActivityTracker {
       logger.error('Error processing page context:', error);
     }
   }
+}
+
+/** A mapping value is a project name or an object with booking details ({ project, sapCode, ... }). */
+function mappedProject(mapping) {
+  if (!mapping) return null;
+  return typeof mapping === 'string' ? mapping : mapping.project || null;
 }
 
 module.exports = ActivityTracker;
