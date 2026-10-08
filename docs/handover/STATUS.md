@@ -10,7 +10,7 @@ Increment A (foundation) is done. Increment B (durable local data) has started: 
 
 The app is in daily use by the owner as a time tracker. The first-release workflow (approval, booking lines, CSV hand-off, RDP) is not built yet; see plan section 16 and `docs/design/first-release/REVIEW.md`.
 
-**Installer:** `dist/LightTrack Setup 3.0.0.exe` is from 2026-10-06 (`d95aebd`) and does not include today's work. Rebuild with `npm run electron:build:win` on `main`. Unsigned, so SmartScreen warns on first run ("More info" > "Run anyway"). Data lives in `%APPDATA%\LightTrack` and survives reinstalls.
+**Installer:** `dist/LightTrack Setup 3.0.0.exe` built from `main` (`7615165`) on 2026-10-08; the packaged-app harness (9 tests) passed against it. It does not include #57. Rebuild with `npm run electron:build:win` on `main`. Unsigned, so SmartScreen warns on first run ("More info" > "Run anyway"). Data lives in `%APPDATA%\LightTrack` and survives reinstalls.
 
 ## Merged on 2026-10-08
 
