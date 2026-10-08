@@ -1,5 +1,6 @@
 const LightweightStorage = require('./lightweight-storage');
 const logger = require('../logger');
+const { mergeActivities } = require('./merge-activities');
 
 /**
  * Storage Manager - Extends the existing LightweightStorage with Phase 2 enhancements
@@ -550,6 +551,14 @@ class StorageManager extends LightweightStorage {
       logger.error('Failed to find activity by app and project:', error);
       return null;
     }
+  }
+
+  // Merge activities into the earliest one with a single store write (#39)
+  mergeActivities(ids) {
+    const { merged, activities } = mergeActivities(this.store.get('activities', []), ids);
+    this.store.set('activities', activities);
+    this.activityCache = null;
+    return merged;
   }
 
   // Find activity by ID

@@ -40,9 +40,6 @@ const CONSTANTS = {
 // Standardized error messages
 const ERRORS = {
   MERGE_TOO_FEW: 'Select at least 2 activities to merge',
-  MERGE_NOT_FOUND: 'Selected activities not found - please refresh',
-  MERGE_FAILED: 'Unable to merge activities',
-  MERGE_ROLLBACK: 'Merge failed - changes rolled back',
   BACKUP_FAILED: 'Unable to create backup',
   STORAGE_FULL: 'Storage full - please export or clear data'
 };

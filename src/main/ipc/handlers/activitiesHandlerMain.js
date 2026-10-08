@@ -6,17 +6,19 @@ const fs = require('fs').promises;
 const path = require('path');
 const logger = require('../../logger');
 const sapCsv = require('../../exports/sap-csv');
+const { IpcError } = require('../../../shared/ipc/errors');
 
 /**
  * Activities Handler for main.js
  * Registers all activity-related IPC handlers using the existing pattern
  */
 class ActivitiesHandlerMain {
-  constructor(storage, store, appState, validateActivity) {
+  constructor(storage, store, appState, validateActivity, getTracker = () => null) {
     this.storage = storage;
     this.store = store;
     this.appState = appState;
     this.validateActivity = validateActivity;
+    this.getTracker = getTracker;
   }
 
   /**
@@ -120,6 +122,23 @@ class ActivitiesHandlerMain {
       }
 
       return { deleted: result, id: activityId };
+    });
+
+    // Merge activities of one project and day into the earliest (#39)
+    registry.handle('activities:merge', async (event, ids) => {
+      // The tracker rewrites its current activity on the next save, which would undo the merge.
+      const current = this.getTracker()?.currentActivity;
+      if (current && ids.some(id => String(id) === String(current.id))) {
+        throw new IpcError('CONFLICT', 'Stop tracking before merging the activity that is being tracked');
+      }
+
+      const merged = this.storage.mergeActivities(ids);
+
+      if (this.appState.windows.main && !this.appState.windows.main.isDestroyed()) {
+        this.appState.windows.main.webContents.send('activities-updated');
+      }
+
+      return merged;
     });
 
     // Export activities

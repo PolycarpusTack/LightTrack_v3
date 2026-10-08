@@ -161,6 +161,7 @@ export const CONTRACT = {
   'activities:save-manual': spec(z.tuple([ActivityInput]), Activity, 'Save a manual activity'),
   'activities:update': spec(z.tuple([Id, ActivityInput]), Activity, 'Update an activity'),
   'activities:delete': spec(z.tuple([Id]), z.looseObject({ deleted: z.boolean(), id: Id }), 'Delete an activity'),
+  'activities:merge': spec(z.tuple([z.array(Id).min(2).max(200)]), Activity, 'Merge activities of one project and day into the earliest'),
   'activities:get-stats': spec(z.tuple([]),
     z.looseObject({ total: z.number(), today: z.number(), totalDuration: z.number(), averageSessionLength: z.number() }),
     'Activity counts and durations'),
