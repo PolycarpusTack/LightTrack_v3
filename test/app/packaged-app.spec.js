@@ -184,6 +184,22 @@ test.describe('packaged application', () => {
     await app.close();
   });
 
+  // #45: a failed request shows an error toast instead of an empty view.
+  test('shows a failed request to the user', async () => {
+    const { app, page } = await launch(userData);
+
+    await app.evaluate(({ ipcMain }) => {
+      ipcMain.removeHandler('activities:get');
+      ipcMain.handle('activities:get', () => { throw new Error('[INTERNAL] forced failure'); });
+    });
+    await page.locator('.nav-btn[data-view="timeline"]').click();
+
+    const toast = page.locator('.notification-toast.notification-error');
+    await expect(toast).toBeVisible();
+    await expect(toast).toContainText('Failed to load activities.');
+    await app.close();
+  });
+
   // LT3-003: main validates every request against the IPC contract.
   test('main refuses a request outside the IPC contract', async () => {
     const { app, page, errors } = await launch(userData);

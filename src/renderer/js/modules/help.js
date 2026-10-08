@@ -479,9 +479,8 @@ Data is stored locally:
       link.addEventListener('click', function(e) {
         e.preventDefault();
         // Use preload bridge to open external links safely
-        if (window.lightTrackAPI && window.lightTrackAPI.openExternal) {
-          window.lightTrackAPI.openExternal(this.href);
-        }
+        window.lightTrackAPI.openExternal(this.href)
+          .catch(error => window.LightTrack.UI.showNotification(error.message, 'error'));
       });
     });
 

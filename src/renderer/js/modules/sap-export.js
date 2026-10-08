@@ -136,6 +136,7 @@ window.LightTrack.SAPExport = (function() {
 
     } catch (error) {
       console.error('Error updating SAP preview:', error);
+      window.LightTrack.UI.showNotification(error.message, 'error');
       previewBody.innerHTML = `
         <tr>
           <td colspan="8" class="table-empty error">
@@ -151,9 +152,7 @@ window.LightTrack.SAPExport = (function() {
    */
   async function init() {
     try {
-      if (!window.lightTrackAPI) return;
-
-      const settings = await window.lightTrackAPI.getSettings() || {};
+      const settings = await window.lightTrackAPI.getSettings();
       state.employeeId = settings.employeeId || '';
 
       const employeeIdInput = document.getElementById('sap-employee-id');
@@ -262,6 +261,7 @@ window.LightTrack.SAPExport = (function() {
 
     } catch (error) {
       console.error('Error loading SAP Export view:', error);
+      window.LightTrack.UI.showNotification(error.message, 'error');
     }
   }
 

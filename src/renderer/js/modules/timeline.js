@@ -45,11 +45,8 @@
 
     try {
       // Fetch activities for the timeline date and store in AppState for edit/delete
-      let activities = [];
-      if (window.lightTrackAPI) {
-        activities = await window.lightTrackAPI.getActivities(AppState.timelineDate) || [];
-        AppState.activities = activities; // Store for edit/delete modal access
-      }
+      const activities = await window.lightTrackAPI.getActivities(AppState.timelineDate);
+      AppState.activities = activities; // Store for edit/delete modal access
 
       // Populate project filter dropdown
       if (timelineProjectFilter) {
@@ -171,6 +168,9 @@
         // Attach event listeners to timeline activity buttons
         attachTimelineListeners(timelineList);
       }
+    } catch (error) {
+      console.error('Failed to load timeline:', error);
+      showNotification(error.message, 'error');
     } finally {
       // Remove loading state
       if (timelineList) timelineList.classList.remove('view-loading');

@@ -19,10 +19,10 @@
    */
   async function loadUrlMappings() {
     const mappingsList = document.getElementById('url-mappings-list');
-    if (!mappingsList || !window.lightTrackAPI?.getUrlMappings) return;
+    if (!mappingsList) return;
 
     try {
-      const mappings = await window.lightTrackAPI.getUrlMappings() || {};
+      const mappings = await window.lightTrackAPI.getUrlMappings();
       const entries = Object.entries(mappings);
 
       if (entries.length === 0) {
@@ -56,6 +56,7 @@
     } catch (error) {
       console.error('Failed to load URL mappings:', error);
       mappingsList.innerHTML = '<div class="meta-line">Failed to load rules</div>';
+      showNotification(error.message, 'error');
     }
   }
 
@@ -258,10 +259,10 @@
    */
   async function loadJiraMappings() {
     const mappingsList = document.getElementById('jira-mappings-list');
-    if (!mappingsList || !window.lightTrackAPI?.getJiraMappings) return;
+    if (!mappingsList) return;
 
     try {
-      const mappings = await window.lightTrackAPI.getJiraMappings() || {};
+      const mappings = await window.lightTrackAPI.getJiraMappings();
       const entries = Object.entries(mappings);
 
       if (entries.length === 0) {
@@ -295,6 +296,7 @@
     } catch (error) {
       console.error('Failed to load JIRA mappings:', error);
       mappingsList.innerHTML = '<div class="meta-line">Failed to load rules</div>';
+      showNotification(error.message, 'error');
     }
   }
 
@@ -400,6 +402,7 @@
     } catch (error) {
       console.error('Failed to load Salesforce cases:', error);
       list.innerHTML = '<div class="meta-line">Failed to load Salesforce cases</div>';
+      showNotification(error.message, 'error');
     }
   }
 
@@ -414,7 +417,7 @@
       showNotification(`Case ${caseNumber} removed`, 'success');
       await loadSalesforceCases();
     } catch (error) {
-      showNotification(`Failed to remove case: ${error.message}`, 'error');
+      showNotification(error.message, 'error');
     }
   }
 
@@ -545,10 +548,10 @@
    */
   async function loadMeetingMappings() {
     const mappingsList = document.getElementById('meeting-mappings-list');
-    if (!mappingsList || !window.lightTrackAPI?.getMeetingMappings) return;
+    if (!mappingsList) return;
 
     try {
-      const mappings = await window.lightTrackAPI.getMeetingMappings() || {};
+      const mappings = await window.lightTrackAPI.getMeetingMappings();
       const entries = Object.entries(mappings);
 
       if (entries.length === 0) {
@@ -582,6 +585,7 @@
     } catch (error) {
       console.error('Failed to load meeting mappings:', error);
       mappingsList.innerHTML = '<div class="meta-line">Failed to load rules</div>';
+      showNotification(error.message, 'error');
     }
   }
 
@@ -810,9 +814,7 @@
    */
   async function loadSettings() {
     try {
-      if (!window.lightTrackAPI?.getSettings) return;
-
-      const stored = await window.lightTrackAPI.getSettings() || {};
+      const stored = await window.lightTrackAPI.getSettings();
 
       // Merge with defaults
       AppState.settings = {
@@ -845,8 +847,6 @@
    */
   async function saveSettings() {
     try {
-      if (!window.lightTrackAPI?.updateSettings) return;
-
       const result = await window.lightTrackAPI.updateSettings({
         deepWorkTarget: AppState.settings.deepWorkTarget,
         breaksTarget: AppState.settings.breaksTarget,
@@ -880,8 +880,6 @@
    */
   async function loadSettingsView() {
     try {
-      if (!window.lightTrackAPI) return;
-
       // Populate settings inputs with current values
       const deepWorkInput = document.getElementById('settings-deep-work');
       const breaksInput = document.getElementById('settings-breaks');
@@ -901,12 +899,10 @@
       if (autoTrackInput) autoTrackInput.checked = AppState.settings.autoStartTracking;
 
       // Sync launch at startup with actual system setting
-      if (launchStartupInput && window.lightTrackAPI?.getLaunchAtStartup) {
+      if (launchStartupInput) {
         const launchStatus = await window.lightTrackAPI.getLaunchAtStartup();
         launchStartupInput.checked = launchStatus.enabled;
         AppState.settings.launchAtStartup = launchStatus.enabled;
-      } else if (launchStartupInput) {
-        launchStartupInput.checked = AppState.settings.launchAtStartup;
       }
 
       // Wire up change handlers (only once) - using debounced save
@@ -961,8 +957,10 @@
         launchStartupInput.addEventListener('change', async (e) => {
           AppState.settings.launchAtStartup = e.target.checked;
           // Call dedicated API to set login item settings
-          if (window.lightTrackAPI?.setLaunchAtStartup) {
+          try {
             await window.lightTrackAPI.setLaunchAtStartup(e.target.checked);
+          } catch (error) {
+            showNotification(error.message, 'error');
           }
           debouncedSaveSettings();
         });
@@ -992,12 +990,10 @@
           AppState.settings.closeBehavior = e.target.value;
           debouncedSaveSettings();
           // Notify main process about the setting change
-          if (window.lightTrackAPI?.updateWindowBehavior) {
-            window.lightTrackAPI.updateWindowBehavior({
-              closeBehavior: e.target.value,
-              minimizeToTray: AppState.settings.minimizeToTray
-            });
-          }
+          window.lightTrackAPI.updateWindowBehavior({
+            closeBehavior: e.target.value,
+            minimizeToTray: AppState.settings.minimizeToTray
+          }).catch(error => showNotification(error.message, 'error'));
         });
       }
       if (minimizeToTrayInput && !minimizeToTrayInput.dataset.wired) {
@@ -1006,12 +1002,10 @@
           AppState.settings.minimizeToTray = e.target.checked;
           debouncedSaveSettings();
           // Notify main process about the setting change
-          if (window.lightTrackAPI?.updateWindowBehavior) {
-            window.lightTrackAPI.updateWindowBehavior({
-              closeBehavior: AppState.settings.closeBehavior,
-              minimizeToTray: e.target.checked
-            });
-          }
+          window.lightTrackAPI.updateWindowBehavior({
+            closeBehavior: AppState.settings.closeBehavior,
+            minimizeToTray: e.target.checked
+          }).catch(error => showNotification(error.message, 'error'));
         });
       }
 
@@ -1080,7 +1074,7 @@
       }
 
       // Load statistics
-      const allActivities = await window.lightTrackAPI.getActivities() || [];
+      const allActivities = await window.lightTrackAPI.getActivities();
       const totalDuration = allActivities.reduce((sum, a) => sum + (a.duration || 0), 0);
 
       let oldest = null;
@@ -1113,7 +1107,7 @@
             await window.lightTrackAPI.exportData();
             showNotification('Data exported', 'success');
           } catch (error) {
-            showNotification('Export failed', 'error');
+            showNotification(error.message, 'error');
           }
         });
       }
@@ -1174,6 +1168,7 @@
 
     } catch (error) {
       console.error('Failed to load settings:', error);
+      showNotification(error.message, 'error');
     }
   }
 
@@ -1232,12 +1227,12 @@
 
       // Gather all data (fetch mappings in parallel using shared helper)
       const [activities, settings, mappings, tags, projects, activityTypes] = await Promise.all([
-        window.lightTrackAPI.getActivities() || [],
-        window.lightTrackAPI.getSettings() || {},
+        window.lightTrackAPI.getActivities(),
+        window.lightTrackAPI.getSettings(),
         fetchAllMappings(),
-        window.lightTrackAPI.getTags?.() || [],
-        window.lightTrackAPI.getProjects?.() || [],
-        window.lightTrackAPI.getActivityTypes?.() || []
+        window.lightTrackAPI.getTags(),
+        window.lightTrackAPI.getProjects(),
+        window.lightTrackAPI.getActivityTypes()
       ]);
 
       const backupData = {
@@ -1431,8 +1426,8 @@
   async function loadBrowserExtensionSettings() {
     const statusEl = document.getElementById('browser-extension-status');
     const revokeBtn = document.getElementById('browser-extension-revoke');
-    const api = window.lightTrackAPI?.browserExtension;
-    if (!statusEl || !api) return;
+    const api = window.lightTrackAPI.browserExtension;
+    if (!statusEl) return;
 
     const render = paired => {
       statusEl.textContent = paired === 0
@@ -1445,6 +1440,7 @@
       render((await api.getStatus()).paired);
     } catch (error) {
       statusEl.textContent = 'Status unavailable.';
+      showNotification(error.message, 'error');
     }
 
     if (revokeBtn && !revokeBtn.dataset.wired) {
@@ -1454,7 +1450,7 @@
           render((await api.revokeAll()).paired);
           showNotification('Browser extensions disconnected', 'success');
         } catch (error) {
-          showNotification('Failed to disconnect extensions', 'error');
+          showNotification(error.message, 'error');
         }
       });
     }
@@ -1466,7 +1462,7 @@
     const statusEl = document.getElementById('calendar-sync-status');
     const helpLink = document.getElementById('calendar-help-link');
 
-    if (!calendarUrlInput || !window.lightTrackAPI?.calendar) return;
+    if (!calendarUrlInput) return;
 
     // Load current URL
     try {
@@ -1486,6 +1482,7 @@
       }
     } catch (error) {
       console.error('Failed to load calendar settings:', error);
+      showNotification(error.message, 'error');
     }
 
     // Wire up URL change handler
@@ -1579,7 +1576,7 @@
     const listEl = document.getElementById('upcoming-meetings-list');
     const infoEl = document.getElementById('calendar-sync-info');
 
-    if (!listEl || !window.lightTrackAPI?.calendar) return;
+    if (!listEl) return;
 
     try {
       // Get today's meetings
@@ -1631,6 +1628,7 @@
     } catch (error) {
       console.error('Failed to load upcoming meetings:', error);
       if (card) card.style.display = 'none';
+      showNotification(error.message, 'error');
     }
   }
 

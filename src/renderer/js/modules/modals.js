@@ -137,11 +137,6 @@
    * Save activity (new or edited)
    */
   async function saveActivity() {
-    if (!window.lightTrackAPI) {
-      showNotification('API not available', 'error');
-      return;
-    }
-
     const project = Elements.entryProject?.value || AppState.settings.defaultProject;
     const app = Elements.entryApp?.value || 'Manual entry';
     const startTime = Elements.entryStart?.value;
@@ -204,7 +199,7 @@
       loadActivities();
     } catch (error) {
       console.error('Failed to save activity:', error);
-      showNotification('Failed to save: ' + error.message, 'error');
+      showNotification(error.message, 'error');
     }
   }
 
@@ -236,8 +231,6 @@
     }
 
     try {
-      if (!window.lightTrackAPI) throw new Error('API not available');
-
       await window.lightTrackAPI.deleteActivity(activityId);
       showNotification('Entry deleted', 'success');
       invalidateAnalyticsCache(); // Clear cache so analytics refreshes
@@ -245,7 +238,7 @@
       loadActivities();
     } catch (error) {
       console.error('Failed to delete activity:', error);
-      showNotification('Failed to delete: ' + error.message, 'error');
+      showNotification(error.message, 'error');
     }
   }
 
@@ -257,7 +250,7 @@
   async function openClearDataModal() {
     // Get count of activities to be deleted
     try {
-      const activities = await window.lightTrackAPI.getActivities() || [];
+      const activities = await window.lightTrackAPI.getActivities();
       const cutoffDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
       const oldActivities = activities.filter(a => {
         const date = new Date(a.timestamp || a.startTime);
@@ -270,6 +263,7 @@
       if (Elements.clearDataCount) {
         Elements.clearDataCount.textContent = '';
       }
+      showNotification(error.message, 'error');
     }
     if (Elements.clearDataModalOverlay) {
       Elements.clearDataModalOverlay.classList.add('active');
@@ -308,11 +302,6 @@
    */
   async function loadTags() {
     try {
-      if (!window.lightTrackAPI?.getTags) {
-        console.warn('Tags API not available');
-        return;
-      }
-
       // Fetch all tags and used tags
       const [tagsResult, usedTags] = await Promise.all([
         window.lightTrackAPI.getTags(),
@@ -329,6 +318,7 @@
       renderTagPills();
     } catch (error) {
       console.error('Failed to load tags:', error);
+      showNotification(error.message, 'error');
     }
   }
 
@@ -701,8 +691,6 @@
    */
   async function loadProjects() {
     try {
-      if (!window.lightTrackAPI?.getProjects) return;
-
       const projectsResult = await window.lightTrackAPI.getProjects();
 
       AppState.projects = {
@@ -712,6 +700,7 @@
       };
     } catch (error) {
       console.error('Failed to load projects:', error);
+      showNotification(error.message, 'error');
     }
   }
 
@@ -918,8 +907,6 @@
    */
   async function loadActivityTypes() {
     try {
-      if (!window.lightTrackAPI?.getActivityTypes) return;
-
       const typesResult = await window.lightTrackAPI.getActivityTypes();
 
       AppState.activityTypes = {
@@ -929,6 +916,7 @@
       };
     } catch (error) {
       console.error('Failed to load activity types:', error);
+      showNotification(error.message, 'error');
     }
   }
 
