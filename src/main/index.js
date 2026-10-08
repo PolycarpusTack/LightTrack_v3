@@ -291,7 +291,7 @@ class LightTrackApp {
   setupIPC() {
     const registry = new IpcRegistry(ipcMain, logger);
 
-    new ActivitiesHandlerMain(this.storage, this.appState.store, this.appState, validateAndSanitizeActivity)
+    new ActivitiesHandlerMain(this.storage, this.appState.store, this.appState, validateAndSanitizeActivity, () => this.tracker)
       .registerHandlers(registry);
 
     new SettingsHandlerMain(

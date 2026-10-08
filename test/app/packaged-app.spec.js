@@ -211,6 +211,35 @@ test.describe('packaged application', () => {
     await app.close();
   });
 
+  // #39: merging on the timeline keeps one activity with the summed time.
+  test('merges two activities on the timeline', async () => {
+    const { app, page, errors } = await launch(userData);
+    const date = localDateISO();
+    await page.evaluate(async d => {
+      for (const [start, end, title] of [['13:00', '13:30', 'Merge work A'], ['14:00', '14:45', 'Merge work B']]) {
+        await window.lightTrackAPI.addManualEntry({
+          project: 'Merge Project', app: title, title,
+          startTime: new Date(d + 'T' + start + ':00').toISOString(),
+          endTime: new Date(d + 'T' + end + ':00').toISOString()
+        });
+      }
+    }, date);
+
+    await page.locator('.nav-btn[data-view="timeline"]').click();
+    const rows = page.locator('#timeline-list .activity', { hasText: 'Merge Project' });
+    await expect(rows).toHaveCount(2);
+    for (const box of await rows.locator('.activity-checkbox').all()) await box.click();
+    await page.locator('#timeline-merge-selected').click();
+    await expect(page.locator('.notification-toast')).toContainText('Merged 2 activities');
+
+    const merged = await page.evaluate(async () => (await window.lightTrackAPI.getActivities()).filter(a => a.project === 'Merge Project'));
+    expect(merged).toHaveLength(1);
+    expect(merged[0].duration).toBe(4500);
+    await expect(rows).toHaveCount(1);
+    expect(errors).toEqual([]);
+    await app.close();
+  });
+
   // #45: a failed request shows an error toast instead of an empty view.
   test('shows a failed request to the user', async () => {
     const { app, page } = await launch(userData);

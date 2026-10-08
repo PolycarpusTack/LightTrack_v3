@@ -77,6 +77,8 @@ contextBridge.exposeInMainWorld('lightTrackAPI', {
   addActivity: call('activities:save-manual', fail('Failed to save activity. Please try again.'), 'add activity'),
   updateActivity: call('activities:update', fail('Failed to update activity. Please try again.'), 'update activity'),
   deleteActivity: call('activities:delete', fail('Failed to delete activity. Please try again.'), 'delete activity'),
+  // Main explains why a merge is refused (different project or day, activity being tracked).
+  mergeActivities: call('activities:merge', { useMainMessage: 'Failed to merge activities.' }, 'merge activities'),
   createManualActivity: call('activities:save-manual', fail('Failed to create manual activity. Please try again.'), 'create manual activity'),
   addManualEntry: call('activities:save-manual', fail('Failed to add manual entry. Please try again.'), 'add manual entry'),
 

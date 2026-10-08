@@ -411,7 +411,8 @@
   }
 
   /**
-   * Merge selected activities into one
+   * Merge the selected activities into the earliest one. Main checks project and day
+   * and writes the result in one step (#39).
    */
   async function mergeSelectedActivities() {
     const selectedIds = AppState.selectedActivities;
@@ -420,78 +421,16 @@
       return;
     }
 
-    // Get the selected activities from AppState.activities
-    const selectedActivities = AppState.activities.filter(a => selectedIds.includes(String(a.id)));
-
-    if (selectedActivities.length < 2) {
-      showNotification(ERRORS.MERGE_NOT_FOUND, 'error');
-      return;
-    }
-
-    // Check if all activities have the same project
-    const projects = [...new Set(selectedActivities.map(a => a.project || 'General'))];
-    if (projects.length > 1) {
-      showNotification('Can only merge activities with the same project', 'warning');
-      return;
-    }
-
-    // Sort by start time
-    selectedActivities.sort((a, b) => new Date(a.startTime || 0) - new Date(b.startTime || 0));
-
-    // Create merged activity
-    const earliest = selectedActivities[0];
-    const latest = selectedActivities[selectedActivities.length - 1];
-    const totalDuration = selectedActivities.reduce((sum, a) => sum + (a.duration || 0), 0);
-
-    // Collect unique tags and tickets
-    const allTags = [...new Set(selectedActivities.flatMap(a => a.tags || []))];
-    const allTickets = [...new Set(selectedActivities.flatMap(a => a.tickets || []))];
-
-    const mergedActivity = {
-      app: earliest.app,
-      title: earliest.title,
-      project: earliest.project || 'General',
-      startTime: earliest.startTime,
-      endTime: latest.endTime,
-      duration: totalDuration,
-      billable: earliest.billable,
-      activityType: earliest.activityType,
-      tags: allTags,
-      tickets: allTickets
-    };
-
-    let savedMerged = null;
-
     try {
-      // Step 1: Save merged activity first
-      savedMerged = await window.lightTrackAPI.saveActivity(mergedActivity);
-
-      // Step 2: Delete all original activities atomically
-      try {
-        await Promise.all(
-          selectedActivities.map(a => window.lightTrackAPI.deleteActivity(a.id))
-        );
-      } catch (deleteError) {
-        // Rollback: delete the merged activity we just created
-        console.error('Delete failed, rolling back merge:', deleteError);
-        if (savedMerged?.id) {
-          try {
-            await window.lightTrackAPI.deleteActivity(savedMerged.id);
-          } catch (rollbackError) {
-            console.error('Rollback failed:', rollbackError);
-          }
-        }
-        throw new Error(ERRORS.MERGE_ROLLBACK);
-      }
-
-      // Clear selection and reload
+      await window.lightTrackAPI.mergeActivities(selectedIds);
       AppState.selectedActivities = [];
       if (Elements.timelineSelectAll) Elements.timelineSelectAll.checked = false;
-      showNotification(`Merged ${selectedActivities.length} activities`, 'success');
+      showNotification(`Merged ${selectedIds.length} activities`, 'success');
+      invalidateAnalyticsCache();
       loadTimelineView();
     } catch (error) {
       console.error('Failed to merge activities:', error);
-      showNotification(ERRORS.MERGE_FAILED + ': ' + error.message, 'error');
+      showNotification(error.message, 'error');
     }
   }
 
