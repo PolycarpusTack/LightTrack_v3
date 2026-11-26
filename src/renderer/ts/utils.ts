@@ -100,6 +100,28 @@ export function icon(name: string): string {
   return path ? `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${path}"/></svg>` : '';
 }
 
+/**
+ * Show a load failure where a list would be, with a Retry button (stabilisation
+ * backlog A-3). An empty list must only ever mean "nothing there".
+ */
+export function renderLoadError(container: HTMLElement | null | undefined, message: string, onRetry?: () => void): void {
+  if (!container) return;
+  container.innerHTML = `
+    <div class="empty-state load-error" role="alert">
+      <div class="icon">${icon('warning')}</div>
+      <div class="load-error-message"></div>
+      <div class="meta-line">The data is still stored. Check logs/main.log if this keeps happening.</div>
+      <button type="button" class="ghost small load-error-retry">Retry</button>
+    </div>`;
+  const text = container.querySelector('.load-error-message');
+  if (text) text.textContent = message;
+  const retry = container.querySelector<HTMLButtonElement>('.load-error-retry');
+  if (retry) {
+    if (onRetry) retry.addEventListener('click', () => onRetry());
+    else retry.hidden = true;
+  }
+}
+
 type BoxProp = 'left' | 'width' | 'top' | 'height';
 const BOX_PROPS: readonly BoxProp[] = ['left', 'width', 'top', 'height'];
 

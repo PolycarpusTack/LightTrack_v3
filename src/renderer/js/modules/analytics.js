@@ -732,6 +732,9 @@
     } catch (error) {
       console.error('Failed to load analytics:', error);
       showNotification('Failed to load analytics', 'error');
+      // Replace the loading placeholders with the failure (A-3).
+      if (Elements.analyticsWeekTotal) Elements.analyticsWeekTotal.textContent = '--';
+      window.LightTrack.Utils.renderLoadError(Elements.analyticsProjectBreakdown, 'Could not load activities', () => loadAnalyticsView());
     }
   }
 

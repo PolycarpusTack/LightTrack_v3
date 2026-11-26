@@ -807,6 +807,9 @@ async function loadActivities(date) {
   } catch (error) {
     console.error('Failed to load activities:', error);
     showNotification('Failed to load activities', 'error');
+    // An empty list must mean "nothing tracked", so say that loading failed (A-3).
+    AppState.activities = [];
+    window.LightTrack.Utils.renderLoadError(Elements.activityList, 'Could not load activities', () => loadActivities(date));
   }
 }
 

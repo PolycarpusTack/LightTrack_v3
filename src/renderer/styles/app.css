@@ -1754,6 +1754,11 @@ body.splash-hidden #splash-screen {
     color: var(--ink-faint);
 }
 
+/* A list that failed to load (A-3) */
+.empty-state.load-error .load-error-retry {
+    margin-top: 12px;
+}
+
 /* Enhanced Empty State */
 .empty-state-enhanced {
     text-align: center;
