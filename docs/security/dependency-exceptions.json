@@ -1,9 +1,3 @@
 {
-  "exceptions": [
-    {
-      "advisory": "GHSA-hp3w-g68c-fv3c",
-      "package": "sprintf-js",
-      "expires": "2026-11-05"
-    }
-  ]
+  "exceptions": []
 }
