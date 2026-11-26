@@ -4,14 +4,19 @@ An exception requires the advisory identifier, affected dependency path, runtime
 
 `npm run security:audit` (`scripts/audit.js`) fails on every advisory of moderate severity or higher that is not listed in `dependency-exceptions.json`. An exception covers one advisory in one package and stops counting on its expiry date. Add each exception to both files.
 
-## GHSA-hp3w-g68c-fv3c: `sprintf-js` (moderate)
+## Current exceptions
 
-- **Advisory:** denial of service through unbounded precision specifiers. Affects all versions; no fixed release yet.
-- **Dependency paths:**
-  - `electron-builder` > `app-builder-lib` > `@electron/get` > `global-agent` > `roarr` > `sprintf-js@1.1.3`
-  - `ts-jest` > `@jest/transform` > `babel-plugin-istanbul` > `@istanbuljs/load-nyc-config` > `js-yaml` > `argparse` > `sprintf-js@1.0.3`
-- **Exposure:** build and test time only. `npm ls sprintf-js --omit=dev` is empty, so it is not in the installed app. The format strings come from the tools themselves, not from user input.
-- **Mitigation:** none needed at runtime. Remove the exception when a fixed `sprintf-js` or updated parent packages are available.
-- **Owner:** repository owner (PolycarpusTack)
-- **Approved:** 2026-10-06
-- **Expires:** 2026-11-05
+None.
+
+## Overrides
+
+`package.json` pins two build and test tools to fixed releases, because their parent packages have not moved yet:
+
+- `glob` 9 to 14.0.1 is replaced by 14.0.6 (GHSA-3g3m-2fjr-6pw4). Parents: `jest`, `test-exclude`.
+- `minimatch` 9 and 10 are replaced by 11.0.9 (GHSA-g3hv-75wg-m249) under `app-builder-lib`, `@electron/universal`, `test-exclude` and `@typescript-eslint/typescript-estree`.
+
+Neither package is in the installed app (`npm ls glob minimatch --omit=dev` is empty). Remove an override once the parent package depends on a fixed version itself.
+
+## History
+
+- 2026-11-26: the `sprintf-js` exception (GHSA-hp3w-g68c-fv3c) was removed. It lapsed on 2026-11-05 and the audit no longer reports the advisory.
