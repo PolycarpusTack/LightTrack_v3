@@ -46,7 +46,7 @@
     "@typescript-eslint/eslint-plugin": "^8.71.0",
     "@typescript-eslint/parser": "^8.71.0",
     "commander": "^14.0.2",
-    "electron": "^44.5.1",
+    "electron": "^44.11.6",
     "electron-builder": "^26.0.12",
     "esbuild": "^0.28.2",
     "eslint": "^8.57.0",
@@ -62,7 +62,22 @@
     "koffi": "^2.16.3",
     "node-ical": "^0.22.1",
     "sql.js": "^1.14.2",
-    "zod": "^4.6.5"
+    "zod": "^4.6.7"
+  },
+  "overrides": {
+    "glob@>=9.0.0 <=14.0.1": "^14.0.6",
+    "app-builder-lib": {
+      "minimatch": "^11.0.9"
+    },
+    "@electron/universal": {
+      "minimatch": "^11.0.9"
+    },
+    "test-exclude": {
+      "minimatch": "^11.0.9"
+    },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.9"
+    }
   },
   "build": {
     "appId": "com.lightsuite.lighttrack",
