@@ -12,7 +12,7 @@ STRIDE: S none · T none · R none · I A-1 (dependency advisories) · D A-1 (zo
 Compliance: no regime specified
 Embedded directives found: none
 Core Specification: fallback mode table used (core-specification-v1.md not found)
-Review: APPROVED (owner, 2026-11-26; assumptions AS-1, AS-2 and AS-6 confirmed)
+Review: APPROVED (owner, 2026-11-26; assumptions AS-1 and AS-2 confirmed; B-5 dropped in favour of #57)
 ```
 
 Validation: independent critic pass on 2026-11-26, APPROVED with no blocking findings. Its corrections are applied: package before every harness check, A-4 split into a handler task and a dialog task, A-1 verified by the harness as well, B-11 split, B-12 reworded. Still open from that pass: persona lines for B-7 to B-12 and a deliverables line on a few small tasks; add them when each story is picked up.
@@ -21,7 +21,7 @@ Completeness is 2 because the audit read the code and the log but did not run th
 
 ## Critical gaps
 
-None block the first epic. Three owner decisions are taken as assumptions below (AS-1, AS-2, AS-6); say so if you want a different answer before the item starts.
+None block the first epic. Two owner decisions are taken as assumptions below (AS-1, AS-2); both are confirmed.
 
 ## Rules for every item
 
@@ -60,7 +60,6 @@ Synonyms to avoid: "record", "entry" (use activity or manual entry), "session" (
 | AS-3 | Advisories are closed by upgrading. A dev-only advisory with no fixed version gets a dated exception in `docs/security/dependency-exceptions.json`. | Med | A-1 lists each advisory and its resolution in the PR. |
 | AS-4 | The idle prompt offers two choices, count or exclude, as main already implements. | Low | B-4 acceptance. |
 | AS-5 | Controls with no backend are implemented when small (SAP export history) and removed otherwise (extension "Open LightTrack"). | Low | B-9, Not yet specified. |
-| AS-6 | Switch project applies to the activity being tracked and holds until the app in front changes or tracking stops. It does not create a rule. | Med | Owner confirms before B-5 starts. |
 | AS-7 | The audit's "likely" findings are real. | Med | Pull gates on A-7, B-6. |
 
 ## Technical debt
@@ -70,7 +69,7 @@ Synonyms to avoid: "record", "entry" (use activity or manual entry), "session" (
 
 ## Backlog
 
-Sequence: A-1 to A-9, then B-1 to B-12. Each story unblocks the next unless stated. Two epics, 21 stories.
+Sequence: A-1 to A-9, then B-1 to B-12 without B-5. Each story unblocks the next unless stated. Two epics, 20 stories. Story IDs are not renumbered.
 
 ---
 
@@ -382,8 +381,8 @@ Scenario: seeded tracked activity
 - **Tracer bullet:** no.
 - **Mode:** DELIVERY
 - **Definition of Done:** no control in the app calls a missing API or `prompt()`; every setting shown survives a restart; the harness covers save, edit and manual entry (B-12).
-- **Checks the harness cannot make:** the harness keeps tracking off, so the idle prompt (B-4) and the project switcher (B-5) are checked in main by tests and on screen by the owner in an installed build. Those two stories are HITL for that last step.
-- **Business value:** the owner can trust what the screen reports. Measure: stories of this epic still open, 12 at the start, target 0.
+- **Checks the harness cannot make:** the harness keeps tracking off, so the idle prompt (B-4) is checked in main by tests and on screen by the owner in an installed build. That story is HITL for that last step.
+- **Business value:** the owner can trust what the screen reports. Measure: stories of this epic still open, 11 at the start, target 0.
 - **Risks:** Low — renderer has no unit tests (TD-2); mitigation: harness checks per story where a flow changes.
 - **SLO:** none new.
 - **ADRs:** none.
@@ -499,42 +498,11 @@ Scenario: short absence
 - Verify: `npx jest --config jest.baseline.config.js -t "idle decision"`, red before.
 - Do not touch: sleep and lock handling (A-7); the idle threshold setting (B-2).
 - Shortcuts: Allowed: leave `idle-warning` unsubscribed. Forbidden: `prompt()` or `confirm()` for this dialog.
-- Pull gate: A-7 and B-3 merged. Unblocks: B-5. Confidence: Med.
+- Pull gate: A-7 and B-3 merged. Unblocks: B-6. Confidence: Med.
 
-### B-5 — Switch project while tracking (#41)
+### B-5 — Switch project while tracking (#41): dropped
 
-As the owner I want to move the running activity to another project.
-Value: Med. Priority: M. Size: M. DoR: HOLD.
-
-Gap: PR #57 (open since 2026-10-08) closes #41 the other way, by removing the switcher, on the grounds that the first-release Day screen replaces the Timer. The owner must choose: merge #57 and drop this story, or close #57 and build it as below.
-
-```gherkin
-Scenario: switch while tracking
-  Given an activity is tracked under "General"
-  When I switch to "Atlas"
-  Then the tracked activity's project is "Atlas" and the badge shows "Atlas" on the next update
-
-Scenario: the app in front changes
-  Given I switched to "Atlas"
-  When another app comes to the front
-  Then that app is tracked under its own project
-
-Scenario: not tracking
-  When I open the switcher while stopped
-  Then it is disabled
-
-Scenario: the list of projects
-  When I open the switcher
-  Then it lists all projects, not only today's
-```
-
-**B-5-T1** · Hat: FEATURE · Tier: X · Run: AFK
-- Goal: add a `tracking:switch-project` channel and a tracker override for the current activity.
-- Required interfaces: new contract entry: one project name argument, tracking state result.
-- Verify: `npx jest --config jest.baseline.config.js -t "switch project"`, red before.
-- Do not touch: mapping rules (LT3-301, #21); Salesforce case memory.
-- Idempotency: switching to the current project is a no-op.
-- Pull gate: A-6 merged; AS-6 confirmed. Closes #41. Unblocks: B-6. Confidence: Med.
+Owner decision, 2026-11-26: the switcher is removed instead of built. PR #57 removes the control and closes #41. To book time elsewhere, edit the activity (A-4 makes that safe) or add a rule. A live switch can be reconsidered with the Day screen of the first release.
 
 ### B-6 — No control depends on `prompt()`
 

@@ -1,17 +1,17 @@
 # LightTrack v3: status and pickup
 
 **Last updated:** 2026-11-26
-**`main`:** `7615165`. Open: #59 (A-1, dependency audit), #60 (stabilisation backlog and this status), #57 (#41, decision open, see below).
+**`main`:** `7615165`. Open: #59 (A-1, dependency audit), #60 (stabilisation backlog and this status), #57 (removes the project switcher, closes #41).
 **Next step:** merge #59 once approved, then A-2 of `docs/handover/stabilisation-backlog.md` on branch `fix/a-2-wire-format` from `main`. LT3-102 (#13) follows the stabilisation backlog.
 
 ## Audit of 2026-11-26
 
-The owner reported that tracking runs but no records appear. A functional audit found the cause and a set of other defects; `docs/handover/stabilisation-backlog.md` fixes them in order (two epics, 21 stories, validated and approved by the owner).
+The owner reported that tracking runs but no records appear. A functional audit found the cause and a set of other defects; `docs/handover/stabilisation-backlog.md` fixes them in order (two epics, 20 stories, validated and approved by the owner).
 
 - **No records shown:** the tracker stores start and end times as numbers, the IPC contract accepts only text, so every `activities:get` reply with a tracked activity is rejected (4,271 times in the owner's log since 2026-10-27). The data is stored; nothing is lost. Fixed by A-2.
 - **CI:** the dependency audit failed on 17 advisories and the `sprintf-js` exception lapsed on 2026-11-05. Fixed by A-1 (#59).
 - **Also found:** editing rewrites duration and title; manual entries for another day land on today; tray stop desynchronises tracking; sleep time is probably counted; every settings save reports failure; no idle prompt; three controls use `prompt()`. Each has a story.
-- **#41 and #57:** the backlog has B-5 (build the switcher) while #57 removes it. The owner's answer was ambiguous both times. Ask which, then either merge #57 and drop B-5, or close #57.
+- **#41 and #57:** decided on 2026-11-26: the project switcher is removed (#57), not built. Story B-5 is dropped.
 
 ## Where we are
 
@@ -29,7 +29,7 @@ The app is in daily use by the owner as a time tracker. The first-release workfl
 - #55 restore from backup removed until LT3-105 (closes #40)
 - #56 timeline merge through a new `activities:merge` channel, one store write (closes #39)
 
-Open: #57 removes the Timer's project switcher (closes #41). The owner answered "yes" to a question that offered removal (recommended) or a new channel; this was read as removal. Confirm before merging #57.
+Open: #57 removes the Timer's project switcher (closes #41). The owner confirmed removal on 2026-11-26.
 
 Seen, not fixed: the old storage combines two saves with the same app, title and project made within 5 minutes, whatever their times (`lightweight-storage.js`, `canMergeActivities`). LT3-102 replaces this storage.
 
@@ -57,7 +57,7 @@ Seen, not fixed: the old storage combines two saves with the same app, title and
 
 ## Next (in order)
 
-1. **Stabilisation backlog**, one story and one PR at a time: A-1 (#59) to A-9, then B-1 to B-12. Retrospective after each epic. Settle #57 against B-5 before B-5 starts.
+1. **Stabilisation backlog**, one story and one PR at a time: A-1 (#59) to A-9, then B-1 to B-12 (B-5 is dropped). Retrospective after each epic. #57 can merge at any time once approved.
 2. **LT3-102 (#13)** Typed repositories on the LT3-101 schema (`src/main/persistence/`: `database.ts`, `schema.ts`, `sqlite-db.ts`). Acceptance: repositories for raw activity, projects, mapping rules, worklogs, allocations, audit records, profiles and export runs; transactions where several records change together; domain errors for validation, conflict, not-found and persistence failures; performance tests for date-range queries. The app still uses the old JSON storage; the LT3-101 database is not used by the app yet. Then LT3-103 to LT3-105 (#14 to #16): v3 export, import with reconciliation, backup and restore.
 3. Increment C (#17 to #21), the CSV hand-off (#22, #23), RDP (#26, #27), #31, #33.
 
@@ -73,4 +73,4 @@ Seen, not fixed: the old storage combines two saves with the same app, title and
 
 ## Pickup prompt
 
-> Continue LightTrack v3 in `C:\Projects\Other\LightTrack_v3`. Read `docs/handover/STATUS.md` first and check "Waiting on the owner" for anything I have answered. Ask me to approve merging any open PRs, and whether #41 is removed (#57) or built (B-5). Then start the first open story of `docs/handover/stabilisation-backlog.md`, following its "Rules for every item": branch from `main`, implement, keep lint, typecheck, `test:ci`, build and the packaged-app harness green, open a PR and report CI. Use `docs/design/first-release` for any UI work. Keep the plain, concise writing style used in the docs. Ask me before merging.
+> Continue LightTrack v3 in `C:\Projects\Other\LightTrack_v3`. Read `docs/handover/STATUS.md` first and check "Waiting on the owner" for anything I have answered. Ask me to approve merging any open PRs. Then start the first open story of `docs/handover/stabilisation-backlog.md`, following its "Rules for every item": branch from `main`, implement, keep lint, typecheck, `test:ci`, build and the packaged-app harness green, open a PR and report CI. Use `docs/design/first-release` for any UI work. Keep the plain, concise writing style used in the docs. Ask me before merging.
