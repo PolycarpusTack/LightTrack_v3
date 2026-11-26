@@ -256,6 +256,49 @@ test.describe('packaged application', () => {
     await app.close();
   });
 
+  // A-3: a load failure is shown where the list would be, never as an empty day.
+  test('load failure shows an error state with Retry, and Settings still loads', async () => {
+    const { app, page } = await launch(userData);
+    const failActivities = () => app.evaluate(({ ipcMain }) => {
+      ipcMain.removeHandler('activities:get');
+      ipcMain.handle('activities:get', () => { throw new Error('[INTERNAL] forced failure'); });
+    });
+
+    await failActivities();
+    await page.reload();
+    await page.locator('.nav-btn[data-view="timer"]').waitFor({ state: 'visible' });
+
+    // Timer
+    const timerList = page.locator('#activity-list');
+    await expect(timerList.locator('.load-error')).toContainText('Could not load activities');
+    await expect(timerList).not.toContainText('No activities yet today');
+
+    // Timeline
+    await page.locator('.nav-btn[data-view="timeline"]').click();
+    await expect(page.locator('#timeline-list .load-error')).toContainText('Could not load activities');
+    await expect(page.locator('#timeline-summary')).toHaveText('Could not load activities');
+
+    // Analytics
+    await page.locator('.nav-btn[data-view="analytics"]').click();
+    await expect(page.locator('.view[data-view="analytics"] .load-error')).toContainText('Could not load activities');
+
+    // Settings: only the statistics fail; the other sections are filled.
+    await page.locator('.nav-btn[data-view="settings"]').click();
+    await expect(page.locator('#settings-stats')).toHaveText('Could not load statistics');
+    await expect(page.locator('#browser-extension-status')).not.toHaveText('Loading...');
+
+    // Retry works once the request succeeds again.
+    await page.locator('.nav-btn[data-view="timeline"]').click();
+    await expect(page.locator('#timeline-list .load-error')).toBeVisible();
+    await app.evaluate(({ ipcMain }) => {
+      ipcMain.removeHandler('activities:get');
+      ipcMain.handle('activities:get', () => []);
+    });
+    await page.locator('#timeline-list .load-error-retry').click();
+    await expect(page.locator('#timeline-list .load-error')).toHaveCount(0);
+    await app.close();
+  });
+
   // LT3-003: main validates every request against the IPC contract.
   test('main refuses a request outside the IPC contract', async () => {
     const { app, page, errors } = await launch(userData);

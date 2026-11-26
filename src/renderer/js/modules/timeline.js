@@ -171,6 +171,10 @@
     } catch (error) {
       console.error('Failed to load timeline:', error);
       showNotification(error.message, 'error');
+      // Show the failure in place of the list and the summary (A-3).
+      AppState.activities = [];
+      if (timelineSummary) timelineSummary.textContent = 'Could not load activities';
+      window.LightTrack.Utils.renderLoadError(timelineList, 'Could not load activities', () => loadTimelineView());
     } finally {
       // Remove loading state
       if (timelineList) timelineList.classList.remove('view-loading');

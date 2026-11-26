@@ -524,6 +524,10 @@ LightTrack --monitor-page-requests
 
 ### Activity Tracking Problems
 
+#### The list says "Could not load activities"
+
+The activities are stored, but the app could not read them. Press **Retry**. If it keeps failing, open `%APPDATA%\LightTrack\logs\main.log` and look for a line with `IPC activities:get`: `invalid response` means a stored activity has a shape the app does not accept, and the line names the field. An empty list without this message means nothing was tracked for that day.
+
 #### Issue: Activities Not Being Tracked
 **Symptoms**:
 - Timer runs but no activities saved

@@ -1073,29 +1073,6 @@
         });
       }
 
-      // Load statistics
-      const allActivities = await window.lightTrackAPI.getActivities();
-      const totalDuration = allActivities.reduce((sum, a) => sum + (a.duration || 0), 0);
-
-      let oldest = null;
-      let newest = null;
-      allActivities.forEach(a => {
-        if (a.startTime) {
-          const d = new Date(a.startTime);
-          if (!oldest || d < oldest) oldest = d;
-          if (!newest || d > newest) newest = d;
-        }
-      });
-
-      const statsEl = document.getElementById('settings-stats');
-      if (statsEl) {
-        statsEl.innerHTML = `
-          Total entries: ${allActivities.length}<br>
-          Total time tracked: ${formatDuration(totalDuration)}<br>
-          Date range: ${oldest ? oldest.toLocaleDateString() : '--'} to ${newest ? newest.toLocaleDateString() : '--'}
-        `;
-      }
-
       // Wire up data management buttons
       const exportBtn = document.getElementById('settings-export');
       const clearBtn = document.getElementById('settings-clear-old');
@@ -1149,6 +1126,41 @@
     } catch (error) {
       console.error('Failed to load settings:', error);
       showNotification(error.message, 'error');
+    }
+
+    // Last and on its own: the statistics need every activity, and a failure there
+    // must not stop the sections above from loading (A-3).
+    await loadSettingsStatistics();
+  }
+
+  /**
+   * Fill the statistics card on the Settings screen
+   */
+  async function loadSettingsStatistics() {
+    const statsEl = document.getElementById('settings-stats');
+    if (!statsEl) return;
+    try {
+      const allActivities = await window.lightTrackAPI.getActivities();
+      const totalDuration = allActivities.reduce((sum, a) => sum + (a.duration || 0), 0);
+
+      let oldest = null;
+      let newest = null;
+      allActivities.forEach(a => {
+        if (a.startTime) {
+          const d = new Date(a.startTime);
+          if (!oldest || d < oldest) oldest = d;
+          if (!newest || d > newest) newest = d;
+        }
+      });
+
+      statsEl.innerHTML = `
+          Total entries: ${allActivities.length}<br>
+          Total time tracked: ${formatDuration(totalDuration)}<br>
+          Date range: ${oldest ? oldest.toLocaleDateString() : '--'} to ${newest ? newest.toLocaleDateString() : '--'}
+        `;
+    } catch (error) {
+      console.error('Failed to load statistics:', error);
+      statsEl.textContent = 'Could not load statistics';
     }
   }
 
