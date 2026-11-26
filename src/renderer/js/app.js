@@ -484,8 +484,6 @@ function initElements() {
   Elements.currentProjectBadge = document.getElementById('current-project-badge');
   Elements.currentAppBadge = document.getElementById('current-app-badge');
   Elements.samplingBadge = document.getElementById('sampling-badge');
-  Elements.projectSwitcher = document.getElementById('project-switcher');
-  Elements.projectSwitcherList = document.getElementById('project-switcher-list');
 
   Elements.todayTotal = document.getElementById('today-total');
   Elements.todayCompare = document.getElementById('today-compare');
@@ -1769,9 +1767,6 @@ function init() {
   // Set up keyboard shortcuts for timer
   setupTimerKeyboardShortcuts();
 
-  // Set up project switcher
-  initProjectSwitcher();
-
   // Initialize daily summary toggle
   initDailySummary();
 
@@ -1868,150 +1863,6 @@ function updateMiniTimeline() {
  */
 function updateGoals() {
   return window.LightTrack.Dashboard?.updateGoals?.();
-}
-
-// ============= Quick Project Switcher =============
-
-/**
- * Toggle project switcher dropdown visibility
- */
-function toggleProjectSwitcher() {
-  if (!Elements.projectSwitcher) return;
-
-  const isActive = Elements.projectSwitcher.classList.contains('active');
-
-  if (isActive) {
-    closeProjectSwitcher();
-  } else {
-    openProjectSwitcher();
-  }
-}
-
-/**
- * Open project switcher and populate with recent projects
- */
-function openProjectSwitcher() {
-  if (!Elements.projectSwitcher || !Elements.projectSwitcherList) return;
-
-  // Get unique projects from today's activities
-  const projectTimes = {};
-  AppState.activities.forEach(a => {
-    const project = a.project || 'General';
-    projectTimes[project] = (projectTimes[project] || 0) + (a.duration || 0);
-  });
-
-  // Also add projects from mappings
-  if (AppState.projectMappings) {
-    Object.values(AppState.projectMappings).forEach(m => {
-      if (m.project && !projectTimes[m.project]) {
-        projectTimes[m.project] = 0;
-      }
-    });
-  }
-
-  // Add General if not present
-  if (!projectTimes['General']) {
-    projectTimes['General'] = 0;
-  }
-
-  // Sort by time spent (most time first)
-  const sorted = Object.entries(projectTimes)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 8); // Limit to 8 projects
-
-  const currentProject = AppState.currentProject || 'General';
-
-  Elements.projectSwitcherList.innerHTML = sorted.map(([project, seconds]) => {
-    const isCurrent = project === currentProject;
-    const time = seconds > 0 ? formatDuration(seconds) : '';
-    return `
-      <button type="button" class="project-switcher-item${isCurrent ? ' current' : ''}" data-project="${escapeHtml(project)}">
-        ${escapeHtml(project)}
-        ${time ? `<span class="project-time">${time}</span>` : ''}
-      </button>
-    `;
-  }).join('');
-
-  Elements.projectSwitcher.classList.add('active');
-}
-
-/**
- * Close project switcher dropdown
- */
-function closeProjectSwitcher() {
-  if (Elements.projectSwitcher) {
-    Elements.projectSwitcher.classList.remove('active');
-  }
-}
-
-/**
- * Switch to a different project without stopping tracking
- */
-async function switchProject(projectName) {
-  if (!projectName) return;
-
-  closeProjectSwitcher();
-
-  // Update current project in state
-  AppState.currentProject = projectName;
-
-  // Update the display
-  if (Elements.currentProjectBadge) {
-    Elements.currentProjectBadge.textContent = `Project: ${projectName}`;
-  }
-
-  // If tracking, update the current activity on the backend
-  if (AppState.isTracking) {
-    try {
-      await window.lightTrackAPI.switchProject(projectName);
-      showNotification(`Switched to ${projectName}`, 'success');
-    } catch (error) {
-      console.error('Failed to switch project:', error);
-      showNotification('Failed to switch project', 'error');
-    }
-  }
-}
-
-/**
- * Initialize project switcher event handlers
- */
-function initProjectSwitcher() {
-  // Click on project badge to toggle switcher
-  if (Elements.currentProjectBadge) {
-    Elements.currentProjectBadge.addEventListener('click', (e) => {
-      e.stopPropagation();
-      toggleProjectSwitcher();
-    });
-  }
-
-  // Event delegation for project selection
-  if (Elements.projectSwitcherList) {
-    Elements.projectSwitcherList.addEventListener('click', (e) => {
-      const item = e.target.closest('.project-switcher-item');
-      if (item) {
-        const project = item.dataset.project;
-        if (project) {
-          switchProject(project);
-        }
-      }
-    });
-  }
-
-  // Close switcher when clicking outside
-  document.addEventListener('click', (e) => {
-    if (Elements.projectSwitcher?.classList.contains('active')) {
-      if (!e.target.closest('.project-switcher') && !e.target.closest('#current-project-badge')) {
-        closeProjectSwitcher();
-      }
-    }
-  });
-
-  // Close on Escape
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && Elements.projectSwitcher?.classList.contains('active')) {
-      closeProjectSwitcher();
-    }
-  });
 }
 
 // ============= Break Handling =============
