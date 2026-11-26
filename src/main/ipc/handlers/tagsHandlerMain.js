@@ -3,6 +3,7 @@
  * Handles tag management operations
  */
 const logger = require('../../logger');
+const { toWireActivity, toWireActivities } = require('../wire-activity');
 
 class TagsHandlerMain {
   constructor(storage) {
@@ -55,7 +56,7 @@ class TagsHandlerMain {
     // Update tags on an activity
     registry.handle('tags:updateActivity', async (event, activityId, tags) => {
       try {
-        return this.storage.updateActivityTags(activityId, tags);
+        return toWireActivity(this.storage.updateActivityTags(activityId, tags));
       } catch (error) {
         logger.error('Failed to update activity tags:', error);
         throw error;
@@ -65,7 +66,7 @@ class TagsHandlerMain {
     // Get activities filtered by tags
     registry.handle('tags:filterActivities', async (event, tags, matchAll = false) => {
       try {
-        return this.storage.getActivitiesByTags(tags, matchAll);
+        return toWireActivities(this.storage.getActivitiesByTags(tags, matchAll));
       } catch (error) {
         logger.error('Failed to filter activities by tags:', error);
         throw error;

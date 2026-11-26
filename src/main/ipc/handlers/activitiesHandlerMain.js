@@ -7,6 +7,7 @@ const path = require('path');
 const logger = require('../../logger');
 const sapCsv = require('../../exports/sap-csv');
 const { IpcError } = require('../../../shared/ipc/errors');
+const { toWireActivity, toWireActivities } = require('../wire-activity');
 
 /**
  * Activities Handler for main.js
@@ -41,15 +42,15 @@ class ActivitiesHandlerMain {
           const month = String(targetDate.getMonth() + 1).padStart(2, '0');
           const day = String(targetDate.getDate()).padStart(2, '0');
           const dateStr = `${year}-${month}-${day}`;
-          return await this.storage.getActivities({
+          return toWireActivities(await this.storage.getActivities({
             startDate: dateStr,
             endDate: dateStr
-          });
+          }));
         }
       }
 
       // No date filter - return all activities
-      return await this.storage.getActivities();
+      return toWireActivities(await this.storage.getActivities());
     });
 
     // Save manual activity
@@ -79,7 +80,7 @@ class ActivitiesHandlerMain {
         this.appState.windows.main.webContents.send('activities-updated');
       }
 
-      return savedActivity;
+      return toWireActivity(savedActivity);
     });
 
     // Update activity
@@ -110,7 +111,7 @@ class ActivitiesHandlerMain {
         this.appState.windows.main.webContents.send('activities-updated');
       }
 
-      return updatedActivity;
+      return toWireActivity(updatedActivity);
     });
 
     // Delete activity
@@ -138,7 +139,7 @@ class ActivitiesHandlerMain {
         this.appState.windows.main.webContents.send('activities-updated');
       }
 
-      return merged;
+      return toWireActivity(merged);
     });
 
     // Export activities
