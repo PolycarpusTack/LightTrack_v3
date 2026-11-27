@@ -240,6 +240,40 @@ test.describe('packaged application', () => {
     await app.close();
   });
 
+  // A-9: catches a repeat of A-2, where a tracked activity's numeric times failed the IPC
+  // contract and the Timer stayed empty.
+  test('tracked activity is listed with its duration', async () => {
+    // Tracked activities store numeric times. Seed one into a fresh profile as a plain
+    // data file, which the app adopts and encrypts on first start.
+    const seeded = fs.mkdtempSync(path.join(os.tmpdir(), 'lighttrack-harness-tracked-'));
+    const date = localDateISO();
+    const at = time => new Date(`${date}T${time}:00`).getTime();
+    fs.writeFileSync(path.join(seeded, 'config.json'), JSON.stringify({
+      activities: [
+        { id: 'tracked-smoke', app: 'Excel', title: 'Budget review', project: 'Seeded', date,
+          startTime: at('10:00'), endTime: at('12:30'), duration: 8100, actualDuration: 8100 }
+      ]
+    }));
+    try {
+      const { app, page, errors } = await launch(seeded);
+      try {
+        const row = page.locator('#activity-list .activity[data-id="tracked-smoke"]');
+        await expect(row).toBeVisible();
+        const expected = await page.evaluate(() => window.formatDuration(8100));
+        await expect(row.locator('.duration')).toHaveText(expected);
+        expect(errors).toEqual([]);
+      } finally {
+        await app.close();
+      }
+      // A reply that fails the contract is logged by main, not shown in the window.
+      const log = path.join(seeded, 'logs', 'main.log');
+      expect(fs.existsSync(log), `no log at ${log}`).toBe(true);
+      expect(fs.readFileSync(log, 'utf8')).not.toContain('invalid response');
+    } finally {
+      fs.rmSync(seeded, { recursive: true, force: true });
+    }
+  });
+
   // A-4: an edit sends only what changed, so a tracked activity keeps its duration and title.
   test('edit keeps duration and title of a tracked activity', async () => {
     // A tracked activity cannot be made through IPC; seed it into a fresh profile as a
