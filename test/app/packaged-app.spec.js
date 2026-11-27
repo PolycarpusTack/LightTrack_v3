@@ -23,6 +23,13 @@ function localDateISO(date = new Date()) {
   return `${y}-${m}-${d}`;
 }
 
+// Settings remembers which groups are open, so open one only when it is closed.
+async function openSettingsGroup(page, group) {
+  const details = page.locator(`details[data-group="${group}"]`);
+  if (!(await details.evaluate(d => d.open))) await details.locator('> summary').click();
+  await expect(details).toHaveAttribute('open', '');
+}
+
 async function launch(userData) {
   const app = await electron.launch({
     executablePath: EXE,
@@ -218,7 +225,7 @@ test.describe('packaged application', () => {
       const toast = page.locator('.notification-toast').last();
       const stored = () => page.evaluate(async () => (await window.lightTrackAPI.getSettings()).workDayEnd);
       await page.locator('.nav-btn[data-view="settings"]').click();
-      await page.locator('details[data-group="schedule"] > summary').click();
+      await openSettingsGroup(page, 'schedule');
       await expect(page.locator('#settings-day-start')).toHaveValue('09:00');
 
       await page.locator('#settings-day-end').fill('17:30');
@@ -234,6 +241,49 @@ test.describe('packaged application', () => {
       expect(errors).toEqual([]);
     } finally {
       await app.close();
+    }
+  });
+
+  // B-2: every setting on the screen is stored and shown again after a restart.
+  test('setting survives restart', async () => {
+    const first = await launch(userData);
+    try {
+      const { page } = first;
+      const toast = page.locator('.notification-toast').last();
+      await page.locator('.nav-btn[data-view="settings"]').click();
+      await openSettingsGroup(page, 'schedule');
+      await expect(page.locator('#settings-consolidate-activities')).toBeChecked();
+
+      await page.locator('#settings-consolidation-mode').selectOption('strict');
+      await page.locator('#settings-consolidate-activities').uncheck();
+      await page.locator('#settings-week-start').selectOption('0');
+      await page.locator('#settings-idle-threshold').fill('600');
+      await page.locator('#settings-min-duration').fill('30');
+      await page.locator('#settings-min-duration').blur();
+      await expect(toast).toHaveText(/Settings saved/);
+
+      // Out of range: main refuses with the allowed range, and the screen shows what is stored.
+      await page.locator('#settings-idle-threshold').fill('10');
+      await page.locator('#settings-idle-threshold').blur();
+      await expect(toast).toHaveText(/Idle threshold must be between 30 and 1800 seconds/);
+      await expect(page.locator('#settings-idle-threshold')).toHaveValue('600');
+      expect(first.errors).toEqual([]);
+    } finally {
+      await first.app.close();
+    }
+
+    const second = await launch(userData);
+    try {
+      const { page } = second;
+      await page.locator('.nav-btn[data-view="settings"]').click();
+      await expect(page.locator('#settings-consolidate-activities')).not.toBeChecked();
+      await expect(page.locator('#settings-consolidation-mode')).toHaveValue('strict');
+      await expect(page.locator('#settings-week-start')).toHaveValue('0');
+      await expect(page.locator('#settings-idle-threshold')).toHaveValue('600');
+      await expect(page.locator('#settings-min-duration')).toHaveValue('30');
+      expect(second.errors).toEqual([]);
+    } finally {
+      await second.app.close();
     }
   });
 

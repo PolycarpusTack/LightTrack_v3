@@ -8,6 +8,10 @@
 
   window.LightTrack = window.LightTrack || {};
 
+  // Main's defaults when the setting was never saved (src/shared/constants.js).
+  const DEFAULT_IDLE_THRESHOLD_SECONDS = 180;
+  const DEFAULT_MIN_ACTIVITY_DURATION_SECONDS = 60;
+
   // Debounced version of saveSettings (500ms delay to batch rapid changes)
   // app.js (which defines the global debounce) loads after this module, so use the Utils copy.
   const debouncedSaveSettings = window.LightTrack.Utils.debounce(saveSettings, 500);
@@ -829,7 +833,11 @@
         closeBehavior: stored.closeBehavior ?? 'minimize',
         minimizeToTray: stored.minimizeToTray ?? true,
         breakReminderEnabled: stored.breakReminderEnabled ?? false,
-        breakReminderInterval: stored.breakReminderInterval ?? 60
+        breakReminderInterval: stored.breakReminderInterval ?? 60,
+        consolidateActivities: stored.consolidateActivities ?? true,
+        consolidationMode: stored.consolidationMode ?? 'smart',
+        idleThreshold: stored.idleThreshold ?? DEFAULT_IDLE_THRESHOLD_SECONDS,
+        minActivityDuration: stored.minActivityDuration ?? DEFAULT_MIN_ACTIVITY_DURATION_SECONDS
       };
 
       console.log('Settings loaded:', AppState.settings);
@@ -858,7 +866,12 @@
         closeBehavior: AppState.settings.closeBehavior,
         minimizeToTray: AppState.settings.minimizeToTray,
         breakReminderEnabled: AppState.settings.breakReminderEnabled,
-        breakReminderInterval: AppState.settings.breakReminderInterval
+        breakReminderInterval: AppState.settings.breakReminderInterval,
+        weekStartDay: AppState.settings.weekStartDay,
+        consolidateActivities: AppState.settings.consolidateActivities,
+        consolidationMode: AppState.settings.consolidationMode,
+        idleThreshold: AppState.settings.idleThreshold,
+        minActivityDuration: AppState.settings.minActivityDuration
       });
 
       // Reinitialize break reminder with new settings
@@ -868,6 +881,9 @@
       if (!result?.success) {
         const reasons = Array.isArray(result?.errors) ? result.errors.filter(Boolean) : [];
         showNotification(reasons.length ? reasons.join('. ') : 'Settings were not saved', 'error');
+        // Put back what is stored, so a refused value does not block the next save (B-2).
+        await loadSettings();
+        await loadSettingsView();
         return false;
       }
 
@@ -1041,6 +1057,26 @@
         breakReminderIntervalInput.dataset.wired = 'true';
         breakReminderIntervalInput.addEventListener('change', (e) => {
           AppState.settings.breakReminderInterval = parseInt(e.target.value, 10) || 60;
+          debouncedSaveSettings();
+        });
+      }
+
+      // Idle threshold and minimum activity duration (seconds); main checks the range.
+      const idleInput = document.getElementById('settings-idle-threshold');
+      const minDurationInput = document.getElementById('settings-min-duration');
+      if (idleInput) idleInput.value = AppState.settings.idleThreshold;
+      if (minDurationInput) minDurationInput.value = AppState.settings.minActivityDuration;
+      if (idleInput && !idleInput.dataset.wired) {
+        idleInput.dataset.wired = 'true';
+        idleInput.addEventListener('change', (e) => {
+          AppState.settings.idleThreshold = Number(e.target.value);
+          debouncedSaveSettings();
+        });
+      }
+      if (minDurationInput && !minDurationInput.dataset.wired) {
+        minDurationInput.dataset.wired = 'true';
+        minDurationInput.addEventListener('change', (e) => {
+          AppState.settings.minActivityDuration = Number(e.target.value);
           debouncedSaveSettings();
         });
       }

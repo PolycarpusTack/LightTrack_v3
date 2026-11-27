@@ -1,14 +1,14 @@
 # LightTrack v3: status and pickup
 
 **Last updated:** 2026-11-27
-**`main`:** `38c60fc`, CI green. Open: the B-1 PR, which carries this status.
-**Next step:** once B-1 is merged, story B-2 of `docs/handover/stabilisation-backlog.md` (every setting on the screen persists, and main's settings have controls), branch from `main`.
+**`main`:** `f02af93`, CI green. Open: the B-2 PR, which carries this status.
+**Next step:** once B-2 is merged, story B-3 of `docs/handover/stabilisation-backlog.md` (Timer and Timeline each keep their own list and refresh after a change), branch from `main`.
 
 ## Where we are
 
 The owner reported on 2026-11-26 that tracking runs but no records appear. A functional audit found the cause and a set of other defects. `docs/handover/stabilisation-backlog.md` fixes them in order: two epics, 20 stories, one PR each, approved by the owner and checked by an independent validation pass. The backlog sits in front of Increment B; LT3-102 (#13) follows it.
 
-**Done: Epic A (A-1 to A-9) and its retrospective; B-1 waits for approval. Next: B-2 to B-12 (B-5 is dropped).**
+**Done: Epic A (A-1 to A-9) and its retrospective, B-1; B-2 waits for approval. Next: B-3 to B-12 (B-5 is dropped).**
 
 The first-release workflow (approval, booking lines, CSV hand-off, RDP) is still not built; see plan section 16 and `docs/design/first-release/REVIEW.md`.
 
@@ -27,10 +27,11 @@ The first-release workflow (approval, booking lines, CSV hand-off, RDP) is still
 - **#68 A-8** storage does not drop activities silently. Every save removed all stored activities shorter than the minimum duration (so a manual entry under a minute vanished) and cut the list at 10,000. Both are gone: the minimum applies only when the tracker decides whether to save, and the limit is a logged warning. "Clear old data" deleted by save time, and every tracked activity without one whatever its age; it now uses the dialog's rule (start time, else save time, kept when unreadable), so it removes exactly what the dialog counted. Duplicate removal and consecutive merging on save are unchanged.
 
 - **#69 A-9** the harness seeds a tracked activity with numeric times into a fresh profile and checks that the Timer lists it with its duration and that the log has no "invalid response". It fails against a build without the A-2 fix. Epic A is complete.
+- **#70 B-1** saving settings reports what happened. The window expected the save to answer `true`; main answers `{ success, errors }`, so every save showed "Failed to save settings" although it saved. The window now shows "Settings saved", or main's reasons when it refuses a value (for example "Work day end time must be after start time").
 
 ## In review
 
-- **B-1** saving settings reports what happened. The window expected the save to answer `true`; main answers `{ success, errors }`, so every save showed "Failed to save settings" although it saved. The window now shows "Settings saved", or main's reasons when it refuses a value (for example "Work day end time must be after start time").
+- **B-2** every setting on the screen persists. The IPC contract dropped `consolidateActivities`, `consolidationMode` and `weekStartDay` without an error, and the screen neither sent nor read them, so they reset on restart. They are now in the Settings schema (mode and week day checked), saved and loaded. Settings has fields for the idle threshold (30 to 1800 s) and the shortest tracked activity saved (10 to 600 s); main refuses values outside those ranges, and a refused value is replaced by the stored one so it does not block the next save.
 
 The owner confirmed on 2026-11-27 that the records since October appear after installing the 2026-11-26 build.
 
@@ -53,7 +54,7 @@ The owner confirmed on 2026-11-27 that the records since October appear after in
 ## Still broken until its story lands
 
 - Manual entries made before A-5 for another day stay under the day they were typed in.
-- Consolidation and week-start settings do not persist (B-2).
+- Consolidation and week-start settings do not persist (B-2, in review).
 - No idle-return prompt (B-4). Mark break, project Edit in Settings and rule Test rely on `prompt()` (B-6).
 
 ## Owner decisions
@@ -79,9 +80,8 @@ Recorded in the plan's decisions table, plus those of 2026-11-26:
 
 ## Next (in order)
 
-1. **B-1** merge after approval.
-2. **B-2 to B-12** without B-5, then the Epic B retrospective:
-   - B-2 every setting persists and main's settings have controls;
+1. **B-2** merge after approval.
+2. **B-3 to B-12** without B-5, then the Epic B retrospective:
    - B-3 Timer and Timeline keep their own lists and refresh after a change; B-4 returning from idle asks what to do with the time;
    - B-6 no control depends on `prompt()`; B-7 the tag editor opens on the clicked row; B-8 project, tag and type controls act once;
    - B-9 SAP export employee ID and history; B-10 complete backup and removable calendar URL; B-11 tray, toasts and help match the app;
@@ -90,7 +90,7 @@ Recorded in the plan's decisions table, plus those of 2026-11-26:
 
 ## Working notes
 
-- Gates: `npm run lint`, `npm run typecheck`, `npm run test:ci` (baseline Jest, TS via ts-jest; 198 tests), `npm run build` (into `out/`), `npm run security:audit`, `npm run electron:build:win` (production build and installer), `npm run test:app` (harness, 13 tests, against `dist/win-unpacked`; set `LIGHTTRACK_EXE` to test another build).
+- Gates: `npm run lint`, `npm run typecheck`, `npm run test:ci` (baseline Jest, TS via ts-jest; 198 tests), `npm run build` (into `out/`), `npm run security:audit`, `npm run electron:build:win` (production build and installer), `npm run test:app` (harness, 14 tests, against `dist/win-unpacked`; set `LIGHTTRACK_EXE` to test another build).
 - The harness tests a packaged build, not the source: repackage after every source change. Without touching `dist/`: `npm run build:prod && npx electron-builder --win --dir --publish never --config.directories.output=<scratch dir>`, then `LIGHTTRACK_EXE=<scratch dir>/win-unpacked/LightTrack.exe npm run test:app`.
 - On a busy machine the full harness run can fail in "stores a manual entry" (timeout) and "keeps row actions visible" (it needs that entry). Both pass alone and in CI. Trust CI, and read the error before blaming load.
 - Lockfile: CI installs with npm 10 (Node 22). A lockfile written by npm 11 can fail `npm ci` there. After changing dependencies run `npx npm@10 install --package-lock-only`.

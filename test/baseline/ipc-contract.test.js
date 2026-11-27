@@ -184,6 +184,12 @@ describe('renderer payloads', () => {
       breakReminderEnabled: false, breakReminderInterval: 60
     });
     accepts('settings:save', { employeeId: 'E123' });
+    accepts('settings:save', {
+      consolidateActivities: false, consolidationMode: 'relaxed', weekStartDay: 6, idleThreshold: 600, minActivityDuration: 30
+    });
+    refuses('settings:save', { consolidationMode: 'loose' });
+    refuses('settings:save', { weekStartDay: 1.5 });
+    refuses('settings:save', { consolidateActivities: 'no' });
     accepts('window:update-behavior', { closeBehavior: 'close', minimizeToTray: false });
     refuses('window:update-behavior', { closeBehavior: 'explode' });
     accepts('settings:set-launch-at-startup', true);
