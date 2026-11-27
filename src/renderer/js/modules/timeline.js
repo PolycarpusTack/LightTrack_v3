@@ -442,7 +442,7 @@
 
   /**
    * Set up keyboard shortcuts for Timer view
-   * Space: Toggle tracking, M: Mark break, A: Add manual, F: Floating timer
+   * Ctrl+Shift+B: Mark break, Ctrl+Shift+N: Add manual entry
    */
   function setupTimerKeyboardShortcuts() {
     document.addEventListener('keydown', (e) => {
@@ -474,7 +474,7 @@
       }
     });
 
-    console.log('Timer keyboard shortcuts initialized: Space=toggle, M=break, A=add, F=float');
+    console.log('Timer keyboard shortcuts initialized: Ctrl+Shift+B=break, Ctrl+Shift+N=add');
   }
 
   // ============= Work Day Calculations =============

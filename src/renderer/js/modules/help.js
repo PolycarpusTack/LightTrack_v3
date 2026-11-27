@@ -6,10 +6,10 @@
 (function() {
   'use strict';
 
-  // Help content in markdown format
+  // Help content in markdown format. Describes an installed build only (B-11).
   const HELP_CONTENT = `# LightTrack User Manual
 
-**Version 3.0.0** | Lightweight Time Tracking with Automatic Project Detection
+**Version 3.0.0** | Time tracking for Windows with automatic project detection
 
 ---
 
@@ -32,18 +32,16 @@
 
 ## Introduction
 
-LightTrack is a lightweight personal time tracking application that automatically detects what you're working on by monitoring your active window. It intelligently categorizes your work, detects JIRA tickets, recognizes meetings from Outlook and Teams, and exports timesheets for SAP ByDesign.
+LightTrack records which window you are working in and books the time to a project. Your rules decide the project; it detects JIRA tickets, Salesforce cases and Outlook or Teams meetings, and exports timesheets for SAP ByDesign.
 
 ### Key Features
 
-- **Automatic Tracking**: Detects active window and categorizes work automatically
-- **JIRA Integration**: Extracts ticket numbers (e.g., PROJ-123) from window titles
-- **Meeting Detection**: Recognizes Outlook appointments and Teams meetings
-- **Project Mapping**: Create rules to auto-assign activities to projects
-- **Calendar Sync**: Import meetings from Outlook/Exchange via ICS subscription
-- **SAP Export**: Export timesheets in CSV format for SAP ByDesign
-- **Focus Scoring**: Measure your productivity with focus metrics
-- **Browser Extension**: Track web browsing activity in Chrome/Edge/Firefox
+- **Automatic tracking**: records the active window and puts it on a project
+- **Rules**: app, URL, JIRA and meeting rules set the project and booking fields
+- **Calendar sync**: shows meetings from an Outlook or Exchange ICS subscription
+- **SAP export**: a CSV timesheet for SAP ByDesign
+- **Focus**: focus score and deep work sessions
+- **Browser extension**: adds the page you are on, in Chrome and Edge
 
 ---
 
@@ -51,253 +49,209 @@ LightTrack is a lightweight personal time tracking application that automaticall
 
 ### Starting Tracking
 
-1. Click the **Start** button in the Timer view
-2. LightTrack will begin monitoring your active window
-3. Activities are automatically categorized based on the app and window title
-4. Click **Stop** to pause tracking
+1. Click **Start** in the Timer view
+2. LightTrack records the active window and puts each activity on a project
+3. Click **Stop** to stop tracking
+
+When you are away from the keyboard, tracking pauses. After a longer absence LightTrack asks whether the time was work: **Count as work** or **Leave out**.
 
 ### System Tray
 
-LightTrack runs in the system tray when minimized. Right-click the tray icon to:
-- Show/hide the main window
-- Start/stop tracking
-- Open settings
-- Quit the application
+Right-click the tray icon to show LightTrack, start or stop tracking, see today's total, open Settings, or quit. Left-click the icon to show or hide the window.
 
 ### Auto-Start Options
 
-In Settings, you can enable:
-- **Launch at system startup**: Start LightTrack when you log in
-- **Start tracking automatically**: Begin tracking immediately when launched
+In Settings > Tracking > Startup and window behavior:
+- **Launch at system startup**: start LightTrack when you sign in
+- **Start tracking automatically**: begin tracking as soon as it starts
 
 ---
 
 ## Timer View
 
-The Timer view is your main dashboard showing:
-
 ### Hero Section
 
-- **Timer Display**: Shows elapsed time for current session
-- **Current Project**: The detected or assigned project name
-- **Current App**: The active application being tracked
-- **Sampling Rate**: How often the tracker checks your activity (5s-60s adaptive)
+- **Timer**: time on the current activity; "Paused" while you are away
+- **Current project and app**
+- **Sampling**: how often the active window is checked (5 to 60 seconds)
+- **Focus score, goals and a mini timeline** of today
 
 ### Actions
 
-- **Start/Stop**: Toggle time tracking
-- **Add Manual**: Add a manual time entry
-- **Mark Break**: Record a break (non-billable time)
-- **Floating Timer**: Open a small always-on-top timer window
+- **Start** / **Stop**: tracking on or off
+- **Add manual**: add a time entry by hand
+- **Mark break**: record a break (not billable)
+- **Floating timer**: the timer icon in the top bar shows a small timer you can drag over the window
 
 ### KPI Cards
 
 | Card | Description |
 |------|-------------|
-| Today | Total time tracked today |
-| Billable | Percentage of billable time |
-| Context Switches | Number of app changes (fewer = better focus) |
-| Projects | Number of different projects worked on today |
+| Today | Time tracked today |
+| Billable | Share of billable time |
+| Context switches | Number of app changes (fewer means more focus) |
+| Projects | Projects worked on today |
 
 ### Activity Feed
 
-Shows a chronological list of today's activities with:
-- Project name and app
-- Duration
-- Billable status
-- Tags (meeting, dev, jira, etc.)
-
-Click any activity to edit its details.
+Today's activities with project, app, duration, billable status and tags. Click a row, or its **Edit** button, to edit it. Each row also has **Tags** and **Delete**.
 
 ---
 
 ## Timeline View
 
-The Timeline view provides a detailed look at any day's activities.
-
 ### Date Navigation
 
-- Use **<** and **>** arrows to navigate days
-- Click **Today** to return to current date
+- The arrow buttons go to the previous or next day
+- **Today** returns to today
 
 ### Day Statistics
 
 | Stat | Description |
 |------|-------------|
-| Tracked | Total time recorded |
+| Tracked | Time recorded |
 | Gaps | Untracked time during work hours |
-| Billable | Percentage of billable work |
-| Projects | Number of projects for the day |
+| Billable | Share of billable time |
+| Projects | Projects worked on that day |
 
-### Visual Timeline Bar
+### Day Overview
 
-A horizontal bar showing your day with:
-- Colored segments for different projects
-- Gaps shown in gray
-- Time markers for work hours
+A bar across the work day. Segments show billable, non-billable and break time; empty parts are untracked. Hour markers and, for today, a line at the current time are shown. Click a segment to edit that activity.
+
+### Working with the List
+
+- **Edit**, **Tags** and **Delete** on each row
+- **Select** several rows and **Merge** them
+- Show billable only, or group by project
+- **+ Add entry** for a manual entry
 
 ### Editing Activities
 
-Click any activity to open the edit modal where you can:
-- Change project assignment
-- Adjust start/end times
-- Toggle billable status
-- Delete the entry
+The edit dialog changes the project, description, date, start and end time, and billable status. It shows which rule matched. To delete an activity, use **Delete** on its row.
 
 ---
 
 ## Analytics View
 
-The Analytics view provides insights into your work patterns.
-
 ### Date Range Selector
 
-- **This Week**: Current week's data
-- **This Month**: Current month's data
-- **This Year**: Year-to-date data
-- **All Time**: Complete history
+**This week**, **This month**, **This year**, **All time**, or **Custom** with a from and to date.
 
 ### Filter Options
 
-- **All**: All activities
-- **Billable**: Only billable time
-- **Non-billable**: Only non-billable time
-- **Meetings**: Only meeting time
+**All**, **Billable**, **Non-billable**, **Meetings**.
 
 ### Key Metrics
 
 | Metric | Description |
 |--------|-------------|
-| Total Time | Sum of tracked hours |
-| Avg per Day | Average daily tracking |
-| Top Project | Most time-consuming project |
-| Focus Time | Deep work sessions (25+ minutes) |
+| Total time | Hours tracked in the range |
+| Avg per Day | Average per tracked day |
+| Top project | The project with the most time |
+| Focus time | Sessions of 25 minutes or more |
+
+Also shown: billable hours, daily goals, daily activity, project breakdown, productivity by hour and insights. **Compare** shows the previous period; **Export CSV** saves the range.
 
 ---
 
 ## Projects View
 
-Configure automatic project detection rules.
+Rules put activities on a project. Your rules always come before LightTrack's own guesses (the IDE folder name, or "Meetings" for meeting-like titles). They are applied in this order: Salesforce case, meeting, JIRA, URL, app.
 
-### App Rules
+### Patterns
 
-Auto-assign activities based on app name or window title.
+- Plain text matches anywhere, ignoring case: \`Visual Studio\`
+- \`*\` stands for any characters: \`*Outlook*\`
+- \`/.../i\` is a regular expression: \`/JIRA-\\d+/i\`. One that could be very slow is not used.
 
-| Field | Description |
-|-------|-------------|
-| Pattern | Text to match in app/title |
-| Project | Target project name |
-| Activity | Activity type (optional) |
-| SAP Code | SAP time type code |
-| Cost Center | SAP cost center |
-| WBS Element | SAP WBS element |
+**Test** checks a pattern against sample text and matches the way tracking does.
 
-### URL Rules
+### Rule Types
 
-Auto-assign based on browser URL patterns.
+| Rule | First field |
+|------|-------------|
+| App rules | Pattern, matched against the app and window title |
+| URL Rules | URL pattern (needs the browser extension) |
+| JIRA Rules | Project key, for example PROJ for PROJ-123 |
+| Meeting rules | Subject pattern of an Outlook or Teams meeting |
 
-### JIRA Rules
+Each rule sets the project and, optionally, the activity, SAP code, cost center and WBS element.
 
-Auto-assign based on JIRA project keys (e.g., PROJ-123).
+### Salesforce Cases
 
-LightTrack automatically detects JIRA ticket patterns:
-- \`PROJ-123\` in browser titles
-- \`[PROJ-456]\` in IDE window titles
-- \`proj-789\` (case-insensitive)
+Assign a Salesforce case to a client once; later activities for that case go to the same project.
 
-### Meeting Rules
+### All Projects
 
-Auto-assign based on Outlook/Teams meeting subjects.
+Lists every project with its time. **+ New project** adds one.
 
 ---
 
 ## SAP Export
 
-Export time data for SAP ByDesign timesheet submission.
-
 ### Steps
 
-1. Enter your **Employee ID** in settings
-2. Select a **date range** (This Week, Last Week, etc.)
-3. Review the **preview table**
+1. Enter your **Employee ID** under Employee settings in this view (**Save** keeps it for next time)
+2. Choose **This week**, **Last week**, **This month** or **Last month**
+3. Check the preview and adjust descriptions
 4. Click **Export to CSV**
+
+The export history below lists the last 20 exports with date, period and number of rows.
 
 ### Export Columns
 
-| Column | Description |
-|--------|-------------|
-| Date | Activity date |
-| Project | Project name |
-| Activity Type | Work category |
-| Hours | Total hours (decimal) |
-| SAP Code | Time type code |
-| Cost Center | Cost center for billing |
-| WBS | Work breakdown structure element |
-| Description | Activity details/JIRA tickets |
+Employee ID, Date, Project, Activity Type, Hours (decimal), SAP Code, Cost Center, WBS Element, Work Description, Billable (Yes or No). Rows are one per day and project. Window titles are never exported.
 
 ---
 
 ## Settings
 
-### Startup
-- Launch at system startup
-- Start tracking automatically
+### Tracking
+- Startup and window behavior: launch at startup, start tracking automatically, what happens when you close the window, minimize to tray
+- **Consolidate similar activities**, with mode Smart, Strict or Relaxed
+- **Idle and short activities**: when you count as away, and the shortest activity that is saved
+- Default project
 
-### Window Behavior
-- **Close button behavior**: Minimize to tray or close app
-- **Minimize to tray**: Send to system tray when minimized
+### Schedule
+- Work day start and end time, and the first day of the week
+- Daily goals: deep work target (hours) and breaks target (count)
 
-### Daily Goals
-- Deep work target (hours)
-- Breaks target (count)
+### Notifications
+- **Break reminder**: remind every so many minutes
 
-### Work Day
-- Start time (for timeline display)
-- End time
+### Calendar
+1. Get your ICS URL from Outlook (**How to get your calendar URL**)
+2. Paste it in **Calendar ICS URL**
+3. Click **Sync now**; it then syncs every 30 minutes
+4. **Remove** clears the URL and its meetings
 
-### Activity Consolidation
-- **Smart**: Merge by JIRA ticket or similar titles
-- **Strict**: Exact title match only
-- **Relaxed**: Same project only
+### Data
+- **Export CSV**: all activities
+- **Clear old data (30+ days)**
+- **Create backup**: all data as a JSON file (restoring is not available yet)
+- Browser extension: paired extensions, and **Disconnect all extensions**
 
-### Calendar Sync
-
-Sync meetings from Outlook/Exchange via ICS subscription:
-1. Get your ICS URL from Outlook settings
-2. Paste in the Calendar ICS URL field
-3. Click **Sync Now**
-
-### Data Management
-- Export all data to CSV
-- Clear activities older than 30 days
+### Customization
+Appearance (light or dark), tags, projects and activity types.
 
 ---
 
 ## Taking Breaks
 
-Regular breaks help maintain focus and productivity.
-
-### Break Button
-Click **Mark Break** in the Timer view to record a break.
-
-### Break Reminders
-Enable in Settings to get notified when it's time for a break.
+Click **Mark break** in the Timer view, or press \`Ctrl+Shift+B\`, to record a break. Turn on the break reminder in Settings > Notifications.
 
 ---
 
 ## Browser Extension
 
-The browser extension tracks web browsing activity.
+The extension for Chrome and Edge adds the page you are on to the activity, so URL rules and JIRA keys in pages work.
 
-### Features
-- Tracks visited URLs and page titles
-- Detects JIRA tickets in web pages
-- Detects GitHub issues
-- Sends activity to LightTrack desktop
+### Pairing
+1. Load the extension (it is not in a web store)
+2. Open its popup and choose **Pair**
+3. Type the 6-digit code LightTrack shows
 
-### Connection
-- Connects via localhost port 41417
-- Green = Connected, Red = Disconnected
+The popup shows the connection: "Connected to LightTrack", "LightTrack found - not paired" or "Not connected". It connects to 127.0.0.1 on port 41417.
 
 ---
 
@@ -305,57 +259,53 @@ The browser extension tracks web browsing activity.
 
 | Shortcut | Action |
 |----------|--------|
-| \`Ctrl+Shift+T\` | Toggle tracking |
-| \`Ctrl+Shift+F\` | Toggle floating timer |
+| \`Ctrl+Shift+T\` | Start or stop tracking |
+| \`Ctrl+Shift+F\` | Show or hide the floating timer |
 | \`Ctrl+Shift+B\` | Mark a break (Timer view) |
 | \`Ctrl+Shift+N\` | Add a manual entry (Timer view) |
 | \`←\` / \`→\`, \`Home\` | Previous day, next day, today (Timeline view) |
-| \`Ctrl+Y\` | Toggle developer tools |
+| \`←\` / \`→\` | Previous or next date range (Analytics view) |
+| \`Enter\` / \`Escape\` | Add or cancel in a rule form (Projects view) |
+| \`Escape\` | Close a dialog |
 
 ---
 
 ## Troubleshooting
 
 ### Tracking Not Starting
-1. Check permissions for window detection
-2. Verify no antivirus is blocking
-3. Restart the application
+1. Restart the application
+2. Check that security software is not blocking it
 
-### Wrong Project Detection
-1. Create a more specific mapping rule
-2. Check pattern matches window title exactly
+### Wrong Project
+1. Add a rule for the app, URL, JIRA key or meeting
+2. Use **Test** to check the pattern against the window title
 
 ### Calendar Not Syncing
-1. Verify ICS URL is correct (HTTPS only)
-2. Check URL is accessible
-3. Try manual sync
+1. Check that the ICS URL is correct and uses HTTPS
+2. Click **Sync now**
 
 ### Browser Extension Not Connecting
-1. Ensure desktop app is running
-2. Check port 41417 is not blocked
-3. Reload the extension
+1. Make sure LightTrack is running
+2. Pair again from the popup
+3. Check that port 41417 is not blocked
 
 ---
 
 ## Data Storage
 
-Data is stored locally:
-- **Windows**: \`%APPDATA%/LightTrack/\`
-- **macOS**: \`~/Library/Application Support/LightTrack/\`
-- **Linux**: \`~/.config/LightTrack/\`
+Data is stored on this computer in \`%APPDATA%\\LightTrack\\\`, encrypted.
 
 ---
 
 ## Privacy & Security
 
-- All data stored locally
-- No external server communication
-- Calendar sync uses HTTPS only
-- No telemetry collection
+- All data stays on this computer
+- Nothing is sent anywhere except the calendar ICS URL you set up
+- No telemetry
 
 ---
 
-**LightTrack** - Smart time tracking for productive professionals
+**LightTrack** - time tracking that stays on your computer
 `;
 
   /**

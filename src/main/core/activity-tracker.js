@@ -794,25 +794,17 @@ class ActivityTracker {
     };
   }
 
-  // Get current session duration
-  getCurrentSessionDuration() {
-    if (!this.currentActivity) return 0;
-    // Handle startTime being either number (ms) or string (ISO date)
-    const startMs = typeof this.currentActivity.startTime === 'number'
-      ? this.currentActivity.startTime
-      : new Date(this.currentActivity.startTime).getTime();
-    if (Number.isNaN(startMs)) return 0;
-    return Math.floor((Date.now() - startMs) / 1000);
-  }
-
   // Get today's total tracked time
   async getTodayTotal() {
     try {
       const total = await this.storage.getTodayTotal();
 
-      // Add current session if tracking
+      // Add what the open activity has not stored yet. Its start can be hours back when it
+      // was resumed, and its stored part is already in the total (B-11-T0).
       if (this.currentActivity && !this.idleDetector.isPaused()) {
-        return total + this.getCurrentSessionDuration();
+        const stored = this.storage.findActivityById?.(this.currentActivity.id);
+        const unsaved = (this.currentActivity.duration || 0) - (stored?.duration || 0);
+        return total + Math.max(0, unsaved);
       }
 
       return total;

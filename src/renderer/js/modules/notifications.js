@@ -6,7 +6,9 @@
 window.LightTrack = window.LightTrack || {};
 
 window.LightTrack.UI = (function() {
-  let notificationTimeout = null;
+  // Toasts stack, newest at the bottom, so two messages at once are both read (B-11)
+  const MAX_TOASTS = 4;
+  const DEFAULT_DURATION_MS = 3000;
 
   /**
    * Escape HTML to prevent XSS
@@ -21,16 +23,40 @@ window.LightTrack.UI = (function() {
   /**
    * Show a toast notification
    */
-  function showNotification(message, type = 'info') {
-    // Remove existing notification
-    const existing = document.querySelector('.notification-toast');
-    if (existing) {
-      existing.remove();
+  function toastStack() {
+    let stack = document.querySelector('.notification-stack');
+    if (!stack) {
+      stack = document.createElement('div');
+      stack.className = 'notification-stack';
+      stack.setAttribute('role', 'status');
+      stack.setAttribute('aria-live', 'polite');
+      document.body.appendChild(stack);
     }
+    return stack;
+  }
 
-    // Clear any pending timeout
-    if (notificationTimeout) {
-      clearTimeout(notificationTimeout);
+  function dismiss(notification) {
+    clearTimeout(notification._hideTimer);
+    notification.classList.remove('show');
+    setTimeout(() => notification.remove(), 300);
+  }
+
+  /**
+   * Show a toast notification
+   * @param {string} message
+   * @param {string} [type] - info, success, warning or error
+   * @param {number} [duration] - milliseconds on screen (default 3 s)
+   */
+  function showNotification(message, type = 'info', duration = DEFAULT_DURATION_MS) {
+    const stack = toastStack();
+    const hideAfter = Number.isFinite(duration) && duration > 0 ? duration : DEFAULT_DURATION_MS;
+
+    // The same message again restarts its timer instead of stacking a copy
+    const same = [...stack.children].find(el => el.dataset.message === String(message) && el.dataset.type === type);
+    if (same) {
+      clearTimeout(same._hideTimer);
+      same._hideTimer = setTimeout(() => dismiss(same), hideAfter);
+      return;
     }
 
     // Create notification element using DOM methods to prevent XSS
@@ -50,19 +76,17 @@ window.LightTrack.UI = (function() {
 
     // Styles are in app.css (CSP-compliant)
 
-    // Add to document
-    document.body.appendChild(notification);
+    notification.dataset.message = String(message);
+    notification.dataset.type = type;
+    stack.appendChild(notification);
+    while (stack.children.length > MAX_TOASTS) stack.firstElementChild.remove();
 
     // Trigger animation
     requestAnimationFrame(() => {
       notification.classList.add('show');
     });
 
-    // Auto-remove after 3 seconds
-    notificationTimeout = setTimeout(() => {
-      notification.classList.remove('show');
-      setTimeout(() => notification.remove(), 300);
-    }, 3000);
+    notification._hideTimer = setTimeout(() => dismiss(notification), hideAfter);
   }
 
   /**

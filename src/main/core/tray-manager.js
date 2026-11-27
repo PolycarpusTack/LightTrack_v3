@@ -60,6 +60,13 @@ class TrayManager {
    * Update the tray context menu
    */
   updateMenu() {
+    this.buildMenu();
+    // Update today's total
+    this.updateTotal();
+  }
+
+  /** Build the menu; the total item shows the last total read (B-11). */
+  buildMenu() {
     if (!this.tray) return;
 
     const tracker = this.getTracker();
@@ -79,7 +86,7 @@ class TrayManager {
         }
       },
       {
-        label: 'Today\'s Total',
+        label: this.totalLabel || 'Today: --',
         enabled: false,
         id: 'today-total'
       },
@@ -97,9 +104,6 @@ class TrayManager {
 
     this.tray.setContextMenu(contextMenu);
     this.tray.setToolTip(`LightTrack ${isTracking ? '- Tracking' : '- Stopped'}`);
-
-    // Update today's total
-    this.updateTotal();
   }
 
   /**
@@ -115,9 +119,14 @@ class TrayManager {
       const totalSeconds = await tracker.getTodayTotal();
       const hours = Math.floor(totalSeconds / 3600);
       const minutes = Math.floor((totalSeconds % 3600) / 60);
-      const totalStr = `Today's Total: ${hours}h ${minutes}m`;
+      const label = `Today: ${hours}h ${minutes}m`;
 
-      this.tray.setToolTip(`LightTrack ${tracker.isTracking ? '- Tracking' : '- Stopped'} | ${totalStr}`);
+      // The menu item shows the total too; rebuild only when it changed
+      if (label !== this.totalLabel) {
+        this.totalLabel = label;
+        this.buildMenu();
+      }
+      this.tray.setToolTip(`LightTrack ${tracker.isTracking ? '- Tracking' : '- Stopped'} | ${label}`);
     } catch (error) {
       logger.error('Failed to update tray total:', error);
     }
