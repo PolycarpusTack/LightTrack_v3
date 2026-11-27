@@ -1,14 +1,14 @@
 # LightTrack v3: status and pickup
 
 **Last updated:** 2026-11-27
-**`main`:** `ada5652`, CI green. Open: the B-3 PR, which carries this status.
-**Next step:** once B-3 is merged, story B-4 of `docs/handover/stabilisation-backlog.md` (returning from idle asks what to do with the time), branch from `main`.
+**`main`:** `14ed0bb`, CI green. Open: the B-4 PR, which carries this status.
+**Next step:** once B-4 is merged, story B-6 of `docs/handover/stabilisation-backlog.md` (no control depends on `prompt()`), branch from `main`.
 
 ## Where we are
 
 The owner reported on 2026-11-26 that tracking runs but no records appear. A functional audit found the cause and a set of other defects. `docs/handover/stabilisation-backlog.md` fixes them in order: two epics, 20 stories, one PR each, approved by the owner and checked by an independent validation pass. The backlog sits in front of Increment B; LT3-102 (#13) follows it.
 
-**Done: Epic A (A-1 to A-9) and its retrospective, B-1, B-2; B-3 waits for approval. Next: B-4 to B-12 (B-5 is dropped).**
+**Done: Epic A (A-1 to A-9) and its retrospective, B-1 to B-3; B-4 waits for approval. Next: B-6 to B-12 (B-5 is dropped).**
 
 The first-release workflow (approval, booking lines, CSV hand-off, RDP) is still not built; see plan section 16 and `docs/design/first-release/REVIEW.md`.
 
@@ -29,10 +29,11 @@ The first-release workflow (approval, booking lines, CSV hand-off, RDP) is still
 - **#69 A-9** the harness seeds a tracked activity with numeric times into a fresh profile and checks that the Timer lists it with its duration and that the log has no "invalid response". It fails against a build without the A-2 fix. Epic A is complete.
 - **#70 B-1** saving settings reports what happened. The window expected the save to answer `true`; main answers `{ success, errors }`, so every save showed "Failed to save settings" although it saved. The window now shows "Settings saved", or main's reasons when it refuses a value (for example "Work day end time must be after start time").
 - **#71 B-2** every setting on the screen persists. The IPC contract dropped `consolidateActivities`, `consolidationMode` and `weekStartDay` without an error, and the screen neither sent nor read them, so they reset on restart. They are now in the Settings schema (mode and week day checked), saved and loaded. Settings has fields for the idle threshold (30 to 1800 s) and the shortest tracked activity saved (10 to 600 s); main refuses values outside those ranges, and a refused value is replaced by the stored one so it does not block the next save.
+- **#72 B-3** the Timer and Timeline keep their own lists and refresh after a change. Both views wrote one shared list, and a save or delete reloaded only the Timer's day without redrawing the Timeline, so the Timeline kept showing the old row and the next edit there said "Activity not found". The Timeline now keeps its own list; after a save, edit, delete or clear the Timer reloads, and so does the Timeline or Analytics when it is on screen. The window also listens for `activities-updated` from main.
 
 ## In review
 
-- **B-3** the Timer and Timeline keep their own lists and refresh after a change. Both views wrote one shared list, and a save or delete reloaded only the Timer's day without redrawing the Timeline, so the Timeline kept showing the old row and the next edit there said "Activity not found". The Timeline now keeps its own list; after a save, edit, delete or clear the Timer reloads, and so does the Timeline or Analytics when it is on screen. The window also listens for `activities-updated` from main.
+- **B-4** returning from idle asks what to do with the time. Main paused and sent `tracking-paused` and `idle-return`, but the preload passed neither on, so no prompt appeared; and the decision looked for the paused activity by its idle start time, which a record that was saved before or had resumed did not carry, so "count as work" added nothing. Main now remembers the paused activity by id and applies the answer to it, also to the open copy when tracking has resumed on that record, then reports `activities-updated`. After 5 minutes or more away (was: more than 1) the window asks "Count as work" or "Leave out"; Escape leaves it out. Shorter absences are left out without asking. While paused the timer shows "Paused".
 
 The owner confirmed on 2026-11-27 that the records since October appear after installing the 2026-11-26 build.
 
@@ -55,7 +56,7 @@ The owner confirmed on 2026-11-27 that the records since October appear after in
 ## Still broken until its story lands
 
 - Manual entries made before A-5 for another day stay under the day they were typed in.
-- No idle-return prompt (B-4). Mark break, project Edit in Settings and rule Test rely on `prompt()` (B-6).
+- No idle-return prompt (B-4, in review). Mark break, project Edit in Settings and rule Test rely on `prompt()` (B-6).
 
 ## Owner decisions
 
@@ -76,13 +77,13 @@ Recorded in the plan's decisions table, plus those of 2026-11-26:
 2. **A sample CSV** the approver imports into SAP ByDesign. Needed for LT3-302 only.
 3. Send `docs/integrations/timmy-integration-request.md` to Timmy's maintainer (Pieter Jan De Keyzer per Timmy's commit history; confirm the contact). Needed after the first release.
 4. Pair the browser extension once by hand in Chrome or Edge, and say whether it shows "Not connected" again later. The audit suspects the pairing is lost when the extension's service worker restarts.
-5. Report anything odd from daily use, especially tray, idle detection and tracking, which the harness does not cover. Electron moved from 44.5 to 44.11 in A-1.
+5. **B-4 in an installed build:** stay away from the keyboard for over 5 minutes while tracking. The timer should show "Paused", and on return a dialog should offer "Count as work" and "Leave out". Say whether the activity's time matches your answer. The harness cannot check this because it keeps tracking off.
+6. Report anything odd from daily use, especially tray, idle detection and tracking, which the harness does not cover. Electron moved from 44.5 to 44.11 in A-1.
 
 ## Next (in order)
 
-1. **B-3** merge after approval.
-2. **B-4 to B-12** without B-5, then the Epic B retrospective:
-   - B-4 returning from idle asks what to do with the time;
+1. **B-4** merge after approval.
+2. **B-6 to B-12** without B-5, then the Epic B retrospective:
    - B-6 no control depends on `prompt()`; B-7 the tag editor opens on the clicked row; B-8 project, tag and type controls act once;
    - B-9 SAP export employee ID and history; B-10 complete backup and removable calendar URL; B-11 tray, toasts and help match the app;
    - B-12 harness smoke test for save, edit and manual entry.
@@ -90,7 +91,7 @@ Recorded in the plan's decisions table, plus those of 2026-11-26:
 
 ## Working notes
 
-- Gates: `npm run lint`, `npm run typecheck`, `npm run test:ci` (baseline Jest, TS via ts-jest; 198 tests), `npm run build` (into `out/`), `npm run security:audit`, `npm run electron:build:win` (production build and installer), `npm run test:app` (harness, 15 tests, against `dist/win-unpacked`; set `LIGHTTRACK_EXE` to test another build).
+- Gates: `npm run lint`, `npm run typecheck`, `npm run test:ci` (baseline Jest, TS via ts-jest; 204 tests), `npm run build` (into `out/`), `npm run security:audit`, `npm run electron:build:win` (production build and installer), `npm run test:app` (harness, 16 tests, against `dist/win-unpacked`; set `LIGHTTRACK_EXE` to test another build).
 - The harness tests a packaged build, not the source: repackage after every source change. Without touching `dist/`: `npm run build:prod && npx electron-builder --win --dir --publish never --config.directories.output=<scratch dir>`, then `LIGHTTRACK_EXE=<scratch dir>/win-unpacked/LightTrack.exe npm run test:app`.
 - On a busy machine the full harness run can fail in "stores a manual entry" (timeout) and "keeps row actions visible" (it needs that entry). Both pass alone and in CI. Trust CI, and read the error before blaming load.
 - Lockfile: CI installs with npm 10 (Node 22). A lockfile written by npm 11 can fail `npm ci` there. After changing dependencies run `npx npm@10 install --package-lock-only`.

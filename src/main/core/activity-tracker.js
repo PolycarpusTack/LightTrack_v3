@@ -746,6 +746,7 @@ class ActivityTracker {
 
     // Mark current activity as having idle time
     if (this.currentActivity) {
+      this.idleDetector.setPausedActivity(this.currentActivity.id);
       this.currentActivity.isIdle = true;
       this.currentActivity.idleStartTime = idleStartTime;
 
@@ -770,7 +771,7 @@ class ActivityTracker {
 
   // Handle idle time decision (called from renderer, delegates to IdleDetector)
   async handleIdleTimeDecision(wasWorking) {
-    await this.idleDetector.handleIdleTimeDecision(wasWorking, this.storage);
+    return this.idleDetector.handleIdleTimeDecision(wasWorking, this.storage, this.currentActivity);
   }
 
   // Get comprehensive status
