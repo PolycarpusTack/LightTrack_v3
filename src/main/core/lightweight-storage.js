@@ -4,6 +4,7 @@
 const Store = require('electron-store');
 const { safeStorage, app } = require('electron');
 const { resolveStorageKey } = require('./storage-key');
+const logger = require('../logger');
 const { localDay } = require('./local-day');
 const {
   MAX_ACTIVITIES,
@@ -233,16 +234,13 @@ class LightweightStorage {
       cleaned = this.mergeConsecutiveActivities(cleaned);
     }
 
-    // 3. Limit total activities for performance
+    // Nothing else is removed on save (A-8): the minimum duration applies only when the
+    // tracker decides whether to save, and the activity limit is a warning.
     if (cleaned.length > this.options.maxActivities) {
-      cleaned = cleaned.slice(0, this.options.maxActivities);
+      logger.warn('Activity count is over the limit; nothing was removed', {
+        count: cleaned.length, limit: this.options.maxActivities
+      });
     }
-
-    // 4. Remove very short activities if setting is enabled
-    const minDuration = this.store.get('settings.minActivityDuration', 60);
-    cleaned = cleaned.filter(activity =>
-      !activity.duration || activity.duration >= minDuration
-    );
 
     return cleaned;
   }

@@ -263,12 +263,16 @@ class ActivitiesHandlerMain {
     // Clear old activities
     registry.handle('clear-old-activities', async (event, days) => {
       try {
-        const thirtyDaysAgo = new Date(Date.now() - (days || 30) * 24 * 60 * 60 * 1000);
+        const cutoff = Date.now() - (days || 30) * 24 * 60 * 60 * 1000;
         const activities = await this.storage.getActivities();
 
-        const recentActivities = activities.filter(activity =>
-          new Date(activity.timestamp) > thirtyDaysAgo
-        );
+        // Same rule as the dialog's preview (A-8): old when it started before the cutoff;
+        // the save time only when there is no start. Without a readable time it is kept.
+        const isOld = activity => {
+          const started = new Date(activity.startTime ?? activity.timestamp).getTime();
+          return Number.isFinite(started) && started < cutoff;
+        };
+        const recentActivities = activities.filter(activity => !isOld(activity));
 
         if (recentActivities.length !== activities.length) {
           this.storage.store.set('activities', recentActivities);

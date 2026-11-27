@@ -288,9 +288,10 @@
     try {
       const activities = await window.lightTrackAPI.getActivities();
       const cutoffDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      // Same rule as main's clear-old-activities (A-8): the start, else the save time
       const oldActivities = activities.filter(a => {
-        const date = new Date(a.timestamp || a.startTime);
-        return date < cutoffDate;
+        const started = new Date(a.startTime ?? a.timestamp).getTime();
+        return Number.isFinite(started) && started < cutoffDate.getTime();
       });
       if (Elements.clearDataCount) {
         Elements.clearDataCount.textContent = `${oldActivities.length} activities will be deleted.`;
