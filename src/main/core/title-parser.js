@@ -1,4 +1,5 @@
 const { detectSalesforceCase } = require('./salesforce-case');
+const { compileRulePattern, bookingOf, isSafeRegex } = require('../../shared/rule-pattern');
 
 /**
  * TitleParser - Extracts activity information from window titles
@@ -53,6 +54,46 @@ class TitleParser {
     // 'vim' needs special handling - only match if it's the whole app name or preceded by word boundary
     this.devAppsExact = ['vim'];
     this.nonBillablePatterns = ['break', 'lunch', 'personal', 'youtube', 'netflix', 'spotify'];
+
+    // Each rule pattern is compiled once (C-4); an unusable pattern is reported once
+    this.matchers = new Map();
+  }
+
+  /**
+   * The matcher for a rule pattern, compiled on first use. Same rules as the rule tester.
+   * @param {string} pattern
+   * @param {string} kind - for the warning: 'app', 'URL' or 'meeting'
+   * @returns {((text: string) => boolean) | null}
+   */
+  matcherFor(pattern, kind) {
+    if (!this.matchers.has(pattern)) {
+      const matcher = compileRulePattern(pattern);
+      if (!matcher) console.warn(`Skipping ${kind} rule with an unusable pattern`);
+      this.matchers.set(pattern, matcher);
+    }
+    return this.matchers.get(pattern);
+  }
+
+  /**
+   * Set the project and all booking fields a rule carries (C-4).
+   * @returns {boolean} true when the rule set a project
+   */
+  applyRuleBooking(extracted, mapping) {
+    const booking = bookingOf(mapping);
+    if (!booking.project) return false;
+    extracted.project = booking.project;
+    for (const field of ['activity', 'sapCode', 'costCenter', 'wbsElement']) {
+      if (booking[field]) extracted[field] = booking[field];
+    }
+    return true;
+  }
+
+  /**
+   * Remember a guessed project. Guesses (meeting, IDE folder) apply only when no rule
+   * set the project (C-4); the first guess wins, as before.
+   */
+  guessProject(extracted, project) {
+    if (!extracted.guessedProject) extracted.guessedProject = project;
   }
 
   /**
@@ -103,27 +144,7 @@ class TitleParser {
    * @returns {boolean} True if pattern appears safe
    */
   isSafeRegex(pattern) {
-    // Reject overly long patterns
-    if (pattern.length > 200) return false;
-
-    // Detect nested quantifiers: (x+)+, (x*)+, (x+)*, (x?)+ etc.
-    // These cause catastrophic backtracking
-    if (/\([^)]*[+*][^)]*\)[+*?]|\([^)]*[+*?][^)]*\)\{/.test(pattern)) {
-      return false;
-    }
-
-    // Detect overlapping alternations in quantified groups: (a|a)+, (ab|ab)+
-    // Simplified check for repeated patterns in alternation
-    if (/\(([^|)]+)\|(\1)\)[+*]/.test(pattern)) {
-      return false;
-    }
-
-    // Detect excessive quantifier nesting
-    if (/(\+|\*|\?|\{[^}]+\}){2,}/.test(pattern)) {
-      return false;
-    }
-
-    return true;
+    return isSafeRegex(pattern);
   }
 
   /**
@@ -166,15 +187,19 @@ class TitleParser {
     this.detectOutlookActivity(extracted);
     this.detectTeamsActivity(extracted);
 
-    // Then general activity type detection
+    // Then general activity type detection (tags, and a guessed project)
     this.detectActivityType(extracted, searchText);
 
-    // Apply mappings in priority order
+    // The user's rules, in priority order; the first that matches sets the project (C-4)
     this.applySalesforceCaseMappings(extracted); // a remembered case wins (#48)
-    this.applyMeetingMappings(extracted);  // New: meeting-specific mappings
+    this.applyMeetingMappings(extracted);
     this.applyJiraMappings(extracted, searchText);
     this.applyUrlMappings(extracted);
     this.applyProjectMappings(extracted, searchText);
+
+    // Only without a rule: the guess (meeting, IDE folder), then the default project
+    if (!extracted.project && extracted.guessedProject) extracted.project = extracted.guessedProject;
+    delete extracted.guessedProject;
     this.applyDefaultProject(extracted);
 
     // Determine billability
@@ -237,14 +262,7 @@ class TitleParser {
     if (!extracted.salesforceCase) return;
     const mapping = this.getStoreValue('salesforceCaseMappings', {})[extracted.salesforceCase];
     if (!mapping) return;
-    extracted.salesforceCaseAssigned = true;
-    extracted.project = typeof mapping === 'string' ? mapping : mapping.project;
-    if (typeof mapping === 'object') {
-      if (mapping.activity) extracted.activity = mapping.activity;
-      if (mapping.sapCode) extracted.sapCode = mapping.sapCode;
-      if (mapping.costCenter) extracted.costCenter = mapping.costCenter;
-      if (mapping.wbsElement) extracted.wbsElement = mapping.wbsElement;
-    }
+    if (this.applyRuleBooking(extracted, mapping)) extracted.salesforceCaseAssigned = true;
   }
 
   /**
@@ -257,7 +275,7 @@ class TitleParser {
     if (this.patterns.meeting.test(searchText) ||
         this.meetingApps.some(app => this.matchesAppPattern(appName, app))) {
       this.addTag(extracted.tags, 'meeting');
-      extracted.project = extracted.project || 'Meetings';
+      this.guessProject(extracted, 'Meetings');
     }
 
     // Detect development activities (use word boundaries)
@@ -281,21 +299,21 @@ class TitleParser {
    * Extract project name from IDE window titles
    */
   extractProjectFromDevTitle(extracted) {
-    if (extracted.project) return;
+    if (extracted.guessedProject) return;
 
     const title = extracted.title;
 
     // VS Code pattern: "file.js - ProjectName - Visual Studio Code"
     const vsCodeMatch = title.match(/\s-\s([^-]+)\s-\s(?:Visual Studio Code|VSCode)/);
     if (vsCodeMatch) {
-      extracted.project = vsCodeMatch[1].trim();
+      this.guessProject(extracted, vsCodeMatch[1].trim());
       return;
     }
 
     // Generic pattern: "file.js - ProjectName"
     const genericMatch = title.match(/\s-\s([^-]+)(?:\s-\s|$)/);
     if (genericMatch) {
-      extracted.project = genericMatch[1].trim();
+      this.guessProject(extracted, genericMatch[1].trim());
     }
   }
 
@@ -320,14 +338,7 @@ class TitleParser {
 
         // Try uppercase key first, then original case for backwards compatibility
         const mapping = jiraMappings[projectKey] || jiraMappings[projectKey.toLowerCase()];
-        if (mapping) {
-          extracted.project = typeof mapping === 'string' ? mapping : mapping.project;
-          if (typeof mapping === 'object') {
-            if (mapping.activity) extracted.activity = mapping.activity;
-            if (mapping.sapCode) extracted.sapCode = mapping.sapCode;
-            if (mapping.costCenter) extracted.costCenter = mapping.costCenter;
-            if (mapping.wbsElement) extracted.wbsElement = mapping.wbsElement;
-          }
+        if (mapping && this.applyRuleBooking(extracted, mapping)) {
           // Only add if not already in tickets array (use normalized version)
           if (!extracted.tickets.includes(normalizedMatch)) {
             extracted.tickets.push(normalizedMatch);
@@ -347,14 +358,8 @@ class TitleParser {
     const urlMappings = this.getStoreValue('urlProjectMappings', {});
 
     for (const [pattern, mapping] of Object.entries(urlMappings)) {
-      if (extracted.url.toLowerCase().includes(pattern.toLowerCase())) {
-        extracted.project = typeof mapping === 'string' ? mapping : mapping.project;
-        if (typeof mapping === 'object') {
-          if (mapping.activity) extracted.activity = mapping.activity;
-          if (mapping.sapCode) extracted.sapCode = mapping.sapCode;
-        }
-        break;
-      }
+      const matches = this.matcherFor(pattern, 'URL');
+      if (matches && matches(extracted.url) && this.applyRuleBooking(extracted, mapping)) break;
     }
   }
 
@@ -374,25 +379,8 @@ class TitleParser {
     if (Object.keys(mappings).length === 0) return;
 
     for (const [pattern, mapping] of Object.entries(mappings)) {
-      // Skip unsafe patterns to prevent ReDoS
-      if (!this.isSafeRegex(pattern)) {
-        console.warn(`Skipping potentially unsafe regex pattern: ${pattern}`);
-        continue;
-      }
-
-      try {
-        if (new RegExp(pattern, 'i').test(searchText)) {
-          extracted.project = typeof mapping === 'string' ? mapping : mapping.project;
-          if (typeof mapping === 'object') {
-            if (mapping.activity) extracted.activity = mapping.activity;
-            if (mapping.sapCode) extracted.sapCode = mapping.sapCode;
-          }
-          break;
-        }
-      } catch (e) {
-        // Invalid regex pattern, skip
-        console.warn(`Invalid project mapping pattern: ${pattern}`);
-      }
+      const matches = this.matcherFor(pattern, 'app');
+      if (matches && matches(searchText) && this.applyRuleBooking(extracted, mapping)) break;
     }
   }
 
@@ -438,7 +426,7 @@ class TitleParser {
         extracted.meetingApp = 'Outlook (New)';
         extracted.activity = 'meeting';
         this.addTag(extracted.tags, 'meeting');
-        if (!extracted.project) extracted.project = 'Meetings';
+        this.guessProject(extracted, 'Meetings');
         return;
       }
 
@@ -478,7 +466,7 @@ class TitleParser {
         extracted.meetingApp = 'Outlook Web';
         extracted.activity = 'meeting';
         this.addTag(extracted.tags, 'meeting');
-        if (!extracted.project) extracted.project = 'Meetings';
+        this.guessProject(extracted, 'Meetings');
         return;
       }
 
@@ -509,9 +497,7 @@ class TitleParser {
       extracted.meetingApp = 'Outlook';
       extracted.activity = 'meeting';
       this.addTag(extracted.tags, 'meeting');
-      if (!extracted.project) {
-        extracted.project = 'Meetings';
-      }
+      this.guessProject(extracted, 'Meetings');
       return;
     }
 
@@ -581,9 +567,7 @@ class TitleParser {
       extracted.meetingApp = 'Teams';
       extracted.activity = 'meeting';
       this.addTag(extracted.tags, ['meeting', 'call']);
-      if (!extracted.project) {
-        extracted.project = 'Meetings';
-      }
+      this.guessProject(extracted, 'Meetings');
       return;
     }
 
@@ -597,9 +581,7 @@ class TitleParser {
         extracted.meetingApp = 'Teams';
         extracted.activity = 'meeting';
         this.addTag(extracted.tags, 'meeting');
-        if (!extracted.project) {
-          extracted.project = 'Meetings';
-        }
+        this.guessProject(extracted, 'Meetings');
         return;
       }
     }
@@ -621,9 +603,8 @@ class TitleParser {
    * Maps meeting subjects to projects/SAP codes
    */
   applyMeetingMappings(extracted) {
-    // Only apply if we have a meeting subject and no project yet (or default 'Meetings')
-    if (!extracted.meetingSubject) return;
-    if (extracted.project && extracted.project !== 'Meetings') return;
+    // Only for a meeting subject, and only when no earlier rule set the project
+    if (!extracted.meetingSubject || extracted.project) return;
 
     const meetingMappings = this.getStoreValue('meetingMappings', {});
     if (Object.keys(meetingMappings).length === 0) return;
@@ -631,25 +612,8 @@ class TitleParser {
     const searchText = extracted.meetingSubject.toLowerCase();
 
     for (const [pattern, mapping] of Object.entries(meetingMappings)) {
-      // Skip unsafe patterns to prevent ReDoS
-      if (!this.isSafeRegex(pattern)) {
-        console.warn(`Skipping potentially unsafe regex pattern: ${pattern}`);
-        continue;
-      }
-
-      try {
-        if (new RegExp(pattern, 'i').test(searchText)) {
-          extracted.project = typeof mapping === 'string' ? mapping : mapping.project;
-          if (typeof mapping === 'object') {
-            if (mapping.activity) extracted.activity = mapping.activity;
-            if (mapping.sapCode) extracted.sapCode = mapping.sapCode;
-          }
-          break;
-        }
-      } catch (e) {
-        // Invalid regex pattern, skip
-        console.warn(`Invalid meeting mapping pattern: ${pattern}`);
-      }
+      const matches = this.matcherFor(pattern, 'meeting');
+      if (matches && matches(searchText) && this.applyRuleBooking(extracted, mapping)) break;
     }
   }
 

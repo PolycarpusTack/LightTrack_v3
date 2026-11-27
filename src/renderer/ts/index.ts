@@ -7,9 +7,11 @@
  * that use them are migrated too.
  */
 import * as Utils from './utils';
+import * as RulePattern from '../../shared/rule-pattern';
 
 type LightTrackNamespace = {
   Utils?: typeof Utils;
+  RulePattern?: typeof RulePattern;
   _loaded?: Record<string, boolean>;
   [key: string]: unknown;
 };
@@ -24,3 +26,5 @@ window.LightTrack = window.LightTrack || {};
 // Load flags; legacy modules set their own flag as they load, modules/index.js fills in the rest.
 window.LightTrack._loaded = window.LightTrack._loaded || {};
 window.LightTrack.Utils = Utils;
+// Rule matching shared with tracking, so the rule tester tells the truth (C-4)
+window.LightTrack.RulePattern = RulePattern;
