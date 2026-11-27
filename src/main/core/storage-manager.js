@@ -1,6 +1,7 @@
 const LightweightStorage = require('./lightweight-storage');
 const logger = require('../logger');
 const { mergeActivities } = require('./merge-activities');
+const { localDay } = require('./local-day');
 
 /**
  * Storage Manager - Extends the existing LightweightStorage with Phase 2 enhancements
@@ -447,16 +448,12 @@ class StorageManager extends LightweightStorage {
       const activities = await super.getActivities({});
       const now = new Date();
       // Use local date for consistency
-      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const today = localDay(now);
       const weekAgoDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const weekAgo = `${weekAgoDate.getFullYear()}-${String(weekAgoDate.getMonth() + 1).padStart(2, '0')}-${String(weekAgoDate.getDate()).padStart(2, '0')}`;
+      const weekAgo = localDay(weekAgoDate);
 
       // Helper to get local date string from timestamp
-      const getLocalDate = (ts) => {
-        if (!ts) return null;
-        const d = new Date(ts);
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      };
+      const getLocalDate = (ts) => (ts ? localDay(ts) : null);
 
       const todayActivities = activities.filter(a => {
         const actDate = a.date || getLocalDate(a.timestamp || a.startTime);
@@ -492,7 +489,7 @@ class StorageManager extends LightweightStorage {
   // Calculate today's total time
   async getTodayTotal() {
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = localDay();
       const activities = await this.getActivities({
         startDate: today,
         endDate: today
@@ -511,7 +508,7 @@ class StorageManager extends LightweightStorage {
   getActivities(date = null) {
     if (date instanceof Date || typeof date === 'string') {
       // Convert single date to date range
-      const dateStr = typeof date === 'string' ? date : date.toISOString().split('T')[0];
+      const dateStr = typeof date === 'string' ? date : localDay(date);
       return super.getActivities({
         startDate: dateStr,
         endDate: dateStr
@@ -528,8 +525,8 @@ class StorageManager extends LightweightStorage {
       // Find the first activity that matches app, project, and date
       const match = activities.find(activity => {
         const activityDate = activity.date ||
-          (activity.timestamp ? new Date(activity.timestamp).toISOString().split('T')[0] : null) ||
-          (activity.startTime ? new Date(activity.startTime).toISOString().split('T')[0] : null);
+          (activity.timestamp ? localDay(activity.timestamp) : null) ||
+          (activity.startTime ? localDay(activity.startTime) : null);
 
         return activity.app === app &&
                activity.project === project &&

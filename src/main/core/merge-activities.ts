@@ -7,6 +7,7 @@
  * write, so a merge either happens completely or not at all.
  */
 import { IpcError } from '../../shared/ipc/errors';
+import { localDay } from './local-day';
 
 type Id = string | number;
 
@@ -32,8 +33,7 @@ function localDate(activity: StoredActivity): string | null {
   if (activity.date) return activity.date;
   const ms = time(activity.startTime);
   if (Number.isNaN(ms)) return null;
-  const d = new Date(ms);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return localDay(ms);
 }
 
 const union = (lists: (string[] | null | undefined)[]): string[] => [...new Set(lists.flatMap(list => list || []))];
