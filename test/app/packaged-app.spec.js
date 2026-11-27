@@ -437,7 +437,7 @@ test.describe('packaged application', () => {
         ((await window.lightTrackAPI.getProjects()).custom || []).find(p => p.name === key) || null, name);
       await page.locator('.nav-btn[data-view="settings"]').click();
       await openSettingsGroup(page, 'customization');
-      await page.locator('#project-manager #new-project-name').fill('B6 Project');
+      await page.locator('#project-manager #pm-project-name').fill('B6 Project');
       await page.locator('#project-manager [data-action="add-project"]').click();
       const edit = name => page.locator('#project-manager .project-list-item', { hasText: name })
         .locator('[data-action="edit-project"]');
@@ -466,6 +466,56 @@ test.describe('packaged application', () => {
       await expect(toast).toContainText('Pattern matches');
 
       expect(await page.evaluate(() => window.__prompts)).toEqual([]);
+      expect(errors).toEqual([]);
+    } finally {
+      await app.close();
+    }
+  });
+
+  // B-8: Settings and the New project dialog had the same field ids, and the tag and
+  // activity-type managers added a click handler each time they loaded.
+  test('project, tag and activity-type controls: each acts once', async () => {
+    const { app, page, errors } = await launch(userData);
+    try {
+      const confirms = [];
+      page.on('dialog', dialog => { confirms.push(dialog.message()); dialog.accept(); });
+      const toasts = text => page.locator('.notification-toast', { hasText: text });
+      const projectNames = () => page.evaluate(async () => (await window.lightTrackAPI.getProjects()).all.map(p => p.name));
+
+      // Open Settings three times
+      for (let i = 0; i < 3; i++) {
+        await page.locator('.nav-btn[data-view="settings"]').click();
+        await openSettingsGroup(page, 'customization');
+        await expect(page.locator('#tag-manager [data-action="add-tag"]')).toBeVisible();
+        await page.locator('.nav-btn[data-view="timer"]').click();
+      }
+
+      // "+ New project" in Projects, after Settings was opened
+      await page.locator('.nav-btn[data-view="projects"]').click();
+      await page.locator('#create-project-btn').click();
+      await page.locator('#new-project-modal-overlay #new-project-name').fill('B8 Project');
+      await page.locator('#new-project-save').click();
+      await expect.poll(projectNames).toContain('B8 Project');
+
+      await page.locator('.nav-btn[data-view="settings"]').click();
+      await openSettingsGroup(page, 'customization');
+
+      // One tag added, one confirmation on removal
+      await page.locator('#tag-manager #new-custom-tag').fill('b8tag');
+      await page.locator('#tag-manager [data-action="add-tag"]').click();
+      await expect(toasts('b8tag')).toHaveCount(1);
+      await page.locator('#tag-manager [data-action="remove-tag"][data-tag="b8tag"]').click();
+      await expect.poll(() => confirms.length).toBe(1);
+
+      // One activity type added, one confirmation on removal
+      await page.locator('#activity-type-manager #new-activity-type').fill('B8 Type');
+      await page.locator('#activity-type-manager [data-action="add-activity-type"]').click();
+      await expect(toasts('added')).toHaveCount(1);
+      await page.locator('#activity-type-manager .tag-manager-item', { hasText: 'B8 Type' })
+        .locator('[data-action="remove-activity-type"]').click();
+      await expect.poll(() => confirms.length).toBe(2);
+      await page.waitForTimeout(500);
+      expect(confirms).toHaveLength(2);
       expect(errors).toEqual([]);
     } finally {
       await app.close();

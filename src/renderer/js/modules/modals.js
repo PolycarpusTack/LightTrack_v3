@@ -719,22 +719,20 @@
       </div>
     `;
 
-    // Event delegation for tag actions
-    container.addEventListener('click', (e) => {
-      const action = e.target.dataset.action;
-      if (action === 'remove-tag') {
-        const tag = e.target.dataset.tag;
-        if (tag) removeCustomTag(tag);
-      } else if (action === 'add-tag') {
-        addCustomTag();
-      }
-    });
-
-    // Handle enter key
-    const input = container.querySelector('#new-custom-tag');
-    if (input) {
-      input.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
+    // The container outlives its contents: wire it once, or every reload adds a handler (B-8)
+    if (!container.dataset.wired) {
+      container.dataset.wired = 'true';
+      container.addEventListener('click', (e) => {
+        const action = e.target.dataset.action;
+        if (action === 'remove-tag') {
+          const tag = e.target.dataset.tag;
+          if (tag) removeCustomTag(tag);
+        } else if (action === 'add-tag') {
+          addCustomTag();
+        }
+      });
+      container.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && e.target && e.target.id === 'new-custom-tag') {
           e.preventDefault();
           addCustomTag();
         }
@@ -864,12 +862,12 @@
         <h4>Add new project</h4>
         <div class="project-form">
           <div class="project-form-row">
-            <input type="text" id="new-project-name" placeholder="Project name *" class="flex-2">
-            <input type="text" id="new-project-sap" placeholder="SAP code">
+            <input type="text" id="pm-project-name" placeholder="Project name *" class="flex-2">
+            <input type="text" id="pm-project-sap" placeholder="SAP code">
           </div>
           <div class="project-form-row">
-            <input type="text" id="new-project-cc" placeholder="Cost Center">
-            <input type="text" id="new-project-wbs" placeholder="WBS element">
+            <input type="text" id="pm-project-cc" placeholder="Cost Center">
+            <input type="text" id="pm-project-wbs" placeholder="WBS element">
           </div>
           <button data-action="add-project" class="solid">Add project</button>
         </div>
@@ -893,7 +891,7 @@
 
       // Handle enter key on name field
       container.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter' && e.target && e.target.id === 'new-project-name') {
+        if (e.key === 'Enter' && e.target && e.target.id === 'pm-project-name') {
           e.preventDefault();
           addCustomProject();
         }
@@ -905,10 +903,11 @@
    * Add a custom project via the project manager
    */
   async function addCustomProject() {
-    const nameInput = document.getElementById('new-project-name');
-    const sapInput = document.getElementById('new-project-sap');
-    const ccInput = document.getElementById('new-project-cc');
-    const wbsInput = document.getElementById('new-project-wbs');
+    // Settings' own fields; the New project dialog has the new-project-* ids (B-8)
+    const nameInput = document.getElementById('pm-project-name');
+    const sapInput = document.getElementById('pm-project-sap');
+    const ccInput = document.getElementById('pm-project-cc');
+    const wbsInput = document.getElementById('pm-project-wbs');
 
     const projectName = nameInput?.value?.trim();
 
@@ -1077,22 +1076,20 @@
       </div>
     `;
 
-    // Event delegation for activity type actions
-    container.addEventListener('click', (e) => {
-      const action = e.target.dataset.action;
-      if (action === 'remove-activity-type') {
-        const typeId = e.target.dataset.typeId;
-        if (typeId) removeCustomActivityType(typeId);
-      } else if (action === 'add-activity-type') {
-        addCustomActivityType();
-      }
-    });
-
-    // Handle enter key
-    const input = container.querySelector('#new-activity-type');
-    if (input) {
-      input.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
+    // The container outlives its contents: wire it once, or every reload adds a handler (B-8)
+    if (!container.dataset.wired) {
+      container.dataset.wired = 'true';
+      container.addEventListener('click', (e) => {
+        const action = e.target.dataset.action;
+        if (action === 'remove-activity-type') {
+          const typeId = e.target.dataset.typeId;
+          if (typeId) removeCustomActivityType(typeId);
+        } else if (action === 'add-activity-type') {
+          addCustomActivityType();
+        }
+      });
+      container.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && e.target && e.target.id === 'new-activity-type') {
           e.preventDefault();
           addCustomActivityType();
         }
