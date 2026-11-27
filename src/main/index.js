@@ -305,8 +305,10 @@ class LightTrackApp {
       () => this.trayManager?.updateMenu(),
       // handleIdleDecision
       async (wasWorking) => {
-        if (this.tracker) {
-          await this.tracker.handleIdleTimeDecision(wasWorking);
+        if (!this.tracker) return;
+        const changed = await this.tracker.handleIdleTimeDecision(wasWorking);
+        if (changed && this.mainWindow && !this.mainWindow.isDestroyed()) {
+          this.mainWindow.webContents.send('activities-updated');
         }
       }
     ).registerHandlers(registry);

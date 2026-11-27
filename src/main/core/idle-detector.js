@@ -25,6 +25,8 @@ class IdleDetector {
     this.idleStartTime = null;
     this.idleWarningShown = false;
     this.lastIdlePeriod = null;
+    // The activity that was open when tracking paused; the decision applies to it (B-4)
+    this.pausedActivityId = null;
 
     // Bind methods
     this.checkIdle = this.checkIdle.bind(this);
@@ -116,15 +118,17 @@ class IdleDetector {
       start: this.idleStartTime,
       end: idleEnd.toISOString(),
       duration: idleDuration,
-      minutes: idleMinutes
+      minutes: idleMinutes,
+      activityId: this.pausedActivityId
     };
+    this.pausedActivityId = null;
 
     // Notify ActivityTracker
     this.onIdleReturn(this.lastIdlePeriod);
 
     // Notify renderer to potentially show idle prompt
     const mainWindow = this.getMainWindow();
-    if (mainWindow && !mainWindow.isDestroyed() && idleMinutes > MIN_IDLE_MINUTES_FOR_PROMPT) {
+    if (mainWindow && !mainWindow.isDestroyed() && idleMinutes >= MIN_IDLE_MINUTES_FOR_PROMPT) {
       mainWindow.webContents.send(IPC_CHANNELS.IDLE_RETURN, this.lastIdlePeriod);
     }
 
@@ -132,41 +136,54 @@ class IdleDetector {
     this.idleWarningShown = false;
   }
 
+  /** Remember the activity that was open when tracking paused for idle. */
+  setPausedActivity(activityId) {
+    this.pausedActivityId = activityId ?? null;
+  }
+
   /**
-   * Handle idle time decision (called from renderer via ActivityTracker)
+   * Apply the user's answer to the last idle period (B-4). The period belongs to the
+   * activity that was paused, found by id: tracking may have resumed on that same
+   * record since, and then the open copy gets the time too, so its next save keeps it.
    * @param {boolean} wasWorking - Whether the idle time should count as work
    * @param {Object} storage - Storage manager for updating activities
+   * @param {Object|null} currentActivity - the tracker's open activity
+   * @returns {Promise<boolean>} true when an activity was changed
    */
-  async handleIdleTimeDecision(wasWorking, storage) {
-    if (!this.lastIdlePeriod) return;
-
-    // Find the last saved activity that might need updating
-    const activities = await storage.getActivities(new Date());
-    const lastActivity = Array.isArray(activities) ? activities[0] : null;
-
-    if (lastActivity && lastActivity.idleStartTime === this.lastIdlePeriod.start) {
-      if (wasWorking) {
-        // User says it was work time - update the activity
-        const additionalDuration = this.lastIdlePeriod.duration;
-        await storage.updateActivity(lastActivity.id, {
-          duration: lastActivity.duration + additionalDuration,
-          actualDuration: (lastActivity.actualDuration || lastActivity.duration) + additionalDuration,
-          idlePeriods: [] // Clear idle periods since it was work
-        });
-        logger.info('Idle time counted as work');
-      } else {
-        // Create idle period record
-        const idlePeriods = lastActivity.idlePeriods || [];
-        idlePeriods.push({
-          ...this.lastIdlePeriod,
-          excluded: true
-        });
-        await storage.updateActivity(lastActivity.id, { idlePeriods });
-        logger.info('Idle time excluded from work');
-      }
-    }
-
+  async handleIdleTimeDecision(wasWorking, storage, currentActivity = null) {
+    const period = this.lastIdlePeriod;
     this.lastIdlePeriod = null;
+    if (!period) return false;
+
+    const stored = period.activityId != null ? storage.findActivityById(period.activityId) : null;
+    if (!stored) {
+      logger.warn('Idle decision: the paused activity is not stored; nothing changed', { counted: wasWorking });
+      return false;
+    }
+    const isOpen = currentActivity && String(currentActivity.id) === String(stored.id);
+
+    if (wasWorking) {
+      const add = period.duration;
+      const idleEnd = Date.parse(period.end);
+      const storedEnd = typeof stored.endTime === 'number' ? stored.endTime : Date.parse(stored.endTime);
+      const updates = {
+        duration: (stored.duration || 0) + add,
+        actualDuration: (stored.actualDuration || stored.duration || 0) + add
+      };
+      if (!Number.isFinite(storedEnd) || storedEnd < idleEnd) updates.endTime = idleEnd;
+      await storage.updateActivity(stored.id, updates);
+      if (isOpen) {
+        currentActivity.duration = (currentActivity.duration || 0) + add;
+        currentActivity.actualDuration = (currentActivity.actualDuration || 0) + add;
+      }
+      logger.info('Idle time counted as work', { seconds: add });
+    } else {
+      const idlePeriods = [...(stored.idlePeriods || []), { start: period.start, end: period.end, duration: period.duration, excluded: true }];
+      await storage.updateActivity(stored.id, { idlePeriods });
+      if (isOpen) currentActivity.idlePeriods = idlePeriods;
+      logger.info('Idle time excluded from work', { seconds: period.duration });
+    }
+    return true;
   }
 
   /**
@@ -191,6 +208,7 @@ class IdleDetector {
   reset() {
     this.pausedDueToIdle = false;
     this.idleStartTime = null;
+    this.pausedActivityId = null;
     this.idleWarningShown = false;
   }
 }

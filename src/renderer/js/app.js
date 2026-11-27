@@ -106,6 +106,7 @@ const AppState = {
   currentView: 'timer', // Current active view for keyboard shortcuts
   startTime: null,
   timerInterval: null,
+  pausedForIdle: false, // tracking is on but paused because there was no input (B-4)
   activities: [], // the Timer's day
   timelineActivities: [], // the Timeline's day, kept apart so a write on one view cannot empty the other (B-3)
   filteredActivities: [], // Activities after filters applied
@@ -613,6 +614,11 @@ function formatDuration(seconds) {
  * Update timer display
  */
 function updateTimerDisplay() {
+  if (AppState.isTracking && AppState.pausedForIdle) {
+    if (Elements.timer) Elements.timer.textContent = 'Paused';
+    if (Elements.floatingTimerDisplay) Elements.floatingTimerDisplay.textContent = 'Paused';
+    return;
+  }
   if (!AppState.isTracking || !AppState.startTime) {
     if (Elements.timer) Elements.timer.textContent = '00:00:00';
     if (Elements.floatingTimerDisplay) Elements.floatingTimerDisplay.textContent = '00:00:00';
@@ -771,6 +777,38 @@ async function toggleTracking() {
   } finally {
     if (Elements.toggleBtn) Elements.toggleBtn.disabled = false;
   }
+}
+
+/**
+ * Ask what to do with an idle period (B-4). Main adds it to the activity that was
+ * paused, or records it as left out. Escape leaves it out.
+ */
+function openIdlePrompt(period) {
+  const overlay = document.getElementById('idle-modal-overlay');
+  const text = document.getElementById('idle-modal-text');
+  if (!overlay || !text || !period) return;
+  const clock = value => new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const minutes = Math.round((period.duration || 0) / 60);
+  text.textContent = `No input for ${minutes} min, ${clock(period.start)} to ${clock(period.end)}. ` +
+    'Count this time as work on the activity that was paused?';
+
+  const close = () => {
+    removeModalEscHandler('idle-modal-overlay');
+    overlay.classList.remove('active');
+  };
+  const decide = async (wasWorking) => {
+    close();
+    try {
+      await window.lightTrackAPI.handleIdleDecision(wasWorking);
+      showNotification(wasWorking ? 'Idle time counted as work' : 'Idle time left out', 'success');
+    } catch (error) {
+      showNotification(error.message, 'error');
+    }
+  };
+  document.getElementById('idle-count').onclick = () => decide(true);
+  document.getElementById('idle-leave-out').onclick = () => decide(false);
+  overlay.classList.add('active');
+  addModalEscHandler('idle-modal-overlay', () => decide(false));
 }
 
 /**
@@ -1578,6 +1616,7 @@ function setupEventListeners() {
     if (data.currentActivity || data.currentActivity === null) {
       AppState.currentActivity = data.currentActivity;
     }
+    AppState.pausedForIdle = Boolean(data.isPaused);
 
     if (AppState.isTracking) {
       if (!AppState.timerInterval) {
@@ -1600,8 +1639,22 @@ function setupEventListeners() {
     refreshActivityViews();
   });
 
+  // Idle: the timer shows "Paused" until tracking resumes, and a long absence asks (B-4).
+  window.lightTrackAPI.onTrackingPaused((info) => {
+    if (info?.reason === 'idle') {
+      AppState.pausedForIdle = true;
+      updateTimerDisplay();
+    }
+  });
+  window.lightTrackAPI.onIdleReturn((period) => {
+    AppState.pausedForIdle = false;
+    updateTimerDisplay();
+    openIdlePrompt(period);
+  });
+
   window.lightTrackAPI.onTrackingStatusChanged((isTracking) => {
     AppState.isTracking = Boolean(isTracking);
+    if (!AppState.isTracking) AppState.pausedForIdle = false;
     if (AppState.isTracking) {
       getCurrentStatus();
     } else {

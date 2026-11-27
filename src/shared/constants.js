@@ -45,7 +45,7 @@ const IDLE_WARNING_SECONDS = 30;
 const IDLE_ACTIVITY_THRESHOLD_SECONDS = 5;
 
 /** Minimum idle minutes to show return prompt */
-const MIN_IDLE_MINUTES_FOR_PROMPT = 1;
+const MIN_IDLE_MINUTES_FOR_PROMPT = 5; // shorter absences are left out without asking (B-4)
 
 /** Default minimum activity duration to save */
 const DEFAULT_MIN_ACTIVITY_DURATION_SECONDS = 60;

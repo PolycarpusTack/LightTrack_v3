@@ -352,6 +352,41 @@ test.describe('packaged application', () => {
     }
   });
 
+  // B-4: returning from a long absence asks what to do with the time. The harness keeps
+  // tracking off, so main's idle-return event is sent by hand; main is covered by unit tests.
+  test('idle prompt offers count as work and leave out', async () => {
+    const { app, page, errors } = await launch(userData);
+    try {
+      const returnFromIdle = () => app.evaluate(({ BrowserWindow }) => {
+        const end = Date.now();
+        BrowserWindow.getAllWindows()[0].webContents.send('idle-return', {
+          start: new Date(end - 12 * 60 * 1000).toISOString(), end: new Date(end).toISOString(), duration: 720, minutes: 12
+        });
+      });
+      const dialog = page.locator('#idle-modal-overlay');
+      const toast = page.locator('.notification-toast').last();
+
+      await returnFromIdle();
+      await expect(dialog).toHaveClass(/active/);
+      await expect(page.locator('#idle-modal-text')).toContainText('No input for 12 min');
+      await expect(page.locator('#idle-count')).toHaveText('Count as work');
+      await expect(page.locator('#idle-leave-out')).toHaveText('Leave out');
+      await page.locator('#idle-count').click();
+      await expect(dialog).not.toHaveClass(/active/);
+      await expect(toast).toHaveText(/Idle time counted as work/);
+
+      // Escape leaves the time out.
+      await returnFromIdle();
+      await expect(dialog).toHaveClass(/active/);
+      await page.keyboard.press('Escape');
+      await expect(dialog).not.toHaveClass(/active/);
+      await expect(toast).toHaveText(/Idle time left out/);
+      expect(errors).toEqual([]);
+    } finally {
+      await app.close();
+    }
+  });
+
   // #39: merging on the timeline keeps one activity with the summed time.
   test('merges two activities on the timeline', async () => {
     const { app, page, errors } = await launch(userData);
