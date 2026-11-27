@@ -106,7 +106,8 @@ const AppState = {
   currentView: 'timer', // Current active view for keyboard shortcuts
   startTime: null,
   timerInterval: null,
-  activities: [],
+  activities: [], // the Timer's day
+  timelineActivities: [], // the Timeline's day, kept apart so a write on one view cannot empty the other (B-3)
   filteredActivities: [], // Activities after filters applied
   contextSwitches: 0,
   lastApp: null,
@@ -770,6 +771,17 @@ async function toggleTracking() {
   } finally {
     if (Elements.toggleBtn) Elements.toggleBtn.disabled = false;
   }
+}
+
+/**
+ * Reload every list that shows activities after a write (B-3): the Timer's day,
+ * and the Timeline or Analytics when it is on screen.
+ */
+async function refreshActivityViews() {
+  const reloads = [loadActivities()];
+  if (AppState.currentView === 'timeline') reloads.push(loadTimelineView());
+  if (AppState.currentView === 'analytics') reloads.push(loadAnalyticsView());
+  await Promise.all(reloads);
 }
 
 /**
@@ -1580,6 +1592,12 @@ function setupEventListeners() {
 
     updateTrackingUI();
     updateTimerDisplay();
+  });
+
+  // Main reports writes it made (save, edit, delete, merge); reload what is on screen (B-3).
+  window.lightTrackAPI.onActivitiesUpdated(() => {
+    invalidateAnalyticsCache();
+    refreshActivityViews();
   });
 
   window.lightTrackAPI.onTrackingStatusChanged((isTracking) => {

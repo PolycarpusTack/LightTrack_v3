@@ -82,15 +82,21 @@
     addModalEscHandler('modal-overlay', closeModal);
   }
 
+  /** The list of the view on screen: the Timeline keeps its own day (B-3). */
+  function activitiesOnScreen() {
+    return AppState.currentView === 'timeline' ? (AppState.timelineActivities || []) : AppState.activities;
+  }
+
   /**
    * Open edit modal for existing activity
    */
   function openEditModal(activityId) {
     // Convert to string to handle both string and number IDs
     const id = String(activityId);
-    const activity = AppState.activities.find(a => String(a.id) === id);
+    const shown = activitiesOnScreen();
+    const activity = shown.find(a => String(a.id) === id);
     if (!activity) {
-      console.error('Activity not found:', activityId, 'Available IDs:', AppState.activities.map(a => a.id));
+      console.error('Activity not found:', activityId, 'Available IDs:', shown.map(a => a.id));
       showNotification('Activity not found', 'error');
       return;
     }
@@ -232,7 +238,7 @@
 
       invalidateAnalyticsCache(); // Clear cache so analytics refreshes
       closeModal();
-      loadActivities();
+      refreshActivityViews();
     } catch (error) {
       console.error('Failed to save activity:', error);
       showNotification(error.message, 'error');
@@ -271,7 +277,7 @@
       showNotification('Entry deleted', 'success');
       invalidateAnalyticsCache(); // Clear cache so analytics refreshes
       closeDeleteModal();
-      loadActivities();
+      refreshActivityViews();
     } catch (error) {
       console.error('Failed to delete activity:', error);
       showNotification(error.message, 'error');
@@ -325,7 +331,7 @@
       showNotification('Old data cleared', 'success');
       closeClearDataModal();
       loadSettingsView();
-      loadActivities();
+      refreshActivityViews();
     } catch (error) {
       console.error('Failed to clear data:', error);
       showNotification('Failed to clear data', 'error');

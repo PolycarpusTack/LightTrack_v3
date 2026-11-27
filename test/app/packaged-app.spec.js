@@ -287,6 +287,71 @@ test.describe('packaged application', () => {
     }
   });
 
+  // B-3: the Timeline keeps its own list, so an edit or delete for another day shows at once.
+  test('timeline refreshes after an edit, a delete and a change made by main', async () => {
+    const seeded = fs.mkdtempSync(path.join(os.tmpdir(), 'lighttrack-harness-timeline-'));
+    const past = new Date();
+    past.setDate(past.getDate() - 3);
+    const day = localDateISO(past);
+    const today = localDateISO();
+    const at = (date, time) => new Date(`${date}T${time}:00`).getTime();
+    fs.writeFileSync(path.join(seeded, 'config.json'), JSON.stringify({
+      activities: [
+        { id: 'past-a', app: 'Word', title: 'Report', project: 'Past', date: day,
+          startTime: at(day, '09:00'), endTime: at(day, '10:00'), duration: 3600 },
+        { id: 'past-b', app: 'Excel', title: 'Sheet', project: 'Past', date: day,
+          startTime: at(day, '11:00'), endTime: at(day, '12:00'), duration: 3600 },
+        { id: 'today-a', app: 'Outlook', title: 'Mail', project: 'Today', date: today,
+          startTime: at(today, '08:00'), endTime: at(today, '08:30'), duration: 1800 }
+      ]
+    }));
+    try {
+      const { app, page, errors } = await launch(seeded);
+      try {
+        const row = id => page.locator(`#timeline-list .activity[data-id="${id}"]`);
+        await page.locator('.nav-btn[data-view="timeline"]').click();
+        for (let i = 0; i < 3; i++) await page.locator('#timeline-prev').click();
+        await expect(row('past-a')).toBeVisible();
+
+        // Edit: the row shows the change.
+        await row('past-a').locator('.btn-edit').click();
+        await page.locator('#entry-project').fill('Edited Past');
+        await page.locator('#modal-save').click();
+        await expect(page.locator('.notification-toast').last()).toContainText('Entry updated');
+        await expect(row('past-a')).toContainText('Edited Past');
+
+        // A second edit on the same day still finds its activity.
+        await row('past-b').locator('.btn-edit').click();
+        await expect(page.locator('#entry-project')).toHaveValue('Past');
+        await page.locator('#modal-cancel').click();
+
+        // Delete: the row disappears.
+        await row('past-b').locator('.btn-delete').click();
+        await page.locator('#delete-confirm').click();
+        await expect(row('past-b')).toHaveCount(0);
+
+        // A change main reports (here a manual entry saved without the dialog) reloads the view.
+        await page.evaluate(async date => {
+          await window.lightTrackAPI.addManualEntry({
+            project: 'From Main', app: 'Manual', title: 'From Main',
+            startTime: new Date(`${date}T14:00:00`).toISOString(), endTime: new Date(`${date}T15:00:00`).toISOString(),
+            duration: 3600, billable: true, isManual: true
+          });
+        }, day);
+        await expect(page.locator('#timeline-list .activity', { hasText: 'From Main' })).toBeVisible();
+
+        // The Timer still lists today.
+        await page.locator('.nav-btn[data-view="timer"]').click();
+        await expect(page.locator('#activity-list .activity[data-id="today-a"]')).toBeVisible();
+        expect(errors).toEqual([]);
+      } finally {
+        await app.close();
+      }
+    } finally {
+      fs.rmSync(seeded, { recursive: true, force: true });
+    }
+  });
+
   // #39: merging on the timeline keeps one activity with the summed time.
   test('merges two activities on the timeline', async () => {
     const { app, page, errors } = await launch(userData);
