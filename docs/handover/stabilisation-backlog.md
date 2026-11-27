@@ -65,7 +65,7 @@ Synonyms to avoid: "record", "entry" (use activity or manual entry), "session" (
 ## Technical debt
 
 - **TD-1: Activity store — mixed time formats.** Tracked activities hold numbers, manual entries hold ISO text. Cause: tracker and manual path written separately. Principal: one migration. Interest: every reader must accept both. Servicing: LT3-102 (#13) defines one format in SQLite. Origin: A-2.
-- **TD-3: Activity store — dedup key on save.** `lightweightCleanup` deduplicates on save time plus title. Every activity saved since gets a save time, so only old records without one can collide and lose one copy. Principal: dedupe by `id`. Servicing: LT3-102 retires this file. Origin: outside review S-5.
+- **TD-3: Activity store — dedup key on save.** `lightweightCleanup` deduplicates on save time plus title. Every activity saved since gets a save time, so only old records without one can collide and lose one copy. Principal: dedupe by `id`. Servicing: LT3-102 retires this file. Origin: outside review S-5. **Resolved in C-3 (2026-11-27):** dedupe by `id`.
 - **TD-2: Renderer — no automated tests for `app.js` and the modules.** Interest: screen defects are found by hand. Servicing: the harness stories A-9 and B-12 cover the main flows; the rest waits for the renderer TypeScript work.
 
 ## Backlog
