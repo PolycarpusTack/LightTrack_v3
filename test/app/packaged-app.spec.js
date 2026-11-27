@@ -240,6 +240,60 @@ test.describe('packaged application', () => {
     await app.close();
   });
 
+  // A-4: an edit sends only what changed, so a tracked activity keeps its duration and title.
+  test('edit keeps duration and title of a tracked activity', async () => {
+    // A tracked activity cannot be made through IPC; seed it into a fresh profile as a
+    // plain data file, which the app adopts and encrypts on first start.
+    const seeded = fs.mkdtempSync(path.join(os.tmpdir(), 'lighttrack-harness-edit-'));
+    const date = localDateISO();
+    const at = time => new Date(`${date}T${time}:00`).getTime();
+    fs.writeFileSync(path.join(seeded, 'config.json'), JSON.stringify({
+      activities: [
+        { id: 'tracked-day', app: 'Figma', title: 'Design review', project: 'Seeded', date,
+          startTime: at('09:00'), endTime: at('17:00'), duration: 10800, actualDuration: 10800 },
+        { id: 'tracked-night', app: 'Terminal', title: 'Night build', project: 'Seeded', date,
+          startTime: at('00:10'), endTime: at('00:40'), duration: 1200, actualDuration: 1200 }
+      ]
+    }));
+    const { app, page, errors } = await launch(seeded);
+    try {
+      const stored = async id => page.evaluate(
+        async key => (await window.lightTrackAPI.getActivities()).find(a => a.id === key), id);
+      const row = name => page.locator('#activity-list .activity', { hasText: name }).first();
+
+      // An activity started just after midnight opens on its local day.
+      await row('Terminal').click();
+      await expect(page.locator('#entry-date')).toHaveValue(date);
+      await page.locator('#modal-cancel').click();
+
+      // Changing only the project keeps the counted 3h and the window title.
+      await row('Figma').click();
+      await page.locator('#entry-project').fill('Edited Project');
+      await page.locator('#modal-save').click();
+      await expect(page.locator('.notification-toast').last()).toContainText('Entry updated');
+      expect(await stored('tracked-day')).toMatchObject({ project: 'Edited Project', duration: 10800, title: 'Design review' });
+
+      // Changing a time warns that the span replaces the tracked duration; declining saves nothing.
+      let warning = '';
+      page.once('dialog', dialog => { warning = dialog.message(); dialog.dismiss(); });
+      await row('Figma').click();
+      await page.locator('#entry-end').fill('17:30');
+      await page.locator('#modal-save').click();
+      await expect.poll(() => warning).toContain('duration will become');
+      expect((await stored('tracked-day')).duration).toBe(10800);
+
+      // Confirming applies the new span.
+      page.once('dialog', dialog => dialog.accept());
+      await page.locator('#modal-save').click();
+      await expect.poll(async () => (await stored('tracked-day')).duration).toBe(30600);
+
+      expect(errors).toEqual([]);
+    } finally {
+      await app.close();
+      fs.rmSync(seeded, { recursive: true, force: true });
+    }
+  });
+
   // #45: a failed request shows an error toast instead of an empty view.
   test('shows a failed request to the user', async () => {
     const { app, page } = await launch(userData);

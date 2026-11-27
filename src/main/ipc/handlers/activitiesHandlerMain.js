@@ -85,6 +85,12 @@ class ActivitiesHandlerMain {
 
     // Update activity
     registry.handle('activities:update', async (event, activityId, updates) => {
+      // The tracker rewrites its current activity on the next save, which would undo the edit.
+      const current = this.getTracker()?.currentActivity;
+      if (current && String(current.id) === String(activityId)) {
+        throw new IpcError('CONFLICT', 'Stop tracking before editing this activity');
+      }
+
       const validation = this.validateActivity(updates || {});
       if (!validation.valid) {
         throw new Error(validation.error || 'Invalid activity data');
@@ -95,12 +101,22 @@ class ActivitiesHandlerMain {
         Object.entries(validation.sanitized).filter(([key]) => key in updates)
       );
 
-      // Recalculate duration if times changed
-      if (safeUpdates.startTime && safeUpdates.endTime) {
-        const start = new Date(safeUpdates.startTime);
-        const end = new Date(safeUpdates.endTime);
-        safeUpdates.duration = Math.floor((end - start) / 1000);
-        safeUpdates.actualDuration = safeUpdates.duration;
+      // A tracked activity's duration is the time counted, not its span. Replace it with
+      // the span only when the edit actually moves a time (A-4).
+      const existing = (await this.storage.getActivities()).find(a => String(a.id) === String(activityId));
+      const timeOf = value => (value === undefined || value === null ? NaN : new Date(value).getTime());
+      const moved = key => key in safeUpdates && timeOf(safeUpdates[key]) !== timeOf(existing?.[key]);
+      if (moved('startTime') || moved('endTime')) {
+        const start = timeOf(safeUpdates.startTime ?? existing?.startTime);
+        const end = timeOf(safeUpdates.endTime ?? existing?.endTime);
+        if (Number.isFinite(start) && Number.isFinite(end)) {
+          safeUpdates.duration = Math.max(0, Math.floor((end - start) / 1000));
+          safeUpdates.actualDuration = safeUpdates.duration;
+        }
+      } else {
+        // Unchanged times: keep the stored duration, whatever the dialog computed.
+        delete safeUpdates.duration;
+        delete safeUpdates.actualDuration;
       }
 
       // Update using lightweight storage

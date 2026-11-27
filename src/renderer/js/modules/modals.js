@@ -63,6 +63,7 @@
    */
   function openManualEntryModal(dateOverride) {
     AppState.editingActivityId = null;
+    AppState.editingActivity = null;
     showCaseOption(null);
     if (Elements.modalTitle) Elements.modalTitle.textContent = 'Add manual entry';
     if (Elements.editActivityId) Elements.editActivityId.value = '';
@@ -106,11 +107,11 @@
     if (Elements.entryProject) Elements.entryProject.value = activity.project || 'General';
     if (Elements.entryApp) Elements.entryApp.value = activity.app || activity.title || '';
 
-    // Parse times
+    // Parse times; the date is the local day, not the UTC one (A-4)
     if (activity.startTime) {
       const start = new Date(activity.startTime);
       if (Elements.entryStart) Elements.entryStart.value = start.toTimeString().slice(0, 5);
-      if (Elements.entryDate) Elements.entryDate.value = start.toISOString().split('T')[0];
+      if (Elements.entryDate) Elements.entryDate.value = getLocalDateString(start);
     }
     if (activity.endTime) {
       const end = new Date(activity.endTime);
@@ -119,8 +120,40 @@
 
     if (Elements.entryBillable) Elements.entryBillable.checked = activity.billable !== false;
 
+    // Remember what the form showed, so saving sends only what the user changed (A-4)
+    AppState.editingActivity = { activity, form: readEntryForm() };
+
     if (Elements.modalOverlay) Elements.modalOverlay.classList.add('active');
     addModalEscHandler('modal-overlay', closeModal);
+  }
+
+  /**
+   * Current values of the entry form, as the user sees them
+   */
+  function readEntryForm() {
+    return {
+      project: Elements.entryProject?.value || '',
+      app: Elements.entryApp?.value || '',
+      start: Elements.entryStart?.value || '',
+      end: Elements.entryEnd?.value || '',
+      date: Elements.entryDate?.value || '',
+      billable: Elements.entryBillable?.checked ?? true
+    };
+  }
+
+  /**
+   * The fields of an edit that differ from what the dialog opened with.
+   * Never sends title or duration: main keeps the title and works out the duration.
+   */
+  function changedFields(opened, now, startDateTime, endDateTime) {
+    const updates = {};
+    if (now.project !== opened.project) updates.project = now.project;
+    if (now.app !== opened.app) updates.app = now.app;
+    if (now.billable !== opened.billable) updates.billable = now.billable;
+    const dateChanged = now.date !== opened.date;
+    if (dateChanged || now.start !== opened.start) updates.startTime = startDateTime.toISOString();
+    if (dateChanged || now.end !== opened.end) updates.endTime = endDateTime.toISOString();
+    return updates;
   }
 
   /**
@@ -130,6 +163,7 @@
     removeModalEscHandler('modal-overlay');
     if (Elements.modalOverlay) Elements.modalOverlay.classList.remove('active');
     AppState.editingActivityId = null;
+    AppState.editingActivity = null;
     AppState.editingCase = null;
   }
 
@@ -162,16 +196,18 @@
 
     try {
       if (AppState.editingActivityId) {
-        // Update existing
-        await window.lightTrackAPI.updateActivity(AppState.editingActivityId, {
-          project,
-          app,
-          title: app,
-          startTime: startDateTime.toISOString(),
-          endTime: endDateTime.toISOString(),
-          duration,
-          billable
-        });
+        // Update existing: send only the fields the user changed
+        const { activity, form } = AppState.editingActivity || { activity: {}, form: {} };
+        const updates = changedFields(form, readEntryForm(), startDateTime, endDateTime);
+        const timesChanged = 'startTime' in updates || 'endTime' in updates;
+        if (timesChanged && !activity.isManual && activity.duration !== duration) {
+          const ok = confirm(`The duration will become ${formatDuration(duration)} (end minus start), ` +
+            `replacing the ${formatDuration(activity.duration || 0)} tracked. Save anyway?`);
+          if (!ok) return;
+        }
+        if (Object.keys(updates).length > 0) {
+          await window.lightTrackAPI.updateActivity(AppState.editingActivityId, updates);
+        }
         const caseNumber = AppState.editingCase;
         if (caseNumber && document.getElementById('entry-case-remember')?.checked) {
           const { updated } = await window.lightTrackAPI.salesforce.assignCase(caseNumber, project);
