@@ -1,14 +1,14 @@
 # LightTrack v3: status and pickup
 
 **Last updated:** 2026-11-27
-**`main`:** `dc055df`, CI green. Open: #68 (A-8), CI green, waiting for the owner's approval; it carries this status.
-**Next step:** once A-8 is merged, story A-9 of `docs/handover/stabilisation-backlog.md` (smoke test: a tracked activity is visible in the packaged app), branch `fix/a-9-tracked-smoke` from `main`, then the Epic A retrospective.
+**`main`:** `15233db`, CI green. Open: the A-9 PR, which carries this status.
+**Next step:** once A-9 is merged, the Epic A retrospective, then story B-1 of `docs/handover/stabilisation-backlog.md` (saving settings reports what happened), branch from `main`.
 
 ## Where we are
 
 The owner reported on 2026-11-26 that tracking runs but no records appear. A functional audit found the cause and a set of other defects. `docs/handover/stabilisation-backlog.md` fixes them in order: two epics, 20 stories, one PR each, approved by the owner and checked by an independent validation pass. The backlog sits in front of Increment B; LT3-102 (#13) follows it.
 
-**Done: A-1 to A-7; A-8 waits for approval. Next: A-9, then B-1 to B-12 (B-5 is dropped).**
+**Done: A-1 to A-8; A-9 waits for approval. Next: the Epic A retrospective, then B-1 to B-12 (B-5 is dropped).**
 
 The first-release workflow (approval, booking lines, CSV hand-off, RDP) is still not built; see plan section 16 and `docs/design/first-release/REVIEW.md`.
 
@@ -24,9 +24,11 @@ The first-release workflow (approval, booking lines, CSV hand-off, RDP) is still
 
 - **#67 A-7** sleep and lock time is not counted. Confirmed first: a 60-minute gap between samples added 60 minutes to the activity. The tracker now pauses and saves on `suspend` and `lock-screen` and counts again from `resume` and `unlock-screen`. A gap over 5 minutes without a power event (`MAX_SAMPLE_GAP_MS`) credits one sampling interval and is logged. After an overnight gap the morning starts a new activity instead of extending yesterday's.
 
+- **#68 A-8** storage does not drop activities silently. Every save removed all stored activities shorter than the minimum duration (so a manual entry under a minute vanished) and cut the list at 10,000. Both are gone: the minimum applies only when the tracker decides whether to save, and the limit is a logged warning. "Clear old data" deleted by save time, and every tracked activity without one whatever its age; it now uses the dialog's rule (start time, else save time, kept when unreadable), so it removes exactly what the dialog counted. Duplicate removal and consecutive merging on save are unchanged.
+
 ## In review
 
-- **#68 A-8** storage does not drop activities silently. Every save removed all stored activities shorter than the minimum duration (so a manual entry under a minute vanished) and cut the list at 10,000. Both are gone: the minimum applies only when the tracker decides whether to save, and the limit is a logged warning. "Clear old data" deleted by save time, and every tracked activity without one whatever its age; it now uses the dialog's rule (start time, else save time, kept when unreadable), so it removes exactly what the dialog counted. Duplicate removal and consecutive merging on save are unchanged.
+- **A-9** a packaged-app test seeds a tracked activity with numeric times into a fresh profile and checks that the Timer lists it with its duration and that the log has no "invalid response". It fails against a build without the A-2 fix.
 
 The owner confirmed on 2026-11-27 that the records since October appear after installing the 2026-11-26 build.
 
@@ -41,7 +43,6 @@ The owner confirmed on 2026-11-27 that the records since October appear after in
 ## Still broken until its story lands
 
 - Manual entries made before A-5 for another day stay under the day they were typed in.
-- Storage removes short activities on every save and cuts the list at 10,000; clear old data removes more than it shows (A-8, in review).
 - Every settings save shows "Failed to save settings" although it saved (B-1). Consolidation and week-start settings do not persist (B-2).
 - No idle-return prompt (B-4). Mark break, project Edit in Settings and rule Test rely on `prompt()` (B-6).
 
@@ -68,19 +69,18 @@ Recorded in the plan's decisions table, plus those of 2026-11-26:
 
 ## Next (in order)
 
-1. **A-8** merge after approval.
-2. **A-9**, then the Epic A retrospective. A-9 (harness smoke test with a seeded tracked activity) may be pulled forward.
-3. **B-1 to B-12** without B-5, then the Epic B retrospective:
+1. **A-9** merge after approval, then the Epic A retrospective.
+2. **B-1 to B-12** without B-5, then the Epic B retrospective:
    - B-1 saving settings reports what happened; B-2 every setting persists and main's settings have controls;
    - B-3 Timer and Timeline keep their own lists and refresh after a change; B-4 returning from idle asks what to do with the time;
    - B-6 no control depends on `prompt()`; B-7 the tag editor opens on the clicked row; B-8 project, tag and type controls act once;
    - B-9 SAP export employee ID and history; B-10 complete backup and removable calendar URL; B-11 tray, toasts and help match the app;
    - B-12 harness smoke test for save, edit and manual entry.
-4. **LT3-102 (#13)** typed repositories on the LT3-101 schema, then LT3-103 to LT3-105 (#14 to #16), Increment C (#17 to #21), the CSV hand-off (#22, #23), RDP (#26, #27), #31, #33.
+3. **LT3-102 (#13)** typed repositories on the LT3-101 schema, then LT3-103 to LT3-105 (#14 to #16), Increment C (#17 to #21), the CSV hand-off (#22, #23), RDP (#26, #27), #31, #33.
 
 ## Working notes
 
-- Gates: `npm run lint`, `npm run typecheck`, `npm run test:ci` (baseline Jest, TS via ts-jest; 198 tests), `npm run build` (into `out/`), `npm run security:audit`, `npm run electron:build:win` (production build and installer), `npm run test:app` (harness, 11 tests, against `dist/win-unpacked`; set `LIGHTTRACK_EXE` to test another build).
+- Gates: `npm run lint`, `npm run typecheck`, `npm run test:ci` (baseline Jest, TS via ts-jest; 198 tests), `npm run build` (into `out/`), `npm run security:audit`, `npm run electron:build:win` (production build and installer), `npm run test:app` (harness, 12 tests, against `dist/win-unpacked`; set `LIGHTTRACK_EXE` to test another build).
 - The harness tests a packaged build, not the source: repackage after every source change. Without touching `dist/`: `npm run build:prod && npx electron-builder --win --dir --publish never --config.directories.output=<scratch dir>`, then `LIGHTTRACK_EXE=<scratch dir>/win-unpacked/LightTrack.exe npm run test:app`.
 - On a busy machine the full harness run can fail in "stores a manual entry" (timeout) and "keeps row actions visible" (it needs that entry). Both pass alone and in CI. Trust CI, and read the error before blaming load.
 - Lockfile: CI installs with npm 10 (Node 22). A lockfile written by npm 11 can fail `npm ci` there. After changing dependencies run `npx npm@10 install --package-lock-only`.
