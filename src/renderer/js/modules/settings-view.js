@@ -1259,14 +1259,18 @@
       }
 
       // Gather all data (fetch mappings in parallel using shared helper)
-      const [activities, settings, mappings, tags, projects, activityTypes] = await Promise.all([
+      const [activities, settings, mappings, tags, projects, activityTypes, salesforceCases] = await Promise.all([
         window.lightTrackAPI.getActivities(),
         window.lightTrackAPI.getSettings(),
         fetchAllMappings(),
         window.lightTrackAPI.getTags(),
         window.lightTrackAPI.getProjects(),
-        window.lightTrackAPI.getActivityTypes()
+        window.lightTrackAPI.getActivityTypes(),
+        window.lightTrackAPI.salesforce.getCaseMappings()
       ]);
+      // Tags, projects and types come as { system, custom, all } (B-10)
+      const countOf = group => (Array.isArray(group) ? group : group?.all || []).length;
+      const counts = { projects: countOf(projects), tags: countOf(tags) };
 
       const backupData = {
         version: '3.0.0',
@@ -1278,7 +1282,8 @@
             app: mappings.app,
             url: mappings.url,
             jira: mappings.jira,
-            meeting: mappings.meeting
+            meeting: mappings.meeting,
+            salesforceCase: salesforceCases || {}
           },
           tags,
           projects,
@@ -1286,8 +1291,8 @@
         },
         stats: {
           activitiesCount: activities.length,
-          projectsCount: projects.length,
-          tagsCount: tags.length
+          projectsCount: counts.projects,
+          tagsCount: counts.tags
         }
       };
 
@@ -1304,7 +1309,7 @@
       URL.revokeObjectURL(url);
 
       if (statusEl) {
-        statusEl.textContent = `Backup created: ${activities.length} activities, ${projects.length} projects`;
+        statusEl.textContent = `Backup created: ${activities.length} activities, ${counts.projects} projects, ${counts.tags} tags`;
       }
       showNotification('Backup created successfully', 'success');
     } catch (error) {
@@ -1362,18 +1367,24 @@
     const syncBtn = document.getElementById('calendar-sync-btn');
     const statusEl = document.getElementById('calendar-sync-status');
     const helpLink = document.getElementById('calendar-help-link');
+    const removeBtn = document.getElementById('calendar-remove-btn');
 
     if (!calendarUrlInput) return;
+
+    // Remove is offered only while a URL is saved (B-10)
+    const showSaved = (maskedUrl) => {
+      calendarUrlInput.dataset.configured = maskedUrl ? 'true' : '';
+      calendarUrlInput.value = '';
+      calendarUrlInput.placeholder = maskedUrl
+        ? `Saved: ${maskedUrl} (paste a new URL to replace it)`
+        : 'https://outlook.office365.com/owa/calendar/.../calendar.ics';
+      if (removeBtn) removeBtn.hidden = !maskedUrl;
+    };
 
     // Load current URL
     try {
       // Main only returns a masked URL (the feed token stays protected); show it as a hint.
-      const maskedUrl = await window.lightTrackAPI.calendar.getUrl();
-      calendarUrlInput.dataset.configured = maskedUrl ? 'true' : '';
-      if (maskedUrl) {
-        calendarUrlInput.value = '';
-        calendarUrlInput.placeholder = `Saved: ${maskedUrl} (paste a new URL to replace it)`;
-      }
+      showSaved(await window.lightTrackAPI.calendar.getUrl());
 
       // Show last sync time
       const lastSync = await window.lightTrackAPI.calendar.getLastSyncTime();
@@ -1400,6 +1411,7 @@
 
         try {
           const result = await window.lightTrackAPI.calendar.setUrl(url);
+          showSaved(await window.lightTrackAPI.calendar.getUrl());
           if (result.success) {
             statusEl.textContent = result.meetingCount !== undefined
               ? `Synced ${result.meetingCount} meetings`
@@ -1414,6 +1426,23 @@
         } catch (error) {
           statusEl.textContent = `Error: ${error.message}`;
           showNotification('Failed to save calendar URL', 'error');
+        }
+      });
+    }
+
+    if (removeBtn && !removeBtn.dataset.wired) {
+      removeBtn.dataset.wired = 'true';
+      removeBtn.addEventListener('click', async () => {
+        if (!confirm('Remove the calendar URL? Meetings from it are no longer shown.')) return;
+        try {
+          await window.lightTrackAPI.calendar.setUrl('');
+          showSaved(null);
+          statusEl.hidden = false;
+          statusEl.style.display = 'block';
+          statusEl.textContent = 'Calendar removed';
+          loadUpcomingMeetings();
+        } catch (error) {
+          showNotification(error.message, 'error');
         }
       });
     }
@@ -1436,7 +1465,10 @@
 
         try {
           // Save a newly typed URL first; otherwise sync the saved one
-          if (url) await window.lightTrackAPI.calendar.setUrl(url);
+          if (url) {
+            await window.lightTrackAPI.calendar.setUrl(url);
+            showSaved(await window.lightTrackAPI.calendar.getUrl());
+          }
           // Then sync
           const result = await window.lightTrackAPI.calendar.sync();
 

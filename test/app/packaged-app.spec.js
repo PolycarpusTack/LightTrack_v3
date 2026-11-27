@@ -259,6 +259,52 @@ test.describe('packaged application', () => {
     await app.close();
   });
 
+  // B-10: the backup summary counts projects and tags, the file holds Salesforce cases,
+  // and the calendar URL can be removed.
+  test('backup summary counts projects and tags; calendar URL can be removed', async () => {
+    const { app, page, errors } = await launch(userData);
+    try {
+      page.on('dialog', dialog => dialog.accept());
+      await page.evaluate(() => window.lightTrackAPI.salesforce.assignCase('00012345', 'B10 Client'));
+      // Keep the backup in the page instead of downloading it
+      await page.evaluate(() => {
+        window.__backup = null;
+        const create = URL.createObjectURL.bind(URL);
+        URL.createObjectURL = blob => { window.__backup = blob; return create(blob); };
+        HTMLAnchorElement.prototype.click = function () {};
+      });
+      const expected = await page.evaluate(async () => ({
+        projects: (await window.lightTrackAPI.getProjects()).all.length,
+        tags: (await window.lightTrackAPI.getTags()).all.length
+      }));
+
+      await page.locator('.nav-btn[data-view="settings"]').click();
+      await openSettingsGroup(page, 'data');
+      await page.locator('#backup-data-btn').click();
+      await expect(page.locator('#backup-status')).toContainText(`${expected.projects} projects`);
+      await expect(page.locator('#backup-status')).toContainText(`${expected.tags} tags`);
+      const backup = JSON.parse(await page.evaluate(() => window.__backup.text()));
+      expect(backup.data.mappings.salesforceCase).toMatchObject({ '00012345': expect.anything() });
+      expect(backup.stats).toMatchObject({ projectsCount: expected.projects, tagsCount: expected.tags });
+
+      // A saved calendar URL (it never syncs here) can be removed
+      await page.evaluate(() => window.lightTrackAPI.calendar.setUrl('https://calendar.invalid/b10.ics'));
+      await page.locator('.nav-btn[data-view="timer"]').click();
+      await page.locator('.nav-btn[data-view="settings"]').click();
+      await openSettingsGroup(page, 'calendar');
+      const remove = page.locator('#calendar-remove-btn');
+      await expect(remove).toBeVisible();
+      await remove.click();
+      await expect(page.locator('#calendar-sync-status')).toContainText('Calendar removed');
+      await expect(remove).toBeHidden();
+      expect(await page.evaluate(() => window.lightTrackAPI.calendar.getUrl())).toBeFalsy();
+      expect(await page.evaluate(() => window.lightTrackAPI.calendar.getMeetings())).toEqual([]);
+      expect(errors).toEqual([]);
+    } finally {
+      await app.close();
+    }
+  });
+
   // #40: restore is not offered until backup and restore are rebuilt (#16).
   test('offers backup but not restore', async () => {
     const { app, page, errors } = await launch(userData);
