@@ -1062,6 +1062,22 @@
         </div>
     </div>
 
+    <!-- Small form dialog, shared by Mark break, project Edit and rule Test (B-6) -->
+    <div class="modal-overlay" id="form-modal-overlay">
+        <div class="modal modal-small" role="dialog" aria-labelledby="form-modal-title">
+            <form id="form-modal-form" novalidate>
+                <div class="modal-header">
+                    <h3 id="form-modal-title"></h3>
+                </div>
+                <div class="modal-body" id="form-modal-fields"></div>
+                <div class="modal-footer">
+                    <button type="button" class="ghost" id="form-modal-cancel">Cancel</button>
+                    <button type="submit" class="solid" id="form-modal-save">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Idle return prompt (B-4) -->
     <div class="modal-overlay" id="idle-modal-overlay">
         <div class="modal modal-small" role="dialog" aria-labelledby="idle-modal-title">
