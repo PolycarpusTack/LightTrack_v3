@@ -82,3 +82,33 @@ describe('tracker saves (C-2)', () => {
     expect(tracker.currentActivity.duration - start).toBe(55);
   });
 });
+
+// B-11-T0: the tray's today total adds only the time not yet stored.
+describe('today total (B-11-T0)', () => {
+  const tracker = (stored, current) => {
+    const t = new ActivityTracker({
+      getSettings: () => ({}),
+      getTodayTotal: async () => stored.reduce((sum, a) => sum + a.duration, 0),
+      findActivityById: id => stored.find(a => a.id === id) || null
+    }, null);
+    t.currentActivity = current;
+    t.idleDetector.isPaused = () => false;
+    return t;
+  };
+
+  test('today total: a resumed activity adds only its unsaved seconds', async () => {
+    jest.useFakeTimers({ doNotFake: ['setTimeout', 'setInterval', 'setImmediate', 'nextTick'] });
+    jest.setSystemTime(new Date(2026, 10, 20, 12, 1, 0));
+    const chrome = { id: 'chrome', duration: 600 };
+    const code = { id: 'code', duration: 10200 };
+    // Chrome resumed at 12:00 and tracked 60 s; its start is still 09:00
+    const current = { ...chrome, duration: 660, startTime: new Date(2026, 10, 20, 9, 0, 0).getTime() };
+    expect(await tracker([chrome, code], current).getTodayTotal()).toBe(10860); // 3 h 1 min
+    jest.useRealTimers();
+  });
+
+  test('today total: an activity not stored yet counts in full', async () => {
+    const current = { id: 'new', duration: 45, startTime: Date.now() - 45000 };
+    expect(await tracker([{ id: 'code', duration: 100 }], current).getTodayTotal()).toBe(145);
+  });
+});

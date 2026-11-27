@@ -2915,10 +2915,22 @@ body.splash-hidden #splash-screen {
 /* ==========================================
    Toast Notifications (CSP-compliant)
    ========================================== */
-.notification-toast {
+/* Toasts stack bottom-right, newest last (B-11); the stack itself takes no clicks */
+.notification-stack {
     position: fixed;
     bottom: 16px;
     right: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    z-index: 10000;
+    pointer-events: none;
+}
+
+.notification-toast {
+    pointer-events: auto;
+    max-width: 420px;
     padding: 10px 14px;
     border-radius: var(--r-card);
     background: var(--paper);
@@ -2929,7 +2941,6 @@ body.splash-hidden #splash-screen {
     display: flex;
     align-items: center;
     gap: 10px;
-    z-index: 10000;
     opacity: 0;
     transform: translateY(8px);
     transition: opacity 0.2s ease, transform 0.2s ease;

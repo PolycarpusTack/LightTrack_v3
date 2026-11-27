@@ -851,7 +851,8 @@ async function loadActivities(date) {
 
   } catch (error) {
     console.error('Failed to load activities:', error);
-    showNotification('Failed to load activities', 'error');
+    // The preload's message, as the other views show it: the same failure shows one toast (B-11)
+    showNotification(error?.message || 'Failed to load activities.', 'error');
     // An empty list must mean "nothing tracked", so say that loading failed (A-3).
     AppState.activities = [];
     window.LightTrack.Utils.renderLoadError(Elements.activityList, 'Could not load activities', () => loadActivities(date));
@@ -1284,12 +1285,12 @@ async function getCurrentStatus() {
  * Show notification toast
  * Uses the LightTrack.UI module if available for enhanced styling
  */
-function showNotification(message, type = 'info') {
+function showNotification(message, type = 'info', duration) {
   console.log(`[${type.toUpperCase()}] ${message}`);
 
   // Use module if available
   if (LT.UI?.showNotification) {
-    return LT.UI.showNotification(message, type);
+    return LT.UI.showNotification(message, type, duration);
   }
 
   // Fallback: inline implementation
@@ -1635,6 +1636,11 @@ function setupEventListeners() {
   window.lightTrackAPI.onActivitiesUpdated(() => {
     invalidateAnalyticsCache();
     refreshActivityViews();
+  });
+
+  // Tray > Settings: open the Settings view the way its nav button does (B-11).
+  window.lightTrackAPI.onOpenSettings(() => {
+    document.querySelector('.nav-btn[data-view="settings"]')?.click();
   });
 
   // Idle: the timer shows "Paused" until tracking resumes, and a long absence asks (B-4).

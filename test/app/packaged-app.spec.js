@@ -305,6 +305,48 @@ test.describe('packaged application', () => {
     }
   });
 
+  // B-11: the tray's Settings item opens the Settings view.
+  test('tray settings opens the Settings view', async () => {
+    const { app, page, errors } = await launch(userData);
+    try {
+      await expect(page.locator('.view[data-view="timer"]')).toHaveClass(/active/);
+      // Sent as the tray does; resent until the window listens
+      await expect(async () => {
+        await app.evaluate(({ BrowserWindow }) => {
+          BrowserWindow.getAllWindows().forEach(w => w.webContents.send('open-settings'));
+        });
+        await expect(page.locator('.view[data-view="settings"]')).toHaveClass(/active/, { timeout: 1000 });
+      }).toPass({ timeout: 15000 });
+      expect(errors).toEqual([]);
+    } finally {
+      await app.close();
+    }
+  });
+
+  // B-11: two messages at once are both shown, and a toast stays for its duration.
+  test('two errors at once are both shown', async () => {
+    const { app, page, errors } = await launch(userData);
+    try {
+      // Two requests that fail together, as the window reports them
+      await page.evaluate(async () => {
+        const fails = ['First request failed', 'Second request failed'].map(message =>
+          Promise.reject(new Error(message)).catch(error => window.LightTrack.UI.showNotification(error.message, 'error')));
+        await Promise.all(fails);
+      });
+      await expect(page.locator('.notification-toast', { hasText: 'First request failed' })).toBeVisible();
+      await expect(page.locator('.notification-toast', { hasText: 'Second request failed' })).toBeVisible();
+
+      // A longer duration is honoured; the default (3 s) is not cut short
+      await page.evaluate(() => window.LightTrack.UI.showNotification('Stays a while', 'warning', 6000));
+      await page.waitForTimeout(4000);
+      await expect(page.locator('.notification-toast', { hasText: 'Stays a while' })).toBeVisible();
+      await expect(page.locator('.notification-toast', { hasText: 'First request failed' })).toHaveCount(0);
+      expect(errors).toEqual([]);
+    } finally {
+      await app.close();
+    }
+  });
+
   // #40: restore is not offered until backup and restore are rebuilt (#16).
   test('offers backup but not restore', async () => {
     const { app, page, errors } = await launch(userData);
@@ -608,7 +650,7 @@ test.describe('packaged application', () => {
       // One activity type added, one confirmation on removal
       await page.locator('#activity-type-manager #new-activity-type').fill('B8 Type');
       await page.locator('#activity-type-manager [data-action="add-activity-type"]').click();
-      await expect(toasts('added')).toHaveCount(1);
+      await expect(toasts('"B8 Type" added')).toHaveCount(1);
       await page.locator('#activity-type-manager .tag-manager-item', { hasText: 'B8 Type' })
         .locator('[data-action="remove-activity-type"]').click();
       await expect.poll(() => confirms.length).toBe(2);
@@ -723,7 +765,7 @@ test.describe('packaged application', () => {
     await expect(rows).toHaveCount(2);
     for (const box of await rows.locator('.activity-checkbox').all()) await box.click();
     await page.locator('#timeline-merge-selected').click();
-    await expect(page.locator('.notification-toast')).toContainText('Merged 2 activities');
+    await expect(page.locator('.notification-toast', { hasText: 'Merged 2 activities' })).toBeVisible();
 
     const merged = await page.evaluate(async () => (await window.lightTrackAPI.getActivities()).filter(a => a.project === 'Merge Project'));
     expect(merged).toHaveLength(1);
@@ -831,8 +873,9 @@ test.describe('packaged application', () => {
     });
     await page.locator('.nav-btn[data-view="timeline"]').click();
 
+    // One toast for the failure, though the Timer and Timeline both asked (B-11)
     const toast = page.locator('.notification-toast.notification-error');
-    await expect(toast).toBeVisible();
+    await expect(toast).toHaveCount(1);
     await expect(toast).toContainText('Failed to load activities.');
     await app.close();
   });
