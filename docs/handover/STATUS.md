@@ -1,14 +1,14 @@
 # LightTrack v3: status and pickup
 
 **Last updated:** 2026-11-27
-**`main`:** `c3983ae`, CI green. Open: the C-2 PR, which carries this status.
-**Next step:** once C-2 is merged, story C-3 of `docs/handover/stabilisation-backlog.md` with the owner's choice (a): stop merging on save. Branch from `main`.
+**`main`:** `9090cae`, CI green. Open: the C-3 PR, which carries this status.
+**Next step:** once C-3 is merged, story C-4 of `docs/handover/stabilisation-backlog.md` (my rules win over guesses, and match the way the tester says), branch from `main`.
 
 ## Where we are
 
 The owner reported on 2026-11-26 that tracking runs but no records appear. A functional audit found the cause and a set of other defects. `docs/handover/stabilisation-backlog.md` fixes them in order: three epics, 30 stories, one PR each (Epic C added on 2026-11-27 from an outside code review), approved by the owner and checked by an independent validation pass. The backlog sits in front of Increment B; LT3-102 (#13) follows it.
 
-**Done: Epic A (A-1 to A-9) and its retrospective, B-1 to B-4, B-6, B-7, C-1; C-2 waits for approval. Next: C-3, C-4, then B-8 to B-12, then C-5 to C-10 (B-5 is dropped).**
+**Done: Epic A (A-1 to A-9) and its retrospective, B-1 to B-4, B-6, B-7, C-1, C-2; C-3 waits for approval. Next: C-4, then B-8 to B-12, then C-5 to C-10 (B-5 is dropped).**
 
 The first-release workflow (approval, booking lines, CSV hand-off, RDP) is still not built; see plan section 16 and `docs/design/first-release/REVIEW.md`.
 
@@ -35,10 +35,11 @@ The first-release workflow (approval, booking lines, CSV hand-off, RDP) is still
 - **#75 B-7** the tag editor opens on the row that was clicked. It looked the activity up in the Timer's list, so a Timeline row for another day said "Activity not found", and it attached to the first row with that id in the page, which for today is the hidden Timer row. Ticking a tag on the Timer also reached the row's click handler and opened the Edit dialog. The editor now gets the clicked row and uses the list of the view on screen, and the Timer row ignores clicks inside the editor. Saving tags also left main's five-second read cache in place, so a reload straight after showed the old tags; the cache is now cleared.
 - **#76** backlog: Epic C (C-1 to C-10), B-11-T0 and TD-3, from an outside code review checked against the code. The owner chose to pull C-1 to C-4 (time lost or put on the wrong project) in front of B-8 to B-12.
 - **#77 C-1** editing or deleting the tracked activity says why, and tracking leaves manual entries alone. The preload replaced main's "Stop tracking before editing this activity" with a fixed message, so A-4's refusal never reached the screen; it now passes a `CONFLICT` reason through, and keeps the fixed message for other failures. Deleting the tracked activity is refused, as the next save would add it back in full. The tracker no longer resumes a manual entry with the same app, project and day.
+- **#78 C-2** every tracked second is stored. The duplicate-save check remembered app, project, day and duration rounded to 10 s, for any activity and without expiry, so a return of a few seconds to a saved activity, or a second Salesforce case with the same app and project, was not saved. It now skips a save only when the same activity was last saved with the same project, duration and title. Each tick also dropped its fraction of a second (about 0.6 % of tracked time at 30 ms per tick); the next tick now starts where the credited seconds end.
 
 ## In review
 
-- **C-2** every tracked second is stored. The duplicate-save check remembered app, project, day and duration rounded to 10 s, for any activity and without expiry, so a return of a few seconds to a saved activity, or a second Salesforce case with the same app and project, was not saved. It now skips a save only when the same activity was last saved with the same project, duration and title. Each tick also dropped its fraction of a second (about 0.6 % of tracked time at 30 ms per tick); the next tick now starts where the credited seconds end.
+- **C-3** saving does not merge stored activities (owner's choice (a)). Every save merged neighbouring stored activities with the same app, title and project whose save times were within five minutes. The store is newest first, so the result ran from the later start to the earlier end, and the older id was lost (two Mark breaks in a row, for example). The merge is removed; the tracker already keeps one activity per app, project and day, and the "Consolidate similar activities" setting still controls that. Duplicates on save are now found by id; save time plus title also matched two different entries with the same title (TD-3, resolved). Already stored activities are unchanged.
 
 The owner confirmed on 2026-11-27 that the records since October appear after installing the 2026-11-26 build.
 
@@ -87,7 +88,7 @@ Recorded in the plan's decisions table, plus those of 2026-11-26:
 
 ## Next (in order)
 
-1. **C-2** merge after approval, then **C-3** (owner chose (a), stop merging on save, on 2026-11-27) and **C-4**.
+1. **C-3** merge after approval, then **C-4**.
 2. **B-8 to B-12**, then the Epic B retrospective:
    - B-8 project, tag and type controls act once;
    - B-9 SAP export employee ID and history; B-10 complete backup and removable calendar URL; B-11 tray, toasts and help match the app;
@@ -97,7 +98,7 @@ Recorded in the plan's decisions table, plus those of 2026-11-26:
 
 ## Working notes
 
-- Gates: `npm run lint`, `npm run typecheck`, `npm run test:ci` (baseline Jest, TS via ts-jest; 214 tests), `npm run build` (into `out/`), `npm run security:audit`, `npm run electron:build:win` (production build and installer), `npm run test:app` (harness, 18 tests, against `dist/win-unpacked`; set `LIGHTTRACK_EXE` to test another build).
+- Gates: `npm run lint`, `npm run typecheck`, `npm run test:ci` (baseline Jest, TS via ts-jest; 215 tests), `npm run build` (into `out/`), `npm run security:audit`, `npm run electron:build:win` (production build and installer), `npm run test:app` (harness, 18 tests, against `dist/win-unpacked`; set `LIGHTTRACK_EXE` to test another build).
 - The harness tests a packaged build, not the source: repackage after every source change. Without touching `dist/`: `npm run build:prod && npx electron-builder --win --dir --publish never --config.directories.output=<scratch dir>`, then `LIGHTTRACK_EXE=<scratch dir>/win-unpacked/LightTrack.exe npm run test:app`.
 - On a busy machine the full harness run can fail in "stores a manual entry" (timeout) and "keeps row actions visible" (it needs that entry). Both pass alone and in CI. Trust CI, and read the error before blaming load.
 - Lockfile: CI installs with npm 10 (Node 22). A lockfile written by npm 11 can fail `npm ci` there. After changing dependencies run `npx npm@10 install --package-lock-only`.

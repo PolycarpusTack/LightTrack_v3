@@ -220,22 +220,21 @@ class LightweightStorage {
   lightweightCleanup(activities) {
     let cleaned = [...activities];
 
-    // 1. Remove duplicates
+    // 1. Remove duplicates: the same id stored twice. Save time plus title also matched
+    // two different entries with the same title (TD-3, C-3); without an id, nothing is removed.
     const seen = new Set();
     cleaned = cleaned.filter(activity => {
-      const key = `${activity.timestamp}-${activity.title || activity.name || ''}`;
+      if (activity.id == null) return true;
+      const key = String(activity.id);
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
     });
 
-    // 2. Merge similar consecutive activities (lightweight version)
-    if (this.store.get('settings.consolidateActivities', true)) {
-      cleaned = this.mergeConsecutiveActivities(cleaned);
-    }
-
-    // Nothing else is removed on save (A-8): the minimum duration applies only when the
-    // tracker decides whether to save, and the activity limit is a warning.
+    // Nothing else is changed on save. The minimum duration applies only when the tracker
+    // decides whether to save, and the activity limit is a warning (A-8). Stored activities
+    // are not merged: the tracker already keeps one activity per app, project and day, and
+    // the merge here joined entries by save time into reversed spans (C-3, owner's choice).
     if (cleaned.length > this.options.maxActivities) {
       logger.warn('Activity count is over the limit; nothing was removed', {
         count: cleaned.length, limit: this.options.maxActivities
@@ -243,57 +242,6 @@ class LightweightStorage {
     }
 
     return cleaned;
-  }
-
-  // Simple activity merging
-  mergeConsecutiveActivities(activities) {
-    if (activities.length <= 1) return activities;
-
-    const merged = [];
-    let current = activities[0];
-
-    for (let i = 1; i < activities.length; i++) {
-      const next = activities[i];
-
-      // Check if activities can be merged (same name, within threshold)
-      if (this.canMergeActivities(current, next)) {
-        // Merge activities
-        current = {
-          ...current,
-          duration: (current.duration || 0) + (next.duration || 0),
-          endTime: next.endTime || current.endTime
-        };
-      } else {
-        merged.push(current);
-        current = next;
-      }
-    }
-
-    merged.push(current);
-    return merged;
-  }
-
-  canMergeActivities(activity1, activity2) {
-    // Use app + title + project as the merge key (not 'name' which is often undefined)
-    // All three must match AND be defined to merge
-    const key1App = activity1.app;
-    const key1Title = activity1.title;
-    const key1Project = activity1.project;
-    const key2App = activity2.app;
-    const key2Title = activity2.title;
-    const key2Project = activity2.project;
-
-    // Don't merge if any key field is undefined/null
-    if (!key1App || !key2App) return false;
-    if (key1App !== key2App) return false;
-    if (key1Title !== key2Title) return false;
-    if (key1Project !== key2Project) return false;
-
-    const threshold = this.store.get('settings.mergeGapThreshold', 300); // 5 minutes
-    const time1 = new Date(activity1.timestamp || activity1.startTime).getTime();
-    const time2 = new Date(activity2.timestamp || activity2.startTime).getTime();
-
-    return Math.abs(time1 - time2) <= threshold * 1000;
   }
 
   // Filter activities based on options

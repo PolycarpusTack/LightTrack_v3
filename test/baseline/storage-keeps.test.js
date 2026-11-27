@@ -94,3 +94,24 @@ describe('tag update is read back', () => {
     expect(activity.tags).toEqual(['meeting']);
   });
 });
+
+// C-3 (owner's choice (a)): saving never merges stored activities. The merge compared save
+// times, and the store is newest first, so two entries saved within five minutes became one
+// running from the later start to the earlier end, and the older id was lost.
+describe('two entries stay two entries', () => {
+  test('stays two entries: two manual entries saved within five minutes keep their own times', async () => {
+    const storage = storageWith([]);
+    const day = '2026-11-20';
+    const entry = (start, end) => ({
+      app: 'Manual', title: 'X', project: 'P', isManual: true, date: day,
+      startTime: `${day}T${start}:00.000Z`, endTime: `${day}T${end}:00.000Z`, duration: 3600
+    });
+    const first = await storage.saveActivity(entry('09:00', '10:00'));
+    const second = await storage.saveActivity(entry('14:00', '15:00'));
+
+    const stored = await storage.getActivities();
+    expect(stored.map(a => a.id).sort()).toEqual([first.id, second.id].sort());
+    expect(stored.find(a => a.id === first.id)).toMatchObject({ startTime: `${day}T09:00:00.000Z`, endTime: `${day}T10:00:00.000Z`, duration: 3600 });
+    expect(stored.find(a => a.id === second.id)).toMatchObject({ startTime: `${day}T14:00:00.000Z`, endTime: `${day}T15:00:00.000Z`, duration: 3600 });
+  });
+});
