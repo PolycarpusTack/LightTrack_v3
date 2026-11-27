@@ -211,6 +211,32 @@ test.describe('packaged application', () => {
     await app.close();
   });
 
+  // B-1: a save says "Settings saved", and a refused save gives main's reason.
+  test('settings saved, or the reason they were not', async () => {
+    const { app, page, errors } = await launch(userData);
+    try {
+      const toast = page.locator('.notification-toast').last();
+      const stored = () => page.evaluate(async () => (await window.lightTrackAPI.getSettings()).workDayEnd);
+      await page.locator('.nav-btn[data-view="settings"]').click();
+      await page.locator('details[data-group="schedule"] > summary').click();
+      await expect(page.locator('#settings-day-start')).toHaveValue('09:00');
+
+      await page.locator('#settings-day-end').fill('17:30');
+      await expect(toast).toHaveText(/Settings saved/);
+      await expect(toast).toHaveClass(/notification-success/);
+      expect(await stored()).toBe('17:30');
+
+      await page.locator('#settings-day-end').fill('08:00');
+      await expect(toast).toHaveText(/Work day end time must be after start time/);
+      await expect(toast).toHaveClass(/notification-error/);
+      expect(await stored()).toBe('17:30');
+
+      expect(errors).toEqual([]);
+    } finally {
+      await app.close();
+    }
+  });
+
   // #39: merging on the timeline keeps one activity with the summed time.
   test('merges two activities on the timeline', async () => {
     const { app, page, errors } = await launch(userData);
