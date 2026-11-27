@@ -1,14 +1,14 @@
 # LightTrack v3: status and pickup
 
 **Last updated:** 2026-11-27
-**`main`:** `e9392f1`, CI green. Open: the B-7 PR, which carries this status.
-**Next step:** once B-7 is merged, story B-8 of `docs/handover/stabilisation-backlog.md` (project, tag and activity-type controls act once), branch from `main`.
+**`main`:** `4d2a334`, CI green. Open: the C-1 PR, which carries this status.
+**Next step:** once C-1 is merged, story C-2 of `docs/handover/stabilisation-backlog.md` (a short return to an activity, or a second case, is saved), branch from `main`.
 
 ## Where we are
 
-The owner reported on 2026-11-26 that tracking runs but no records appear. A functional audit found the cause and a set of other defects. `docs/handover/stabilisation-backlog.md` fixes them in order: two epics, 20 stories, one PR each, approved by the owner and checked by an independent validation pass. The backlog sits in front of Increment B; LT3-102 (#13) follows it.
+The owner reported on 2026-11-26 that tracking runs but no records appear. A functional audit found the cause and a set of other defects. `docs/handover/stabilisation-backlog.md` fixes them in order: three epics, 30 stories, one PR each (Epic C added on 2026-11-27 from an outside code review), approved by the owner and checked by an independent validation pass. The backlog sits in front of Increment B; LT3-102 (#13) follows it.
 
-**Done: Epic A (A-1 to A-9) and its retrospective, B-1 to B-4, B-6; B-7 waits for approval. Next: B-8 to B-12 (B-5 is dropped).**
+**Done: Epic A (A-1 to A-9) and its retrospective, B-1 to B-4, B-6, B-7; C-1 waits for approval. Next: C-2 to C-4, then B-8 to B-12, then C-5 to C-10 (B-5 is dropped).**
 
 The first-release workflow (approval, booking lines, CSV hand-off, RDP) is still not built; see plan section 16 and `docs/design/first-release/REVIEW.md`.
 
@@ -32,10 +32,12 @@ The first-release workflow (approval, booking lines, CSV hand-off, RDP) is still
 - **#72 B-3** the Timer and Timeline keep their own lists and refresh after a change. Both views wrote one shared list, and a save or delete reloaded only the Timer's day without redrawing the Timeline, so the Timeline kept showing the old row and the next edit there said "Activity not found". The Timeline now keeps its own list; after a save, edit, delete or clear the Timer reloads, and so does the Timeline or Analytics when it is on screen. The window also listens for `activities-updated` from main.
 - **#73 B-4** returning from idle asks what to do with the time. Main paused and sent `tracking-paused` and `idle-return`, but the preload passed neither on, so no prompt appeared; and the decision looked for the paused activity by its idle start time, which a record that was saved before or had resumed did not carry, so "count as work" added nothing. Main now remembers the paused activity by id and applies the answer to it, also to the open copy when tracking has resumed on that record, then reports `activities-updated`. After 5 minutes or more away (was: more than 1) the window asks "Count as work" or "Leave out"; Escape leaves it out. Shorter absences are left out without asking. While paused the timer shows "Paused".
 - **#74 B-6** no control depends on `prompt()`. Confirmed first: in the packaged app `prompt()` throws "prompt() is not supported", so Mark break (button and Ctrl+Shift+B), project Edit in Settings and rule Test did nothing. The six calls are replaced by one shared dialog with labelled fields, Save and Cancel (`openFormDialog` in `modals.js`); Cancel and Escape save nothing. System projects show their name greyed out, as they cannot be renamed. The rule Test buttons also had no handler: it was attached to the Projects nav button, which carries the same `data-view`, instead of the view. `confirm()` still asks before removals; it works in Electron.
+- **#75 B-7** the tag editor opens on the row that was clicked. It looked the activity up in the Timer's list, so a Timeline row for another day said "Activity not found", and it attached to the first row with that id in the page, which for today is the hidden Timer row. Ticking a tag on the Timer also reached the row's click handler and opened the Edit dialog. The editor now gets the clicked row and uses the list of the view on screen, and the Timer row ignores clicks inside the editor. Saving tags also left main's five-second read cache in place, so a reload straight after showed the old tags; the cache is now cleared.
+- **#76** backlog: Epic C (C-1 to C-10), B-11-T0 and TD-3, from an outside code review checked against the code. The owner chose to pull C-1 to C-4 (time lost or put on the wrong project) in front of B-8 to B-12.
 
 ## In review
 
-- **B-7** the tag editor opens on the row that was clicked. It looked the activity up in the Timer's list, so a Timeline row for another day said "Activity not found", and it attached to the first row with that id in the page, which for today is the hidden Timer row. Ticking a tag on the Timer also reached the row's click handler and opened the Edit dialog. The editor now gets the clicked row and uses the list of the view on screen, and the Timer row ignores clicks inside the editor. Saving tags also left main's five-second read cache in place, so a reload straight after showed the old tags; the cache is now cleared.
+- **C-1** editing or deleting the tracked activity says why, and tracking leaves manual entries alone. The preload replaced main's "Stop tracking before editing this activity" with a fixed message, so A-4's refusal never reached the screen; it now passes a `CONFLICT` reason through, and keeps the fixed message for other failures. Deleting the tracked activity is refused, as the next save would add it back in full. The tracker no longer resumes a manual entry with the same app, project and day.
 
 The owner confirmed on 2026-11-27 that the records since October appear after installing the 2026-11-26 build.
 
@@ -78,21 +80,23 @@ Recorded in the plan's decisions table, plus those of 2026-11-26:
 2. **A sample CSV** the approver imports into SAP ByDesign. Needed for LT3-302 only.
 3. Send `docs/integrations/timmy-integration-request.md` to Timmy's maintainer (Pieter Jan De Keyzer per Timmy's commit history; confirm the contact). Needed after the first release.
 4. Pair the browser extension once by hand in Chrome or Edge, and say whether it shows "Not connected" again later. The audit suspects the pairing is lost when the extension's service worker restarts.
-5. **B-4 in an installed build:** stay away from the keyboard for over 5 minutes while tracking. The timer should show "Paused", and on return a dialog should offer "Count as work" and "Leave out". Say whether the activity's time matches your answer. The harness cannot check this because it keeps tracking off.
-6. Report anything odd from daily use, especially tray, idle detection and tracking, which the harness does not cover. Electron moved from 44.5 to 44.11 in A-1.
+5. **C-3 choice:** when two entries are saved within five minutes, storage merges them into one with reversed times. (a) stop merging on save (recommended; the tracker already keeps one activity per app, project and day), or (b) merge only entries next to each other in time. Needed before C-3.
+6. **B-4 in an installed build:** stay away from the keyboard for over 5 minutes while tracking. The timer should show "Paused", and on return a dialog should offer "Count as work" and "Leave out". Say whether the activity's time matches your answer. The harness cannot check this because it keeps tracking off.
+7. Report anything odd from daily use, especially tray, idle detection and tracking, which the harness does not cover. Electron moved from 44.5 to 44.11 in A-1.
 
 ## Next (in order)
 
-1. **B-7** merge after approval.
+1. **C-1** merge after approval, then **C-2 to C-4** (C-3 needs the owner's choice).
 2. **B-8 to B-12**, then the Epic B retrospective:
    - B-8 project, tag and type controls act once;
    - B-9 SAP export employee ID and history; B-10 complete backup and removable calendar URL; B-11 tray, toasts and help match the app;
    - B-12 harness smoke test for save, edit and manual entry.
-3. **LT3-102 (#13)** typed repositories on the LT3-101 schema, then LT3-103 to LT3-105 (#14 to #16), Increment C (#17 to #21), the CSV hand-off (#22, #23), RDP (#26, #27), #31, #33.
+3. **C-5 to C-10**, then the Epic C retrospective: day west of UTC; CSV formulas; calendar URL and IPv6; recurring meetings; settings checks; start-up guards and clean-up.
+4. **LT3-102 (#13)** typed repositories on the LT3-101 schema, then LT3-103 to LT3-105 (#14 to #16), Increment C (#17 to #21), the CSV hand-off (#22, #23), RDP (#26, #27), #31, #33.
 
 ## Working notes
 
-- Gates: `npm run lint`, `npm run typecheck`, `npm run test:ci` (baseline Jest, TS via ts-jest; 205 tests), `npm run build` (into `out/`), `npm run security:audit`, `npm run electron:build:win` (production build and installer), `npm run test:app` (harness, 18 tests, against `dist/win-unpacked`; set `LIGHTTRACK_EXE` to test another build).
+- Gates: `npm run lint`, `npm run typecheck`, `npm run test:ci` (baseline Jest, TS via ts-jest; 210 tests), `npm run build` (into `out/`), `npm run security:audit`, `npm run electron:build:win` (production build and installer), `npm run test:app` (harness, 18 tests, against `dist/win-unpacked`; set `LIGHTTRACK_EXE` to test another build).
 - The harness tests a packaged build, not the source: repackage after every source change. Without touching `dist/`: `npm run build:prod && npx electron-builder --win --dir --publish never --config.directories.output=<scratch dir>`, then `LIGHTTRACK_EXE=<scratch dir>/win-unpacked/LightTrack.exe npm run test:app`.
 - On a busy machine the full harness run can fail in "stores a manual entry" (timeout) and "keeps row actions visible" (it needs that entry). Both pass alone and in CI. Trust CI, and read the error before blaming load.
 - Lockfile: CI installs with npm 10 (Node 22). A lockfile written by npm 11 can fail `npm ci` there. After changing dependencies run `npx npm@10 install --package-lock-only`.

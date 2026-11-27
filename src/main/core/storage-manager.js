@@ -529,7 +529,9 @@ class StorageManager extends LightweightStorage {
           (activity.timestamp ? localDay(activity.timestamp) : null) ||
           (activity.startTime ? localDay(activity.startTime) : null);
 
-        return activity.app === app &&
+        // A manual entry is the user's; tracking never resumes it (C-1)
+        return !activity.isManual &&
+               activity.app === app &&
                activity.project === project &&
                (activity.salesforceCase || null) === salesforceCase &&
                activityDate === date;
