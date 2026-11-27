@@ -158,6 +158,7 @@ class StorageManager extends LightweightStorage {
       if (index > -1) {
         activities[index].tags = Array.isArray(tags) ? tags : [];
         this.store.set('activities', activities);
+        this.activityCache = null; // the next read must see the new tags (B-7)
         logger.info('Activity tags updated:', { id: activityId, tags });
         return activities[index];
       }

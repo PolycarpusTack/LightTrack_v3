@@ -337,7 +337,7 @@
       if (btn.classList.contains('btn-edit')) {
         openEditModal(id);
       } else if (btn.classList.contains('btn-tags')) {
-        openTagEditor(id);
+        openTagEditor(id, btn.closest('.activity'));
       } else if (btn.classList.contains('btn-delete')) {
         openDeleteModal(id);
       }

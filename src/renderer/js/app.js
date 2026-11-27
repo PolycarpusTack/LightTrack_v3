@@ -975,6 +975,9 @@ function initActivityListDelegation() {
   Elements.activityList.addEventListener('click', (e) => {
     const target = e.target;
 
+    // Clicks inside the tag editor belong to the editor, not the row (B-7)
+    if (target.closest('.tag-editor-dropdown')) return;
+
     // Handle edit button
     if (target.classList.contains('btn-edit')) {
       e.stopPropagation();
@@ -987,7 +990,7 @@ function initActivityListDelegation() {
     if (target.classList.contains('btn-tags')) {
       e.stopPropagation();
       const id = target.dataset.id;
-      if (id) openTagEditor(id);
+      if (id) openTagEditor(id, target.closest('.activity'));
       return;
     }
 
@@ -3224,8 +3227,8 @@ function updateFilteredStats() {
 
 // ============= Tag Editor (delegated to Modals module) =============
 
-function openTagEditor(activityId) {
-  return window.LightTrack.Modals?.openTagEditor?.(activityId);
+function openTagEditor(activityId, rowEl) {
+  return window.LightTrack.Modals?.openTagEditor?.(activityId, rowEl);
 }
 
 function closeTagEditor() {
