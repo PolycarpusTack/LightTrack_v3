@@ -165,11 +165,7 @@ export const CONTRACT = {
   'activities:update': spec(z.tuple([Id, ActivityInput]), Activity, 'Update an activity'),
   'activities:delete': spec(z.tuple([Id]), z.looseObject({ deleted: z.boolean(), id: Id }), 'Delete an activity'),
   'activities:merge': spec(z.tuple([z.array(Id).min(2).max(200)]), Activity, 'Merge activities of one project and day into the earliest'),
-  'activities:get-stats': spec(z.tuple([]),
-    z.looseObject({ total: z.number(), today: z.number(), totalDuration: z.number(), averageSessionLength: z.number() }),
-    'Activity counts and durations'),
   'get-today-total': spec(z.tuple([]), z.number(), "Today's tracked seconds"),
-  'get-focus-stats': spec(z.tuple([]), z.looseObject({ totalSessions: z.number(), todaySessions: z.number() }), 'Focus session statistics'),
   'clear-old-activities': spec(z.tuple([z.number().int().min(1).max(3650).optional()]),
     z.looseObject({ success: z.boolean(), cleanedCount: z.number() }), 'Delete activities older than N days (default 30)'),
 
