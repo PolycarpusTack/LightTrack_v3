@@ -217,6 +217,10 @@ window.LightTrack.SAPExport = (function() {
         exportBtn.addEventListener('click', async () => {
           const statusEl = document.getElementById('sap-export-status');
 
+          // The ID as it is in the field now, saved or not (B-9)
+          const employeeIdInput = document.getElementById('sap-employee-id');
+          if (employeeIdInput) state.employeeId = employeeIdInput.value.trim();
+
           if (!state.employeeId) {
             window.LightTrack.UI?.showNotification?.('Please enter your Employee ID before exporting', 'warning');
             return;
@@ -241,6 +245,13 @@ window.LightTrack.SAPExport = (function() {
             if (result && result.filePath) {
               if (statusEl) statusEl.textContent = `Exported to: ${result.filePath}`;
               window.LightTrack.UI?.showNotification?.(`Exported ${result.recordCount} records to CSV`, 'success');
+              // Date, period and row count only; never the rows themselves (B-9)
+              window.saveExportHistory?.({
+                date: new Date().toISOString(),
+                period: `${Utils.formatDateDisplay(state.startDate)} - ${Utils.formatDateDisplay(state.endDate)}`,
+                records: result.recordCount
+              });
+              window.loadExportHistory?.();
             } else {
               if (statusEl) statusEl.textContent = 'Export cancelled';
             }
@@ -253,6 +264,8 @@ window.LightTrack.SAPExport = (function() {
           }
         });
       }
+
+      window.loadExportHistory?.();
 
       // Refresh preview if period was previously selected
       if (state.startDate && state.endDate) {

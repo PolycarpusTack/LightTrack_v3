@@ -126,6 +126,58 @@ test.describe('packaged application', () => {
     await second.app.close();
   });
 
+  // B-9: the export uses the employee ID as typed, and the export history lists each export.
+  test('SAP export uses the typed employee ID and fills the export history', async () => {
+    // Its own profile: no saved employee ID and no earlier export
+    const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'lighttrack-b9-'));
+    const { app, page, errors } = await launch(profile);
+    try {
+      await page.locator('#add-manual-entry').click();
+      await page.locator('#entry-project').fill(PROJECT);
+      await page.locator('#entry-app').fill('Harness work');
+      await page.locator('#entry-date').fill(localDateISO());
+      await page.locator('#entry-start').fill('09:00');
+      await page.locator('#entry-end').fill('10:30');
+      await page.locator('#modal-save').click();
+      await expect.poll(() => page.evaluate(async () => (await window.lightTrackAPI.getActivities()).length)).toBe(1);
+
+      await page.locator('.nav-btn[data-view="sap-export"]').click();
+      await expect(page.locator('#export-history-list')).toContainText('No exports yet');
+      await page.locator('#sap-employee-id').fill('E-TYPED'); // typed, Save not pressed
+      await page.locator('#sap-this-week').click();
+      await expect(page.locator('#sap-preview-body tr', { hasText: PROJECT })).toHaveCount(1);
+
+      const csvPath = path.join(profile, 'b9-export.csv');
+      await app.evaluate(({ dialog }, filePath) => {
+        dialog.showSaveDialog = async () => ({ canceled: false, filePath });
+      }, csvPath);
+      await page.locator('#sap-export-btn').click();
+      await expect.poll(() => fs.existsSync(csvPath)).toBe(true);
+      const dataLine = fs.readFileSync(csvPath, 'utf8').split('\n').find(l => l.includes(PROJECT));
+      expect(dataLine.startsWith('"E-TYPED",')).toBe(true);
+
+      // The export history lists it with date, period and row count, and only that
+      const item = page.locator('#export-history-list .export-history-item');
+      await expect(item).toHaveCount(1);
+      await expect(item.locator('.export-period')).toHaveText(/\S/);
+      await expect(item.locator('.export-records')).toHaveText('1 row');
+      const stored = await page.evaluate(() => localStorage.getItem('lighttrack-export-history'));
+      expect(stored).not.toContain(PROJECT);
+
+      // And again after the view is opened anew
+      await page.locator('.nav-btn[data-view="timer"]').click();
+      await page.locator('.nav-btn[data-view="sap-export"]').click();
+      await expect(item).toHaveCount(1);
+      expect(errors).toEqual([]);
+    } finally {
+      try {
+        await app.close();
+      } finally {
+        fs.rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+      }
+    }
+  });
+
   // LT3-101: the packaged app creates, migrates and encrypts the database (sql.js loads from app.asar).
   test('packaged app creates an encrypted, migrated database', async () => {
     const { app } = await launch(userData);
