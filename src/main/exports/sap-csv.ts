@@ -12,6 +12,10 @@
  * into versioned export profiles in LT3-302.
  */
 import { localDay } from '../core/local-day';
+import { textCell } from '../../shared/csv';
+
+// One text cell for every export (C-6)
+export { textCell };
 
 export const HEADERS = [
   'Employee ID',
@@ -33,8 +37,6 @@ const MAX_DESCRIPTION_LENGTH = 500;
 const MAX_OVERRIDES = 1000;
 const JIRA_KEY = /^[A-Z][A-Z0-9]{1,9}-\d+$/;
 const ROW_KEY = /^\d{4}-\d{2}-\d{2}\|.{1,200}$/s;
-// Spreadsheet apps treat cells starting with these characters as formulas.
-const FORMULA_PREFIX = /^[=+\-@\t\r]/;
 // eslint-disable-next-line no-control-regex
 const CONTROL_CHARS = /[\u0000-\u001f\u007f]/;
 
@@ -216,13 +218,6 @@ export function buildRows(
       };
     })
     .sort((a, b) => a.date.localeCompare(b.date) || a.project.localeCompare(b.project));
-}
-
-/** Quote a text cell and neutralise spreadsheet formula injection. */
-export function textCell(value: unknown): string {
-  let text = value === undefined || value === null ? '' : String(value);
-  if (FORMULA_PREFIX.test(text)) text = `'${text}`;
-  return `"${text.replace(/"/g, '""')}"`;
 }
 
 /** Build the CSV file content. */

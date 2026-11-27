@@ -347,6 +347,45 @@ test.describe('packaged application', () => {
     }
   });
 
+  // C-6: the analytics CSV writes a formula-like title as text.
+  test('analytics csv formula is written as text', async () => {
+    const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'lighttrack-c6-'));
+    const { app, page, errors } = await launch(profile);
+    try {
+      const formula = '=HYPERLINK("https://example.test","x")';
+      await page.locator('#add-manual-entry').click();
+      await page.locator('#entry-project').fill('C6 Project');
+      await page.locator('#entry-app').fill(formula);
+      await page.locator('#entry-date').fill(localDateISO());
+      await page.locator('#entry-start').fill('09:00');
+      await page.locator('#entry-end').fill('10:00');
+      await page.locator('#modal-save').click();
+      await expect.poll(() => page.evaluate(async () => (await window.lightTrackAPI.getActivities()).length)).toBe(1);
+
+      await page.evaluate(() => {
+        window.__csv = null;
+        const create = URL.createObjectURL.bind(URL);
+        URL.createObjectURL = blob => { window.__csv = blob; return create(blob); };
+        HTMLAnchorElement.prototype.click = function () {};
+      });
+      await page.locator('.nav-btn[data-view="analytics"]').click();
+      await page.locator('#export-analytics-csv').click();
+      await expect.poll(() => page.evaluate(() => Boolean(window.__csv))).toBe(true);
+      const csv = await page.evaluate(() => window.__csv.text());
+      const row = csv.split('\n').find(line => line.includes('C6 Project') && line.includes('HYPERLINK'));
+      expect(row).toBeTruthy();
+      expect(row).toContain('"\'=HYPERLINK(""https://example.test"",""x"")"');
+      expect(row.startsWith(`${localDateISO()},09:00,10:00,`)).toBe(true);
+      expect(errors).toEqual([]);
+    } finally {
+      try {
+        await app.close();
+      } finally {
+        fs.rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+      }
+    }
+  });
+
   // #40: restore is not offered until backup and restore are rebuilt (#16).
   test('offers backup but not restore', async () => {
     const { app, page, errors } = await launch(userData);
