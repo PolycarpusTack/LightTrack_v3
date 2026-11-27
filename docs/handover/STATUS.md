@@ -1,43 +1,40 @@
 # LightTrack v3: status and pickup
 
-**Last updated:** 2026-11-26
-**`main`:** `7615165`. Open: #59 (A-1, dependency audit), #60 (stabilisation backlog and this status), #57 (removes the project switcher, closes #41).
-**Next step:** merge #59 once approved, then A-2 of `docs/handover/stabilisation-backlog.md` on branch `fix/a-2-wire-format` from `main`. LT3-102 (#13) follows the stabilisation backlog.
-
-## Audit of 2026-11-26
-
-The owner reported that tracking runs but no records appear. A functional audit found the cause and a set of other defects; `docs/handover/stabilisation-backlog.md` fixes them in order (two epics, 20 stories, validated and approved by the owner).
-
-- **No records shown:** the tracker stores start and end times as numbers, the IPC contract accepts only text, so every `activities:get` reply with a tracked activity is rejected (4,271 times in the owner's log since 2026-10-27). The data is stored; nothing is lost. Fixed by A-2.
-- **CI:** the dependency audit failed on 17 advisories and the `sprintf-js` exception lapsed on 2026-11-05. Fixed by A-1 (#59).
-- **Also found:** editing rewrites duration and title; manual entries for another day land on today; tray stop desynchronises tracking; sleep time is probably counted; every settings save reports failure; no idle prompt; three controls use `prompt()`. Each has a story.
-- **#41 and #57:** decided on 2026-11-26: the project switcher is removed (#57), not built. Story B-5 is dropped.
+**Last updated:** 2026-11-26, before a reboot
+**`main`:** `197e019`, CI green. No open pull requests apart from the one that carries this status.
+**Next step:** story A-4 of `docs/handover/stabilisation-backlog.md` (editing keeps duration and title), branch `fix/a-4-edit-keeps-duration` from `main`.
 
 ## Where we are
 
-Increment A (foundation) is done. Increment B (durable local data) has started: LT3-101 is merged, LT3-102 to LT3-105 remain. First release: 3 of 18 items done (LT3-003, LT3-101, #48). The cleanup before Increment B is done apart from #41 (PR #57).
+The owner reported on 2026-11-26 that tracking runs but no records appear. A functional audit found the cause and a set of other defects. `docs/handover/stabilisation-backlog.md` fixes them in order: two epics, 20 stories, one PR each, approved by the owner and checked by an independent validation pass. The backlog sits in front of Increment B; LT3-102 (#13) follows it.
 
-The app is in daily use by the owner as a time tracker. The first-release workflow (approval, booking lines, CSV hand-off, RDP) is not built yet; see plan section 16 and `docs/design/first-release/REVIEW.md`.
+**Done: A-1 to A-3. Next: A-4 to A-9, then B-1 to B-12 (B-5 is dropped).**
 
-**Installer:** `dist/LightTrack Setup 3.0.0.exe` built from `main` (`7615165`) on 2026-10-08; the packaged-app harness (9 tests) passed against it. It does not include #57. Rebuild with `npm run electron:build:win` on `main`. Unsigned, so SmartScreen warns on first run ("More info" > "Run anyway"). Data lives in `%APPDATA%\LightTrack` and survives reinstalls.
+The first-release workflow (approval, booking lines, CSV hand-off, RDP) is still not built; see plan section 16 and `docs/design/first-release/REVIEW.md`.
 
-## Merged on 2026-10-08
+**Installer:** `dist/LightTrack Setup 3.0.0.exe`, built on 2026-11-26 from `main` at `6753529`. It includes A-1 and A-2 (the fix for the missing records) and #57, but not A-3. It was not run through the harness locally; the same code passed CI on #61. Unsigned, so SmartScreen warns on first run ("More info" > "Run anyway"). Data lives in `%APPDATA%\LightTrack` and survives reinstalls. Rebuild with `npm run electron:build:win` on `main`, and do not switch branches while it builds.
 
-- #52 failed requests show an error toast; the preload no longer returns empty fallbacks (closes #45)
-- #53 first-release design system on the current screens (closes #44): labels, `.solid`/`.ghost` + `.small`, one input style, visible row actions, real buttons, sentence case, H:MM durations, `--seg-nb`. No bare-key shortcuts: break is Ctrl+Shift+B, manual entry Ctrl+Shift+N. `test/baseline/design-tokens.test.js` checks contrast in both themes.
-- #54 browser extension context parsed correctly (closes #49)
-- #55 restore from backup removed until LT3-105 (closes #40)
-- #56 timeline merge through a new `activities:merge` channel, one store write (closes #39)
+## Merged on 2026-11-26
 
-Open: #57 removes the Timer's project switcher (closes #41). The owner confirmed removal on 2026-11-26.
+- **#59 A-1** dependency audit passes again: 17 advisories to 0. `electron` 44.11.6, `zod` 4.6.7; `glob` and `minimatch` (build and test tools only) are pinned through `overrides` in `package.json`; no audit exceptions remain (`docs/security/dependency-exceptions.md`).
+- **#61 A-2** tracked activities appear again. The tracker stores start and end times as numbers and the IPC contract accepts only text, so every `activities:get` reply with a tracked activity was rejected (4,271 times in the owner's log since 2026-10-27). Handlers that return an activity now convert it in `src/main/ipc/wire-activity.ts`. The stored data and the contract are unchanged; the mixed stored format is TD-1 in the backlog and is settled by LT3-102.
+- **#62 A-3** a failed load shows "Could not load activities" with Retry in the Timer, Timeline and Analytics. Settings loads its statistics last, so a failure there no longer leaves the other sections unwired.
+- **#57** the Timer's project switcher is removed (closes #41). The owner chose removal over building it; story B-5 is dropped.
+- **#60** the stabilisation backlog and status. #58 was closed as superseded.
 
-Seen, not fixed: the old storage combines two saves with the same app, title and project made within 5 minutes, whatever their times (`lightweight-storage.js`, `canMergeActivities`). LT3-102 replaces this storage.
+## Still broken until its story lands
 
-## Merged on 2026-10-06
+- **Editing a tracked activity rewrites its duration** to end minus start, and its title to the app name (A-4). Avoid editing tracked activities until then.
+- A manual entry for another day is filed under today (A-5).
+- Stopping from the tray desynchronises tracking; saving a setting restarts it (A-6).
+- Sleep and lock time is probably counted; not yet confirmed by a test (A-7).
+- Storage removes activities under the minimum duration on every save and cuts the list at 10,000 (A-8).
+- Every settings save shows "Failed to save settings" although it saved (B-1). Consolidation and week-start settings do not persist (B-2).
+- No idle-return prompt (B-4). Mark break, project Edit in Settings and rule Test rely on `prompt()` (B-6).
 
-- #36 LT3-003 typed IPC contract, #37 dependency audit (`sprintf-js` exception expires **2026-11-05**), #42 edit keeps tags, #43 Win32 window detection through `koffi`, #46 design handoff, #47 LT3-101 SQLite and migrations, #50 Salesforce client per case.
+## Owner decisions
 
-## Owner decisions (recorded in the plan's decisions table)
+Recorded in the plan's decisions table, plus those of 2026-11-26:
 
 - First release hands off by CSV; Timmy submission after. Worklogs are time blocks with derived daily booking lines; rounding per user, default 15 min.
 - Full TypeScript including renderer. SQLite file encrypted with the protected key. Retention chosen at first run (default 1 year). Releases unsigned; in-app updates off.
@@ -46,31 +43,38 @@ Seen, not fixed: the old storage combines two saves with the same app, title and
 - Worklog states stored: draft, approved, superseded. "Exported" derived from export runs; "rejected" added with Timmy.
 - Salesforce: client remembered per case, one case = one client. API lookup (LT3-502) deferred until a Salesforce admin can create a connected app.
 - CSV layout: taken from a sample of the approver's SAP ByDesign import file (pending, see below).
+- **2026-11-26:** times are converted where activities leave main; the store is left alone until LT3-102. Sleep and lock time is discarded without a prompt. The project switcher is removed, not built.
 
 ## Waiting on the owner
 
-1. **A real Salesforce window title** (a case record page, and the Service Console if used), to confirm the patterns in `src/main/core/salesforce-case.ts`.
-2. **A sample CSV** the approver imports into SAP ByDesign. Needed for LT3-302 only.
-3. Send `docs/integrations/timmy-integration-request.md` to Timmy's maintainer (Pieter Jan De Keyzer per Timmy's commit history; confirm the contact). Needed after the first release.
-4. Pair the browser extension once by hand in Chrome or Edge (not covered by automated tests).
-5. Report anything odd from daily use, especially tray, idle detection and tracking, which the harness does not cover.
+1. **Install the new build and say whether the records since October appear** in the Timer and Timeline. Quit LightTrack from the tray, copy `%APPDATA%\LightTrack\config.json` somewhere safe, then run the installer. The diagnosis rests on the log; this confirms it on the real data.
+2. **A real Salesforce window title** (a case record page, and the Service Console if used), to confirm the patterns in `src/main/core/salesforce-case.ts`.
+3. **A sample CSV** the approver imports into SAP ByDesign. Needed for LT3-302 only.
+4. Send `docs/integrations/timmy-integration-request.md` to Timmy's maintainer (Pieter Jan De Keyzer per Timmy's commit history; confirm the contact). Needed after the first release.
+5. Pair the browser extension once by hand in Chrome or Edge, and say whether it shows "Not connected" again later. The audit suspects the pairing is lost when the extension's service worker restarts.
+6. Report anything odd from daily use, especially tray, idle detection and tracking, which the harness does not cover. Electron moved from 44.5 to 44.11 in A-1.
 
 ## Next (in order)
 
-1. **Stabilisation backlog**, one story and one PR at a time: A-1 (#59) to A-9, then B-1 to B-12 (B-5 is dropped). Retrospective after each epic. #57 can merge at any time once approved.
-2. **LT3-102 (#13)** Typed repositories on the LT3-101 schema (`src/main/persistence/`: `database.ts`, `schema.ts`, `sqlite-db.ts`). Acceptance: repositories for raw activity, projects, mapping rules, worklogs, allocations, audit records, profiles and export runs; transactions where several records change together; domain errors for validation, conflict, not-found and persistence failures; performance tests for date-range queries. The app still uses the old JSON storage; the LT3-101 database is not used by the app yet. Then LT3-103 to LT3-105 (#14 to #16): v3 export, import with reconciliation, backup and restore.
-3. Increment C (#17 to #21), the CSV hand-off (#22, #23), RDP (#26, #27), #31, #33.
+1. **A-4** editing keeps duration and title. Two tasks, one PR: the handler (refuse edits to the activity being tracked, recompute duration only when a time changed), then the edit dialog (send only changed fields, warn before a time change replaces a tracked duration, local date).
+2. **A-5 to A-9**, then the Epic A retrospective. A-9 (harness smoke test with a seeded tracked activity) may be pulled forward.
+3. **B-1 to B-12** without B-5, then the Epic B retrospective.
+4. **LT3-102 (#13)** typed repositories on the LT3-101 schema, then LT3-103 to LT3-105 (#14 to #16), Increment C (#17 to #21), the CSV hand-off (#22, #23), RDP (#26, #27), #31, #33.
 
 ## Working notes
 
-- Gates: `npm run lint`, `npm run typecheck`, `npm run test:ci` (baseline Jest, TS via ts-jest; 165 tests), `npm run build` (into `out/`), `npm run electron:build:win` (production build and installer), `npm run test:app` (harness against `dist/win-unpacked`; set `LIGHTTRACK_EXE` to test another build).
-- Quick packaged check without touching `dist/`: `npm run build:prod && npx electron-builder --win --dir --publish never --config.directories.output=<scratch dir>`.
-- IPC: add a channel to `src/main/ipc/contract.ts`, register it with `registry.handle`, map it in `src/preload/index.ts` (see CONTRIBUTING). Schema changes: append a migration to `src/main/persistence/schema.ts`.
+- Gates: `npm run lint`, `npm run typecheck`, `npm run test:ci` (baseline Jest, TS via ts-jest; 177 tests), `npm run build` (into `out/`), `npm run security:audit`, `npm run electron:build:win` (production build and installer), `npm run test:app` (harness, 10 tests, against `dist/win-unpacked`; set `LIGHTTRACK_EXE` to test another build).
+- The harness tests a packaged build, not the source: repackage after every source change. Without touching `dist/`: `npm run build:prod && npx electron-builder --win --dir --publish never --config.directories.output=<scratch dir>`, then `LIGHTTRACK_EXE=<scratch dir>/win-unpacked/LightTrack.exe npm run test:app`.
+- On a busy machine the full harness run can fail in "stores a manual entry" (timeout) and "keeps row actions visible" (it needs that entry). Both pass alone and in CI. Trust CI, and read the error before blaming load.
+- Lockfile: CI installs with npm 10 (Node 22). A lockfile written by npm 11 can fail `npm ci` there. After changing dependencies run `npx npm@10 install --package-lock-only`.
+- Do not switch branches while a build or packaging run is in progress; it reads the working tree.
+- IPC: add a channel to `src/main/ipc/contract.ts`, register it with `registry.handle`, map it in `src/preload/index.ts` (see CONTRIBUTING). A handler that returns an activity passes it through `toWireActivity`. Schema changes: append a migration to `src/main/persistence/schema.ts`.
 - The repository stores LF; `core.autocrlf` gives CRLF in some working copies. Git Bash tools hide the `\r`, so check with Node before a scripted edit that matches on newlines.
 - TypeScript 6: set `rootDir` explicitly; `module: node16` for main. Use CommonJS packages in main (koffi 2.x, not the ESM-only 3.x types).
-- CI runs only on PRs into `main`. A stacked PR gets no CI until it is retargeted; changing the base does not start CI, so rebase on `main` and push (or close and reopen).
-- Workflow: one branch and PR per item, CI green before merging, merge commit after the owner approves. Never `git add` the untracked design zip in `docs/`.
+- CI runs only on PRs into `main`. A branch cut before a fix on `main` needs `main` merged in before its CI can pass.
+- The owner's data file `%APPDATA%\LightTrack\config.json` is encrypted; read `logs/main.log` there for evidence instead.
+- Workflow: one branch and PR per story, CI green before merging, merge commit after the owner approves. Never `git add` the untracked design zip in `docs/`.
 
 ## Pickup prompt
 
-> Continue LightTrack v3 in `C:\Projects\Other\LightTrack_v3`. Read `docs/handover/STATUS.md` first and check "Waiting on the owner" for anything I have answered. Ask me to approve merging any open PRs. Then start the first open story of `docs/handover/stabilisation-backlog.md`, following its "Rules for every item": branch from `main`, implement, keep lint, typecheck, `test:ci`, build and the packaged-app harness green, open a PR and report CI. Use `docs/design/first-release` for any UI work. Keep the plain, concise writing style used in the docs. Ask me before merging.
+> Continue LightTrack v3 in `C:\Projects\Other\LightTrack_v3`. Read `docs/handover/STATUS.md` first, then `docs/handover/stabilisation-backlog.md` ("Rules for every item" and the next open story). Ask me whether my records appeared after installing the new build, and check "Waiting on the owner" for anything else I have answered. Then start the first story under "Next" (A-4): branch from `main`, write the failing test first, implement, keep lint, typecheck, `test:ci`, build, the audit and the packaged-app harness green, open a PR and report CI. One story and one PR at a time. Use `docs/design/first-release` for any UI work. Keep the plain, concise writing style used in the docs. Ask me before merging, and update this file when a story is merged.
