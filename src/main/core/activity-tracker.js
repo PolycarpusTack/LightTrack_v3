@@ -67,10 +67,9 @@ class ActivityTracker {
       getStorage: () => this.storage
     });
 
-    // Duplicate prevention: track recent save checksums
-    this.recentSaveChecksums = new Set();
+    // Duplicate prevention: what was last saved for each activity id (C-2)
+    this.lastSavedState = new Map();
     this.maxChecksumCache = MAX_CHECKSUM_CACHE_SIZE;
-    this.lastSaveChecksum = null;
 
     // Debounce window change detection
     this.pendingWindowChange = null;
@@ -228,6 +227,9 @@ class ActivityTracker {
     if (gapMs > MAX_SAMPLE_GAP_MS && !this.pausedForSystem) {
       logger.warn('Tracking gap without a sample; crediting one interval', { gapSeconds: Math.round(gapMs / 1000) });
     }
+    // Whole seconds are credited; the next tick starts where they end, so the
+    // fractions add up instead of being dropped on every tick (C-2).
+    let creditedUntil = null;
 
     try {
       // Don't track while asleep or locked, or paused due to idle
@@ -246,6 +248,7 @@ class ActivityTracker {
         this.lastActiveTime = now;
         return;
       }
+      creditedUntil = previousTime + deltaSeconds * 1000;
       let remainingSeconds = deltaSeconds;
 
       // Get active window with retry logic
@@ -355,7 +358,7 @@ class ActivityTracker {
       logger.error('Error tracking activity:', error);
     } finally {
       this._isProcessingTrack = false;
-      this.lastActiveTime = now;
+      this.lastActiveTime = creditedUntil ?? now;
     }
   }
 
@@ -683,55 +686,30 @@ class ActivityTracker {
     return `${this.currentActivity.app}|${this.currentActivity.project}|${this.currentActivity.title}`;
   }
 
-  // Calculate checksum for activity to prevent duplicates
-  calculateActivityChecksum(activity) {
-    if (!activity) return null;
-
-    // Create a deterministic string from key activity properties
-    const checksumData = [
-      activity.app || '',
-      activity.project || '',
-      activity.date || '',
-      // Round duration to nearest 10 seconds to handle minor timing variations
-      Math.floor((activity.duration || 0) / 10) * 10
-    ].join('|');
-
-    // Simple hash function for checksum
-    let hash = 0;
-    for (let i = 0; i < checksumData.length; i++) {
-      const char = checksumData.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32-bit integer
-    }
-    return hash.toString(16);
+  // What a save of this activity would write. Exact duration: a bucket skipped short
+  // returns, and a key without the id skipped other activities, such as another case (C-2).
+  savedStateOf(activity) {
+    return [activity.project || '', activity.duration || 0, activity.title || ''].join('|');
   }
 
-  // Check if this save would be a duplicate
+  // A save is a duplicate only when this same activity was last saved in this same state
   isDuplicateSave(activity) {
-    const checksum = this.calculateActivityChecksum(activity);
-    if (!checksum) return false;
-
-    // Check if we've recently saved an activity with this checksum
-    if (this.recentSaveChecksums.has(checksum)) {
-      logger.debug('Duplicate save detected, skipping:', { checksum, app: activity.app });
+    if (!activity || activity.id == null) return false;
+    if (this.lastSavedState.get(String(activity.id)) === this.savedStateOf(activity)) {
+      logger.debug('Duplicate save detected, skipping:', { id: activity.id, app: activity.app });
       return true;
     }
-
     return false;
   }
 
-  // Record a successful save checksum
+  // Record what was saved for this activity
   recordSaveChecksum(activity) {
-    const checksum = this.calculateActivityChecksum(activity);
-    if (!checksum) return;
-
-    this.recentSaveChecksums.add(checksum);
-    this.lastSaveChecksum = checksum;
-
-    // Trim cache if it gets too large
-    if (this.recentSaveChecksums.size > this.maxChecksumCache) {
-      const iterator = this.recentSaveChecksums.values();
-      this.recentSaveChecksums.delete(iterator.next().value);
+    if (!activity || activity.id == null) return;
+    const id = String(activity.id);
+    this.lastSavedState.delete(id); // keep the most recent last
+    this.lastSavedState.set(id, this.savedStateOf(activity));
+    if (this.lastSavedState.size > this.maxChecksumCache) {
+      this.lastSavedState.delete(this.lastSavedState.keys().next().value);
     }
   }
 
