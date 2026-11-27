@@ -111,6 +111,7 @@
         "openManualEntryModal": "readonly",
         "openTagEditor": "readonly",
         "parseLocalDateString": "readonly",
+        "refreshActivityViews": "readonly",
         "safeLocalStorageSet": "readonly",
         "showNotification": "readonly",
         "switchView": "readonly",

@@ -44,9 +44,9 @@
     }
 
     try {
-      // Fetch activities for the timeline date and store in AppState for edit/delete
+      // Fetch activities for the timeline date; the Timeline keeps its own list (B-3)
       const activities = await window.lightTrackAPI.getActivities(AppState.timelineDate);
-      AppState.activities = activities; // Store for edit/delete modal access
+      AppState.timelineActivities = activities; // for the edit and delete dialogs
 
       // Populate project filter dropdown
       if (timelineProjectFilter) {
@@ -172,7 +172,7 @@
       console.error('Failed to load timeline:', error);
       showNotification(error.message, 'error');
       // Show the failure in place of the list and the summary (A-3).
-      AppState.activities = [];
+      AppState.timelineActivities = [];
       if (timelineSummary) timelineSummary.textContent = 'Could not load activities';
       window.LightTrack.Utils.renderLoadError(timelineList, 'Could not load activities', () => loadTimelineView());
     } finally {

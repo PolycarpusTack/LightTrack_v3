@@ -41,7 +41,7 @@ const failLoad = (what: string): OnError => fail(`Failed to load ${what}.`);
 // Store cleanup functions for event listeners
 const cleanupFunctions = new Set<() => void>();
 
-function subscribe(event: 'tracking-update' | 'tracking-status-changed' | 'open-settings' | 'updater-event', label: string, passArgs: 'all' | 'none' | 'first') {
+function subscribe(event: 'tracking-update' | 'tracking-status-changed' | 'open-settings' | 'updater-event' | 'activities-updated', label: string, passArgs: 'all' | 'none' | 'first') {
   return (callback: Listener): (() => void) => {
     if (typeof callback !== 'function') {
       throw new TypeError('Callback must be a function');
@@ -156,6 +156,7 @@ contextBridge.exposeInMainWorld('lightTrackAPI', {
   onTrackingUpdate: subscribe('tracking-update', 'tracking update', 'all'),
   onTrackingStatusChanged: subscribe('tracking-status-changed', 'status changed', 'all'),
   onOpenSettings: subscribe('open-settings', 'open settings', 'none'),
+  onActivitiesUpdated: subscribe('activities-updated', 'activities updated', 'none'),
 
   // Auto-updater (in-app updates are disabled; see src/main/update-policy.js)
   updater: {
