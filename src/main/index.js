@@ -46,12 +46,6 @@ class LightTrackApp {
         main: null,
         floatingTimer: null
       },
-      tracking: {
-        isActive: false,
-        currentActivity: null,
-        sessionStartTime: null,
-        lastActivityTime: null
-      },
       intervals: {
         tracking: null,
         breakReminder: null
@@ -243,10 +237,7 @@ class LightTrackApp {
       if (settings.autoStartTracking && !isHarness()) {
         logger.info('Auto-start tracking enabled, starting tracker...');
         await this.tracker.start();
-        this.appState.tracking.isActive = true;
-        this.appState.tracking.sessionStartTime = this.tracker.sessionStartTime;
-        this.appState.tracking.lastActivityTime = this.tracker.lastActiveTime;
-        this.appState.tracking.samplingRate = this.tracker.currentCheckInterval / 1000;
+        this.trayManager?.updateMenu();
 
         // Notify renderer if window exists
         if (this.mainWindow && !this.mainWindow.isDestroyed()) {
@@ -297,39 +288,13 @@ class LightTrackApp {
     new SettingsHandlerMain(
       this.appState.store,
       this.appState,
-      () => { /* setupBreakReminders */ },
-      () => this.tracker?.stop(),
-      () => this.tracker?.start()
+      () => { /* setupBreakReminders */ }
     ).registerHandlers(registry);
 
+    // The tracker is the only source of tracking state (A-6).
     new TrackingHandlerMain(
-      this.appState,
-      // toggleTracking
-      async () => {
-        if (!this.tracker) {
-          throw new Error('Tracker not initialized');
-        }
-        if (this.tracker.isTracking) {
-          await this.tracker.stop();
-          this.appState.tracking.isActive = false;
-          this.appState.tracking.currentActivity = null;
-          this.appState.tracking.sessionStartTime = null;
-          this.appState.tracking.lastActivityTime = null;
-          this.appState.tracking.samplingRate = null;
-        } else {
-          await this.tracker.start();
-          this.appState.tracking.isActive = true;
-          this.appState.tracking.currentActivity = this.tracker.currentActivity;
-          this.appState.tracking.sessionStartTime = this.tracker.sessionStartTime;
-          this.appState.tracking.lastActivityTime = this.tracker.lastActiveTime;
-          this.appState.tracking.samplingRate = this.tracker.currentCheckInterval / 1000;
-        }
-        this.trayManager?.updateMenu();
-        return {
-          isTracking: this.tracker.isTracking,
-          currentActivity: this.tracker.currentActivity
-        };
-      },
+      () => this.tracker,
+      () => this.trayManager?.updateMenu(),
       // handleIdleDecision
       async (wasWorking) => {
         if (this.tracker) {
