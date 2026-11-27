@@ -864,14 +864,19 @@
       // Reinitialize break reminder with new settings
       initBreakReminder();
 
-      if (result !== true) {
-        throw new Error('Settings save did not confirm success');
+      // Main answers { success, errors }; a refused save carries the reasons (B-1).
+      if (!result?.success) {
+        const reasons = Array.isArray(result?.errors) ? result.errors.filter(Boolean) : [];
+        showNotification(reasons.length ? reasons.join('. ') : 'Settings were not saved', 'error');
+        return false;
       }
 
       showNotification('Settings saved', 'success');
+      return true;
     } catch (error) {
       console.error('Failed to save settings:', error);
       showNotification('Failed to save settings', 'error');
+      return false;
     }
   }
 
