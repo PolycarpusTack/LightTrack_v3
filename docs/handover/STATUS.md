@@ -1,7 +1,7 @@
 # LightTrack v3: status and pickup
 
 **Last updated:** 2026-11-27
-**`main`:** `dc055df`, CI green. Open: the A-8 PR, which carries this status.
+**`main`:** `dc055df`, CI green. Open: #68 (A-8), CI green, waiting for the owner's approval; it carries this status.
 **Next step:** once A-8 is merged, story A-9 of `docs/handover/stabilisation-backlog.md` (smoke test: a tracked activity is visible in the packaged app), branch `fix/a-9-tracked-smoke` from `main`, then the Epic A retrospective.
 
 ## Where we are
@@ -26,7 +26,7 @@ The first-release workflow (approval, booking lines, CSV hand-off, RDP) is still
 
 ## In review
 
-- **A-8** storage does not drop activities silently. Every save removed all stored activities shorter than the minimum duration (so a manual entry under a minute vanished) and cut the list at 10,000. Both are gone: the minimum applies only when the tracker decides whether to save, and the limit is a logged warning. "Clear old data" deleted by save time, and every tracked activity without one whatever its age; it now uses the dialog's rule (start time, else save time, kept when unreadable), so it removes exactly what the dialog counted. Duplicate removal and consecutive merging on save are unchanged.
+- **#68 A-8** storage does not drop activities silently. Every save removed all stored activities shorter than the minimum duration (so a manual entry under a minute vanished) and cut the list at 10,000. Both are gone: the minimum applies only when the tracker decides whether to save, and the limit is a logged warning. "Clear old data" deleted by save time, and every tracked activity without one whatever its age; it now uses the dialog's rule (start time, else save time, kept when unreadable), so it removes exactly what the dialog counted. Duplicate removal and consecutive merging on save are unchanged.
 
 The owner confirmed on 2026-11-27 that the records since October appear after installing the 2026-11-26 build.
 
@@ -70,7 +70,12 @@ Recorded in the plan's decisions table, plus those of 2026-11-26:
 
 1. **A-8** merge after approval.
 2. **A-9**, then the Epic A retrospective. A-9 (harness smoke test with a seeded tracked activity) may be pulled forward.
-3. **B-1 to B-12** without B-5, then the Epic B retrospective.
+3. **B-1 to B-12** without B-5, then the Epic B retrospective:
+   - B-1 saving settings reports what happened; B-2 every setting persists and main's settings have controls;
+   - B-3 Timer and Timeline keep their own lists and refresh after a change; B-4 returning from idle asks what to do with the time;
+   - B-6 no control depends on `prompt()`; B-7 the tag editor opens on the clicked row; B-8 project, tag and type controls act once;
+   - B-9 SAP export employee ID and history; B-10 complete backup and removable calendar URL; B-11 tray, toasts and help match the app;
+   - B-12 harness smoke test for save, edit and manual entry.
 4. **LT3-102 (#13)** typed repositories on the LT3-101 schema, then LT3-103 to LT3-105 (#14 to #16), Increment C (#17 to #21), the CSV hand-off (#22, #23), RDP (#26, #27), #31, #33.
 
 ## Working notes
