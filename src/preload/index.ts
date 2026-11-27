@@ -19,7 +19,7 @@ type Listener = (...args: unknown[]) => void;
  * Failures are never replaced by an empty result; the renderer shows the message (#45).
  */
 type OnError =
-  | { message: string }
+  | { message: string; mainMessageFor?: readonly string[] }
   | { useMainMessage: string };
 
 function call(channel: Channel, onError: OnError, label: string) {
@@ -29,13 +29,18 @@ function call(channel: Channel, onError: OnError, label: string) {
     } catch (raw) {
       const error = decodeIpcError(raw, channel);
       console.error(`Failed to ${label}:`, `[${error.code}] ${error.message}`);
-      if ('message' in onError) throw new Error(onError.message);
+      if ('message' in onError) {
+        // Some refusals carry a reason the user can act on; pass those through (C-1).
+        if (error.message && onError.mainMessageFor?.includes(error.code)) throw new Error(error.message);
+        throw new Error(onError.message);
+      }
       throw new Error(error.message || onError.useMainMessage);
     }
   };
 }
 
 const fail = (message: string): OnError => ({ message });
+const failOrRefusal = (message: string): OnError => ({ message, mainMessageFor: ['CONFLICT'] });
 const failLoad = (what: string): OnError => fail(`Failed to load ${what}.`);
 
 // Store cleanup functions for event listeners
@@ -75,8 +80,9 @@ contextBridge.exposeInMainWorld('lightTrackAPI', {
   // Activities
   getActivities: call('activities:get', failLoad('activities'), 'get activities'),
   addActivity: call('activities:save-manual', fail('Failed to save activity. Please try again.'), 'add activity'),
-  updateActivity: call('activities:update', fail('Failed to update activity. Please try again.'), 'update activity'),
-  deleteActivity: call('activities:delete', fail('Failed to delete activity. Please try again.'), 'delete activity'),
+  // Main explains a refused edit or delete (the activity is being tracked) (C-1).
+  updateActivity: call('activities:update', failOrRefusal('Failed to update activity. Please try again.'), 'update activity'),
+  deleteActivity: call('activities:delete', failOrRefusal('Failed to delete activity. Please try again.'), 'delete activity'),
   // Main explains why a merge is refused (different project or day, activity being tracked).
   mergeActivities: call('activities:merge', { useMainMessage: 'Failed to merge activities.' }, 'merge activities'),
   createManualActivity: call('activities:save-manual', fail('Failed to create manual activity. Please try again.'), 'create manual activity'),

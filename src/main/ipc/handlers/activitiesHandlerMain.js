@@ -135,6 +135,11 @@ class ActivitiesHandlerMain {
 
     // Delete activity
     registry.handle('activities:delete', async (event, activityId) => {
+      // The tracker would add its current activity back, in full, on the next save (C-1).
+      const current = this.getTracker()?.currentActivity;
+      if (current && String(current.id) === String(activityId)) {
+        throw new IpcError('CONFLICT', 'Stop tracking before deleting this activity');
+      }
       const result = await this.storage.deleteActivity(activityId);
 
       if (this.appState.windows.main && !this.appState.windows.main.isDestroyed()) {
