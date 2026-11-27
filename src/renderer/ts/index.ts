@@ -8,10 +8,12 @@
  */
 import * as Utils from './utils';
 import * as RulePattern from '../../shared/rule-pattern';
+import * as Csv from '../../shared/csv';
 
 type LightTrackNamespace = {
   Utils?: typeof Utils;
   RulePattern?: typeof RulePattern;
+  Csv?: typeof Csv;
   _loaded?: Record<string, boolean>;
   [key: string]: unknown;
 };
@@ -28,3 +30,5 @@ window.LightTrack._loaded = window.LightTrack._loaded || {};
 window.LightTrack.Utils = Utils;
 // Rule matching shared with tracking, so the rule tester tells the truth (C-4)
 window.LightTrack.RulePattern = RulePattern;
+// CSV cells shared with the main-process exports (C-6)
+window.LightTrack.Csv = Csv;

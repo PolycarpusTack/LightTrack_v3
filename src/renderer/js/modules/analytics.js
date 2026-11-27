@@ -904,13 +904,14 @@
       // Calculate stats for summary
       const stats = calculateAnalyticsStats(filteredActivities);
 
-      // Build CSV content
+      // Build CSV content. Text cells are quoted and cannot run as formulas (C-6).
+      const { textCell, dayCell, timeCell } = window.LightTrack.Csv;
       const lines = [];
 
       // Summary section
       lines.push('ANALYTICS SUMMARY');
-      lines.push(`Date Range,${AppState.analyticsRange === 'custom' ? `${customRange?.from} to ${customRange?.to}` : AppState.analyticsRange}`);
-      lines.push(`Filter,${AppState.analyticsFilter}`);
+      lines.push(`Date Range,${textCell(AppState.analyticsRange === 'custom' ? `${customRange?.from} to ${customRange?.to}` : AppState.analyticsRange)}`);
+      lines.push(`Filter,${textCell(AppState.analyticsFilter)}`);
       lines.push(`Total Time,${formatDuration(stats.totalSeconds)}`);
       lines.push(`Days Tracked,${stats.daysWithData}`);
       lines.push(`Avg per Day,${stats.daysWithData > 0 ? formatDuration(Math.round(stats.totalSeconds / stats.daysWithData)) : '0h 0m'}`);
@@ -925,7 +926,7 @@
       stats.sortedProjects.forEach(([project, seconds]) => {
         const hours = (seconds / 3600).toFixed(2);
         const percent = stats.totalSeconds > 0 ? Math.round((seconds / stats.totalSeconds) * 100) : 0;
-        lines.push(`"${project}",${hours},${percent}%`);
+        lines.push(`${textCell(project)},${hours},${percent}%`);
       });
       lines.push('');
 
@@ -952,14 +953,12 @@
       lines.push('DETAILED ACTIVITIES');
       lines.push('Date,Start Time,End Time,Project,App,Title,Duration (h),Billable');
       filteredActivities.sort((a, b) => new Date(a.startTime) - new Date(b.startTime)).forEach(a => {
-        const startDate = a.startTime ? new Date(a.startTime) : null;
-        const endDate = a.endTime ? new Date(a.endTime) : null;
-        const date = startDate ? getLocalDateString(startDate) : '';
-        const startTime = startDate ? startDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
-        const endTime = endDate ? endDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
         const hours = ((a.duration || 0) / 3600).toFixed(2);
-        const title = (a.title || '').replace(/"/g, '""');
-        lines.push(`${date},${startTime},${endTime},"${a.project || 'General'}","${a.app || ''}","${title}",${hours},${a.billable !== false ? 'Yes' : 'No'}`);
+        lines.push([
+          dayCell(a.startTime), timeCell(a.startTime), timeCell(a.endTime),
+          textCell(a.project || 'General'), textCell(a.app), textCell(a.title),
+          hours, a.billable !== false ? 'Yes' : 'No'
+        ].join(','));
       });
 
       const csvContent = lines.join('\n');

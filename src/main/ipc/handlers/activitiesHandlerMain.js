@@ -6,6 +6,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const logger = require('../../logger');
 const sapCsv = require('../../exports/sap-csv');
+const { toActivitiesCsv } = require('../../exports/activities-csv');
 const { IpcError } = require('../../../shared/ipc/errors');
 const { toWireActivity, toWireActivities } = require('../wire-activity');
 const { localDay } = require('../../core/local-day');
@@ -181,24 +182,8 @@ class ActivitiesHandlerMain {
         throw new Error('No activities to export');
       }
 
-      // Generate CSV
-      const headers = ['Date', 'Start Time', 'End Time', 'Duration (min)', 'App', 'Title', 'Project', 'Billable'];
-      const rows = activities.map(a => {
-        const startDate = a.startTime ? new Date(a.startTime) : new Date();
-        const endDate = a.endTime ? new Date(a.endTime) : new Date();
-        return [
-          startDate.toLocaleDateString(),
-          startDate.toLocaleTimeString(),
-          endDate.toLocaleTimeString(),
-          Math.round((a.duration || 0) / 60),
-          `"${(a.app || '').replace(/"/g, '""')}"`,
-          `"${(a.title || '').replace(/"/g, '""')}"`,
-          `"${(a.project || 'General').replace(/"/g, '""')}"`,
-          a.billable !== false ? 'Yes' : 'No'
-        ].join(',');
-      });
-
-      const csvData = [headers.join(','), ...rows].join('\n');
+      // Text cells are quoted and cannot run as formulas; dates are YYYY-MM-DD (C-6)
+      const csvData = toActivitiesCsv(activities);
 
       // Default filename with date
       const today = localDay();
