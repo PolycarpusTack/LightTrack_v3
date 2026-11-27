@@ -472,6 +472,32 @@ test.describe('packaged application', () => {
     }
   });
 
+  // C-4: the rule tester uses the matcher tracking uses, from the renderer bundle.
+  test('rule tester matches the way tracking does', async () => {
+    const { app, page, errors } = await launch(userData);
+    try {
+      const toast = page.locator('.notification-toast').last();
+      const tryRule = async (pattern, sample) => {
+        await page.locator('#mapping-pattern').fill(pattern);
+        await page.locator('.btn-test-pattern[data-pattern-input="mapping-pattern"]').click();
+        await page.locator('#form-modal-fields [name="sample"]').fill(sample);
+        await page.locator('#form-modal-save').click();
+      };
+      await page.locator('.nav-btn[data-view="projects"]').click();
+      await expect(page.locator('#projects-list')).not.toHaveClass(/view-loading/);
+
+      await tryRule('*Outlook*', 'Inbox - Microsoft Outlook');
+      await expect(toast).toContainText('Pattern matches');
+      await tryRule('C++ Builder', 'main.cpp - C++ Builder');
+      await expect(toast).toContainText('Pattern matches');
+      await tryRule('/(a+)+$/', 'aaaa');
+      await expect(toast).toContainText('Pattern not used');
+      expect(errors).toEqual([]);
+    } finally {
+      await app.close();
+    }
+  });
+
   // B-7: the tag editor opens under the row that was clicked, and ticking a tag edits nothing else.
   test('tag editor opens on the clicked row', async () => {
     const seeded = fs.mkdtempSync(path.join(os.tmpdir(), 'lighttrack-harness-tags-'));

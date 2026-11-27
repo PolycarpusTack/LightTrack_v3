@@ -24,17 +24,12 @@ const CONSTANTS = {
 
   // Limits
   MAX_EXPORT_HISTORY: 20,
-  MAX_REGEX_LENGTH: 500,
-  MAX_TEST_INPUT_LENGTH: 2000,
 
   // Cache settings
   MAPPINGS_CACHE_TTL_MS: 60000,
 
   // UI behavior
-  AUTO_EXPAND_HOUR: 17,
-
-  // Regex flag validation pattern
-  VALID_REGEX_FLAGS: /^[gimsuy]*$/
+  AUTO_EXPAND_HOUR: 17
 };
 
 // Standardized error messages
@@ -2417,35 +2412,24 @@ async function testMappingPattern(inputId) {
   if (!values) return; // Cancelled
   const sampleText = values.sample;
 
-  try {
-    // Check if pattern is a regex (starts and ends with /)
-    let matches = false;
-    let matchDetails = '';
-
-    if (pattern.startsWith('/') && pattern.lastIndexOf('/') > 0) {
-      // Regex pattern
-      const lastSlash = pattern.lastIndexOf('/');
-      const regexStr = pattern.substring(1, lastSlash);
-      const flags = pattern.substring(lastSlash + 1);
-      const regex = new RegExp(regexStr, flags);
-      const match = sampleText.match(regex);
-      matches = !!match;
-      if (match && match.length > 1) {
-        matchDetails = `\nCaptured: ${match.slice(1).join(', ')}`;
-      }
-    } else {
-      // Simple string match (case-insensitive substring)
-      matches = sampleText.toLowerCase().includes(pattern.toLowerCase());
-    }
-
-    if (matches) {
-      showNotification(`✓ Pattern matches!${matchDetails}`, 'success');
-    } else {
-      showNotification('✗ Pattern does not match', 'error');
-    }
-  } catch (error) {
-    showNotification(`Invalid pattern: ${error.message}`, 'error');
+  // The same matcher tracking uses, so a match here is a match there (C-4)
+  const { compileRulePattern, rulePatternProblem, regexParts } = window.LightTrack.RulePattern;
+  const matches = compileRulePattern(pattern);
+  if (!matches) {
+    showNotification(`Pattern not used: ${rulePatternProblem(pattern)}`, 'error');
+    return;
   }
+  if (!matches(sampleText)) {
+    showNotification('✗ Pattern does not match', 'error');
+    return;
+  }
+  let matchDetails = '';
+  const parts = regexParts(pattern);
+  if (parts) {
+    const groups = sampleText.match(new RegExp(parts.body, parts.flags.replace(/[gy]/g, '')));
+    if (groups && groups.length > 1) matchDetails = `\nCaptured: ${groups.slice(1).join(', ')}`;
+  }
+  showNotification(`✓ Pattern matches!${matchDetails}`, 'success');
 }
 
 /**
@@ -2472,32 +2456,11 @@ async function findAndDisplayMatchedRule(activity) {
     const url = activity.url || '';
     const activityProject = activity.project || '';
 
-    // Helper to test if a pattern matches text (with ReDoS protection)
+    // The same matcher tracking uses (C-4)
     const testPattern = (pattern, text) => {
       if (!pattern || !text) return false;
-      try {
-        if (pattern.startsWith('/') && pattern.lastIndexOf('/') > 0) {
-          const lastSlash = pattern.lastIndexOf('/');
-          const regexStr = pattern.substring(1, lastSlash);
-          const flags = pattern.substring(lastSlash + 1);
-
-          // ReDoS protection: validate flags
-          if (!CONSTANTS.VALID_REGEX_FLAGS.test(flags)) return false;
-
-          // ReDoS protection: limit pattern length
-          if (regexStr.length > CONSTANTS.MAX_REGEX_LENGTH) return false;
-
-          const regex = new RegExp(regexStr, flags);
-          // ReDoS protection: limit input length
-          return regex.test(text.slice(0, CONSTANTS.MAX_TEST_INPUT_LENGTH));
-        } else {
-          // Plain text matching - also limit input length
-          const limitedText = text.slice(0, CONSTANTS.MAX_TEST_INPUT_LENGTH);
-          return limitedText.toLowerCase().includes(pattern.toLowerCase());
-        }
-      } catch {
-        return false;
-      }
+      const matches = window.LightTrack.RulePattern.compileRulePattern(pattern);
+      return matches ? matches(text) : false;
     };
 
     // Helper to get project from mapping value

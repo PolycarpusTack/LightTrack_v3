@@ -189,7 +189,7 @@ Create rules to automatically assign projects based on window patterns:
 
 1. Go to **Settings > Project Mappings**.
 2. Click **Add Rule**.
-3. Enter a pattern (supports wildcards and regex).
+3. Enter a pattern. Plain text matches anywhere, ignoring case; `*` stands for any characters; `/.../flags` is a regular expression (one that could be very slow is not used). The Test button matches the way tracking does.
 4. Select the target project.
 5. Click **Save**.
 
@@ -201,6 +201,8 @@ Create rules to automatically assign projects based on window patterns:
 | `*Outlook*` | Windows with "Outlook" anywhere in title | Communication |
 | `/JIRA-\d+/i` | JIRA ticket references (regex) | Project Management |
 | `Microsoft Teams` | Teams application | Meetings |
+
+Your rules come first: a Salesforce case you assigned, then meeting, JIRA, URL and app rules. Only when none matches does LightTrack guess (the IDE folder name, or "Meetings" for meeting-like titles), and then use the default project.
 
 #### URL Mappings
 
