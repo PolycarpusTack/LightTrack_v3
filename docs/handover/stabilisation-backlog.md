@@ -65,11 +65,12 @@ Synonyms to avoid: "record", "entry" (use activity or manual entry), "session" (
 ## Technical debt
 
 - **TD-1: Activity store — mixed time formats.** Tracked activities hold numbers, manual entries hold ISO text. Cause: tracker and manual path written separately. Principal: one migration. Interest: every reader must accept both. Servicing: LT3-102 (#13) defines one format in SQLite. Origin: A-2.
+- **TD-3: Activity store — dedup key on save.** `lightweightCleanup` deduplicates on save time plus title. Every activity saved since gets a save time, so only old records without one can collide and lose one copy. Principal: dedupe by `id`. Servicing: LT3-102 retires this file. Origin: outside review S-5.
 - **TD-2: Renderer — no automated tests for `app.js` and the modules.** Interest: screen defects are found by hand. Servicing: the harness stories A-9 and B-12 cover the main flows; the rest waits for the renderer TypeScript work.
 
 ## Backlog
 
-Sequence: A-1 to A-9, then B-1 to B-12 without B-5. Each story unblocks the next unless stated. Two epics, 20 stories. Story IDs are not renumbered.
+Sequence: A-1 to A-9, then B-1 to B-12 without B-5, then C-1 to C-10. Each story unblocks the next unless stated. Three epics, 30 stories. Story IDs are not renumbered. Epic C was added on 2026-11-27 from an outside code review, checked against the code first.
 
 ---
 
@@ -633,7 +634,19 @@ Scenario: help
   Then the help view describes no shortcut or feature that is absent from an installed build
 ```
 
-Three small tasks, one PR.
+Four small tasks, one PR.
+
+```gherkin
+Scenario: today total with a resumed activity
+  Given Chrome was tracked 09:00-09:10 and Code 09:10-12:00, both stored
+  When Chrome is resumed at 12:00 and tracked for 60 s
+  Then the tray shows 3 h 1 min, not 6 h 1 min
+```
+
+**B-11-T0** · Hat: FEATURE · Tier: X · Run: AFK (added 2026-11-27, outside review S-3)
+- Goal: `tracker.getTodayTotal()` adds only the time not yet stored. Today it adds now minus the start of the open activity, and a resumed activity keeps its first start of the day, so the tray tooltip is hours too high.
+- Verify: `npx jest --config jest.baseline.config.js -t "today total"`, red before.
+- Do not touch: `get-today-total` in the activities handler (reads storage only, correct). Unblocks: B-11-T1.
 
 **B-11-T1** · Hat: FEATURE · Tier: V · Run: AFK
 - Goal: subscribe to `open-settings`, and show today's total in the tray menu item.
@@ -667,16 +680,288 @@ Scenario: the main flows
 - Goal: add the three flows to the packaged-app harness.
 - Verify: `npm run test:app -- -g "main flows"`.
 - Do not touch: harness isolation (LT3-005).
-- Pull gate: B-1, A-4, A-5 merged. Unblocks: END OF EPIC B; then retrospective, update `docs/handover/STATUS.md`, return to LT3-102 (#13).
+- Pull gate: B-1, A-4, A-5 merged. Unblocks: END OF EPIC B; then retrospective, update `docs/handover/STATUS.md`, then C-1.
+
+---
+
+## EPIC C — Recorded time is complete, on the right project, and safe to export
+
+Source: an outside code review of 2026-11-27 (`main` at `afea74b`), checked against `main` at `e9392f1` on the same day. All 14 items hold at least in part. Below: what is added and where; the parts that did not hold are left out (`get-focus-stats` stores full timestamps, so it has no UTC bug; a CI type-check step adds nothing, as `build` runs the type checks).
+
+- **Objective:** no tracked time is lost or put on the wrong project without the user seeing it, and no export or log leaks or runs what a window title contains.
+- **Tracer bullet:** no.
+- **Mode:** DELIVERY
+- **Definition of Done:** each story's scenarios pass as tests; the rules of this backlog apply unchanged, including "no story changes the stored data format".
+- **Checks the harness cannot make:** tracking stays off in the harness, so C-2 and C-4 are checked in main by tests, and by the owner in daily use.
+- **Business value:** the owner can bill what was worked. Measure: stories of this epic still open, 10 at the start, target 0.
+- **Risks:** Med — C-3 and C-4 change how time is assigned. Mitigation: each story has a failing test first, and C-3 waits for an owner decision.
+- **ADRs:** none.
+- **Smoke test story:** none new; B-12 and A-9 cover the screens.
+
+Placed after Epic B. C-1 to C-4 carry priority H and may be pulled in front of B-8 to B-12 if the owner prefers; they do not depend on Epic B.
+
+Also added elsewhere:
+- **B-11-T0** (from S-3): the today total in the tray.
+- **TD-3** (from S-5): the dedup key in `lightweightCleanup`.
+- **"Not yet specified"** (from S-6 and S-11): the extension items now name their cause.
+- **LT3-102** (from S-14): the atomic write in `sqlite-db.ts`.
+- **LT3-603** (from S-14): the duplicate updater listeners, already there.
+
+### C-1 — Editing or deleting the tracked activity says why, and tracking leaves manual entries alone
+
+As the owner I want a refused edit to give its reason, and a deletion to stay deleted.
+Value: High. Priority: H. Size: S. DoR: READY.
+
+```gherkin
+Scenario: edit the activity being tracked
+  Given an activity is being tracked
+  When I save a change to it
+  Then I see "Stop tracking before editing this activity"
+
+Scenario: delete the activity being tracked
+  Given an activity is being tracked
+  When I delete it
+  Then main refuses with that reason and the activity stays
+
+Scenario: a manual entry is not resumed
+  Given a manual entry today for app "Chrome", project "General"
+  When the tracker tracks Chrome under "General"
+  Then it starts a separate tracked activity and the manual entry is unchanged
+```
+
+**C-1-T1** · Hat: FEATURE · Tier: X · Run: AFK
+- Goal: `updateActivity` and `deleteActivity` in the preload pass main's message through (`useMainMessage`); `activities:delete` refuses the tracked activity with `CONFLICT`; `findActivityByAppAndProject` skips `isManual` entries.
+- Evidence: `src/preload/index.ts` uses `fail(...)` for both, which replaces main's message. The deleted tracked activity is re-added in full by the next save (`saveActivityToExisting` finds no record and calls `addActivity`).
+- Verify: `npx jest --config jest.baseline.config.js -t "tracked activity conflict"`, red before.
+- Do not touch: the edit rules from A-4.
+- Pull gate: none. Unblocks: C-2. Confidence: High.
+
+### C-2 — A short return to an activity, or a second case, is saved
+
+As the owner I want every tracked minute stored, also when I come back to an app for a few seconds.
+Value: High. Priority: H. Size: S. DoR: READY.
+
+```gherkin
+Scenario: short return to a saved activity
+  Given an activity saved with 62 s
+  When it is resumed for 5 s and saved again
+  Then storage holds 67 s
+
+Scenario: same app and project, another Salesforce case
+  Given an activity for case A is saved
+  When an activity for case B with the same app, project and duration bucket is saved
+  Then both are stored
+
+Scenario: fractional seconds carry over
+  Given 10 ticks of 5,500 ms
+  Then 55 s are credited
+```
+
+**C-2-T1** · Hat: FEATURE · Tier: X · Run: AFK
+- Goal: the duplicate-save check compares the last saved `{ id, duration, endTime, title }` of that activity instead of an app, project, day and 10 s bucket key that never expires.
+- Verify: `npx jest --config jest.baseline.config.js -t "save is not skipped"`, red before.
+- Unblocks: C-2-T2.
+
+**C-2-T2** · Hat: FEATURE · Tier: X · Run: AFK
+- Goal: credit whole seconds and carry the remainder: advance `lastActiveTime` by the credited time, and reset it to now on a gap, pause or resume.
+- Verify: `npx jest --config jest.baseline.config.js -t "fractional seconds"`, red before.
+- Do not touch: the gap cap and sleep handling from A-7.
+- Pull gate: C-1 merged. Unblocks: C-3. Confidence: High.
+
+### C-3 — Saving does not merge stored activities into a reversed span
+
+As the owner I want two separate entries to stay two entries with their own times.
+Value: High. Priority: H. Size: S. DoR: NEEDS OWNER DECISION.
+
+```gherkin
+Scenario: two manual entries saved within five minutes
+  Given manual entries "X" 09:00-10:00 and "X" 14:00-15:00 for the same project
+  When both are saved within five minutes
+  Then both are stored with their own start and end
+```
+
+Evidence: `mergeConsecutiveActivities` in `lightweight-storage.js` runs on every save. It compares save times, not activity times. The store is newest first, so a merge keeps the newer start and the older end: 14:00 to 10:00 with 7,200 s, and the older id is lost. Two Mark breaks within five minutes do the same.
+
+**C-3-T1** · Hat: FEATURE · Tier: X · Run: AFK
+- Goal, depending on the owner's choice:
+  - **(a), recommended:** stop merging on save. The tracker already consolidates one activity per app, project and day.
+  - **(b):** merge only activities that are adjacent in time, keeping the earliest start and the latest end.
+- Verify: `npx jest --config jest.baseline.config.js -t "stays two entries"`, red before.
+- Do not touch: the A-8 rules (nothing is dropped on save); existing stored activities (no bulk rewrite).
+- Pull gate: the owner picks (a) or (b). Unblocks: C-4. Confidence: High.
+
+### C-4 — My rules win over guesses, and match the way the tester says
+
+As the owner I want an app, URL or Jira rule I made to set the project, and the Test button to tell the truth.
+Value: High. Priority: H. Size: M. DoR: READY.
+
+```gherkin
+Scenario: a rule beats the IDE folder and the meeting guess
+  Given an app rule "LightTrack" -> "Client A"
+  When the window is "review.js - LightTrack - Visual Studio Code"
+  Then the project is "Client A", not "Meetings" and not "LightTrack"
+
+Scenario: tester and tracker agree
+  Given rules "/JIRA-\d+/i" -> "Support" and "C++ Builder" -> "Tools"
+  Then each matches the same text in the rule tester and in tracking
+
+Scenario: a rule applies all its booking fields
+  Given a URL, app or meeting rule with activity, SAP code, cost center and WBS element
+  When it matches
+  Then all of them are set on the activity
+```
+
+Evidence: `TitleParser.parse` runs `detectActivityType` first. It sets "Meetings" for any title containing "review", "sync" or "call" (no word boundaries), or the IDE folder name. Jira, URL and app rules then stop at `if (extracted.project)`. App and meeting rules compile the raw text as a regular expression, so `/re/` rules never fire. `*Outlook*` (in the README) and `C++` fail to compile and are skipped without notice. URL rules use plain text only. URL, app and meeting rules drop cost center and WBS element.
+
+**C-4-T1** · Hat: FEATURE · Tier: X · Run: AFK
+- Goal: user rules run before the guesses, in this order: Salesforce case, meeting, Jira, URL, app. The guesses (IDE folder, "Meetings", default project) apply only when no rule matched. Tag detection stays independent of the project.
+- Verify: `npx jest --config jest.baseline.config.js -t "rule beats guess"`, red before.
+- Unblocks: C-4-T2.
+
+**C-4-T2** · Hat: FEATURE · Tier: X · Run: AFK
+- Goal: one pattern matcher in `src/shared/`, used by `TitleParser` (compiled once per rule) and by the rule tester:
+  - `/re/flags` is a regular expression, with the existing ReDoS check;
+  - anything else is a case-insensitive substring;
+  - one booking-field helper for all rule types.
+- Verify: `npx jest --config jest.baseline.config.js -t "tester and tracker agree"`, red before.
+- Do not touch: the stored rule format; ordered rules and explanations stay in LT3-301.
+- Pull gate: C-3 merged. Unblocks: C-5. Confidence: Med.
+
+### C-5 — A day asked for is that day in every timezone
+
+Value: Med. Priority: M. Size: S. DoR: READY.
+
+```gherkin
+Scenario: west of UTC
+  Given the timezone is America/New_York
+  When the window asks activities:get for "2026-11-27"
+  Then storage is asked for "2026-11-27"
+```
+
+**C-5-T1** · Hat: FEATURE · Tier: X · Run: AFK
+- Goal: `activities:get` passes a `YYYY-MM-DD` argument through unchanged. Today `new Date('2026-11-27')` is read as UTC midnight, and `localDay` then turns it into the 26th west of UTC. Remove `activities:get-stats` and `get-focus-stats` if they are still unused, or give the first an upper bound.
+- Verify: `npx jest --config jest.baseline.config.js -t "west of UTC"` (a test file pinned to `America/New_York`), red before.
+- Pull gate: C-4 merged. Unblocks: C-6. Confidence: High.
+
+### C-6 — An exported CSV cannot run a formula
+
+Value: Med. Priority: M. Size: S. DoR: READY.
+
+```gherkin
+Scenario: a window title that looks like a formula
+  Given an activity titled '=HYPERLINK("https://example.test","x")'
+  When I export activities, or the analytics, to CSV
+  Then the cell starts with a single quote and is quoted
+```
+
+**C-6-T1** · Hat: FEATURE · Tier: X · Run: AFK
+- Goal:
+  - `activities:export` and `exportAnalyticsToCSV` use the same text cell as the SAP export (`textCell` in `sap-csv.ts`, moved to a shared helper);
+  - dates as `YYYY-MM-DD`;
+  - every text field quoted and escaped.
+- Verify: `npx jest --config jest.baseline.config.js -t "csv formula"`, red before.
+- Do not touch: the SAP export column layout (LT3-302).
+- Pull gate: C-5 merged. Unblocks: C-7. Confidence: High.
+
+### C-7 — The calendar URL is never logged, and private IPv6 addresses are refused
+
+Value: Med. Priority: M. Size: S. DoR: READY.
+
+```gherkin
+Scenario: sync
+  When calendar sync runs with a private feed URL
+  Then nothing written to the console or the log contains the URL's path or token
+
+Scenario: IPv6
+  When I enter "https://[::1]/cal.ics" or "https://[fe80::1]/cal.ics"
+  Then the URL is refused
+```
+
+**C-7-T1** · Hat: FEATURE · Tier: X · Run: AFK
+- Goal:
+  - `calendar-sync-service.js` logs only `maskUrl(...)`. The `console.log` of the full URL breaks this backlog's rule on logging URLs and tokens.
+  - Strip the brackets from an IPv6 host and test the private patterns, `::ffff:` mapped addresses included, whatever the address family.
+- Verify: `npx jest --config jest.baseline.config.js -t "calendar url"`, red before.
+- Pull gate: C-6 merged. Unblocks: C-8. Confidence: High.
+
+### C-8 — Recurring meetings appear, and subjects keep their characters
+
+Value: Med. Priority: M. Size: M. DoR: READY.
+
+```gherkin
+Scenario: weekly meeting created two months ago
+  Given an event with RRULE:FREQ=WEEKLY that started 60 days ago
+  When the calendar syncs this week
+  Then this week's occurrence is listed with the event's length
+
+Scenario: subject with an apostrophe
+  Given a meeting "O'Brien / Q4 sync"
+  Then the meeting list shows "O'Brien / Q4 sync"
+```
+
+**C-8-T1** · Hat: FEATURE · Tier: X · Run: AFK
+- Goal:
+  - `parseEventsToMeetings` expands `rrule` within the range, honouring `exdate` and `recurrences`.
+  - Store plain text with control characters removed. Today `sanitizeString` stores HTML entities, and the screen escapes them again; meeting rules also miss the stored text.
+  - Clear the fetch timeout when the fetch settles.
+- Verify: `npx jest --config jest.baseline.config.js -t "calendar recurrence"`, red before.
+- Pull gate: C-7 merged. Unblocks: C-9. Confidence: Med.
+
+### C-9 — Settings are checked against what is stored
+
+Value: Low. Priority: L. Size: S. DoR: READY.
+
+```gherkin
+Scenario: only the start time is sent
+  Given the stored work day ends at 18:00
+  When a save sends only workDayStart "20:00"
+  Then it is refused
+
+Scenario: break reminder interval
+  When a save sends breakReminderInterval 0
+  Then it is refused with the allowed range
+```
+
+**C-9-T1** · Hat: FEATURE · Tier: X · Run: AFK
+- Goal:
+  - validate the merged settings (stored settings plus the payload, without `null` or `undefined` keys);
+  - require `HH:MM` for times;
+  - allow a break reminder interval of 5 to 480 minutes.
+- Verify: `npx jest --config jest.baseline.config.js -t "settings round trip"`, red before.
+- Pull gate: C-8 merged. Unblocks: C-10. Confidence: High.
+
+### C-10 — Start-up, quit and navigation are guarded; unused files go
+
+Value: Low. Priority: L. Size: S. DoR: READY.
+
+**C-10-T1** · Hat: FEATURE · Tier: X · Run: AFK
+- Goal:
+  - take the single-instance lock before `init()`;
+  - the tracker reads the main window through a getter;
+  - `before-quit` runs its cleanup once;
+  - `will-navigate` catches a malformed URL and allows only the app's own `index.html`.
+- Verify: `npx jest --config jest.baseline.config.js -t "navigation guard"`, red before; `npm run test:app`.
+- Unblocks: C-10-T2.
+
+**C-10-T2** · Hat: CHORE · Tier: X · Run: AFK
+- Goal:
+  - cache the executable description lookup in `active-window.ts`, today read from disk on every poll;
+  - delete `vendor/`, `config/*.json`, and the broken `test/unit/` with its `test:legacy` script, after checking nothing references them.
+- Verify: all gates.
+- Pull gate: C-9 merged. Unblocks: END OF EPIC C; then retrospective, update `docs/handover/STATUS.md`, return to LT3-102 (#13). Confidence: High.
 
 ---
 
 ## Not yet specified
 
 - **Browser extension keeps its pairing after the service worker restarts.** Hangs on a check in a real browser (also item 4 under "Waiting on the owner"). Graduates after the owner pairs once and reports whether "Not connected" returns.
+  - Likely cause, from the outside review of 2026-11-27 (S-11) and checked in `browser-extension/background.js`. The pairing is kept: the token is in `storage.local`, and tracking re-checks before it sends. But `getStatus` answers at once from in-memory flags that start false, so the popup says "Not connected" until a check finishes.
+  - Also found: the saved port is read without waiting; the heartbeat uses `setInterval`, which stops when the worker sleeps; Edge reports as Chrome (it checks `Chrome` before `Edg/`).
+- **Extension context only on a browser activity (outside review S-6).** `processBrowserActivity` and `processPageContext` change the open activity's project and tickets without checking that it is a browser. A background tab, or a page message after Alt+Tab, can re-project the IDE activity. A small guard reusing the browser list in `canContinueActivity`. Hangs on whether the extension is in the first release; make it a story as soon as the extension is in use.
 - **Extension: "Open LightTrack", Firefox claim, GitLab and Azure DevOps context.** Hangs on whether the extension is in the first release. Graduates with the B retrospective.
 - **Break reminders in main.** They run in the renderer only, so not when the window is hidden. Hangs on whether reminders are wanted at all.
-- **Updates screen.** In-app updates are off by policy; the unused updater API stays until LT3-603 (#33).
+- **Updates screen.** In-app updates are off by policy; the unused updater API stays until LT3-603 (#33). LT3-603 should also remove the duplicate `electron-updater` listeners in `auto-updater.js` and `updaterHandlerMain.js` (outside review S-14).
+- **Atomic write in `sqlite-db.ts`.** `writeFileAtomic` leaves its temp file on failure and has no retry for Windows `EPERM`/`EACCES` during the rename. Harden in LT3-102 (#13), before SQLite holds the live data (outside review S-14).
 - **Restore, import, retention.** Already LT3-104 (#15), LT3-105 (#16), LT3-601 (#31).
 - **Tracked activity as real time blocks** instead of one resumed span per app, project and day. LT3-401 (#25).
 - **Minimum window width 1024 px** (owner decision; the window still allows 800) and the removed `crashed` window event. Small; fold into the design work of Increment C unless they bite sooner.
