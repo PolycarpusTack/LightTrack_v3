@@ -4,6 +4,7 @@
 const Store = require('electron-store');
 const { safeStorage, app } = require('electron');
 const { resolveStorageKey } = require('./storage-key');
+const { localDay } = require('./local-day');
 const {
   MAX_ACTIVITIES,
   COMPRESSION_THRESHOLD,
@@ -316,8 +317,7 @@ class LightweightStorage {
           // Convert timestamp to local date string
           const ts = activity.timestamp || activity.startTime;
           if (!ts) return false;
-          const d = new Date(ts);
-          activityDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+          activityDateStr = localDay(ts);
         }
         return activityDateStr >= startDateStr && activityDateStr <= endDateStr;
       });

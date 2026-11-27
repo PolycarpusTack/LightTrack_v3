@@ -8,6 +8,7 @@ const logger = require('../../logger');
 const sapCsv = require('../../exports/sap-csv');
 const { IpcError } = require('../../../shared/ipc/errors');
 const { toWireActivity, toWireActivities } = require('../wire-activity');
+const { localDay } = require('../../core/local-day');
 
 /**
  * Activities Handler for main.js
@@ -37,11 +38,7 @@ class ActivitiesHandlerMain {
       if (date) {
         const targetDate = new Date(date);
         if (!isNaN(targetDate.getTime())) {
-          // Use local date string to match how activities are stored
-          const year = targetDate.getFullYear();
-          const month = String(targetDate.getMonth() + 1).padStart(2, '0');
-          const day = String(targetDate.getDate()).padStart(2, '0');
-          const dateStr = `${year}-${month}-${day}`;
+          const dateStr = localDay(targetDate);
           return toWireActivities(await this.storage.getActivities({
             startDate: dateStr,
             endDate: dateStr
@@ -67,6 +64,10 @@ class ActivitiesHandlerMain {
         const start = new Date(safeActivity.startTime);
         const end = new Date(safeActivity.endTime);
         safeActivity.duration = Math.floor((end - start) / 1000);
+      }
+      // File it on the local day it started, not the day it was typed in (A-5).
+      if (safeActivity.startTime) {
+        safeActivity.date = localDay(safeActivity.startTime);
       }
 
       safeActivity.actualDuration = safeActivity.duration;
@@ -113,6 +114,8 @@ class ActivitiesHandlerMain {
           safeUpdates.duration = Math.max(0, Math.floor((end - start) / 1000));
           safeUpdates.actualDuration = safeUpdates.duration;
         }
+        // A moved start moves the activity to that start's local day (A-5).
+        if (Number.isFinite(start)) safeUpdates.date = localDay(start);
       } else {
         // Unchanged times: keep the stored duration, whatever the dialog computed.
         delete safeUpdates.duration;
@@ -187,7 +190,7 @@ class ActivitiesHandlerMain {
       const csvData = [headers.join(','), ...rows].join('\n');
 
       // Default filename with date
-      const today = new Date().toISOString().split('T')[0];
+      const today = localDay();
       const filename = `lighttrack-export-${today}.csv`;
       const documentsPath = app.getPath('documents');
       const defaultPath = path.join(documentsPath, filename);
@@ -231,7 +234,7 @@ class ActivitiesHandlerMain {
 
       const csvData = sapCsv.toCsv(rows, request.employeeId);
 
-      const today = new Date().toISOString().split('T')[0];
+      const today = localDay();
       const filename = `lighttrack-sap-export-${today}.csv`;
       const defaultPath = path.join(app.getPath('documents'), filename);
 
@@ -324,7 +327,7 @@ class ActivitiesHandlerMain {
     // Get today's total activity time
     registry.handle('get-today-total', async () => {
       try {
-        const today = new Date().toISOString().split('T')[0];
+        const today = localDay();
         const activities = await this.storage.getActivities({
           startDate: today,
           endDate: today

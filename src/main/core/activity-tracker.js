@@ -19,17 +19,8 @@ const {
   IPC_CHANNELS
 } = require('../../shared/constants');
 
-/**
- * Get local date string (YYYY-MM-DD) from timestamp
- * Avoids UTC conversion issues that cause activities to appear on wrong day
- */
-function getLocalDateString(timestamp = Date.now()) {
-  const date = new Date(timestamp);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
+// Local date string (YYYY-MM-DD); the UTC day puts activities on the wrong day.
+const { localDay: getLocalDateString } = require('./local-day');
 
 /**
  * Activity Tracker - Production-ready implementation

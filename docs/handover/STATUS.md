@@ -1,18 +1,27 @@
 # LightTrack v3: status and pickup
 
-**Last updated:** 2026-11-26, before a reboot
-**`main`:** `197e019`, CI green. No open pull requests apart from the one that carries this status.
-**Next step:** story A-4 of `docs/handover/stabilisation-backlog.md` (editing keeps duration and title), branch `fix/a-4-edit-keeps-duration` from `main`.
+**Last updated:** 2026-11-27
+**`main`:** `fb5e8a5`, CI green. Open: the A-5 PR, which carries this status.
+**Next step:** once A-5 is merged, story A-6 of `docs/handover/stabilisation-backlog.md` (the tray and the window agree on tracking), branch `fix/a-6-tray-sync` from `main`.
 
 ## Where we are
 
 The owner reported on 2026-11-26 that tracking runs but no records appear. A functional audit found the cause and a set of other defects. `docs/handover/stabilisation-backlog.md` fixes them in order: two epics, 20 stories, one PR each, approved by the owner and checked by an independent validation pass. The backlog sits in front of Increment B; LT3-102 (#13) follows it.
 
-**Done: A-1 to A-3. Next: A-4 to A-9, then B-1 to B-12 (B-5 is dropped).**
+**Done: A-1 to A-4; A-5 waits for approval. Next: A-6 to A-9, then B-1 to B-12 (B-5 is dropped).**
 
 The first-release workflow (approval, booking lines, CSV hand-off, RDP) is still not built; see plan section 16 and `docs/design/first-release/REVIEW.md`.
 
 **Installer:** `dist/LightTrack Setup 3.0.0.exe`, built on 2026-11-26 from `main` at `6753529`. It includes A-1 and A-2 (the fix for the missing records) and #57, but not A-3. It was not run through the harness locally; the same code passed CI on #61. Unsigned, so SmartScreen warns on first run ("More info" > "Run anyway"). Data lives in `%APPDATA%\LightTrack` and survives reinstalls. Rebuild with `npm run electron:build:win` on `main`, and do not switch branches while it builds.
+
+## Merged on 2026-11-27
+
+- **#64 A-4** editing keeps duration and title. The edit dialog sends only the fields that changed and never the title; main replaces the duration with end minus start only when a time moves, and refuses edits to the activity being tracked. A time change on a tracked activity asks for confirmation first. The dialog shows the local date.
+- **#63** status after A-1 to A-3.
+
+## In review
+
+- **A-5** an activity is filed on the local day it started. Manual entries had no `date`, so the day filter used the save time and filed an entry for yesterday under today. Main now sets `date` from the local start on save and when the start moves, and both today-total paths use the local day. One helper, `src/main/core/local-day.ts`, replaces the copies of the day formatting in main, including four that used the UTC day. Existing entries are not backfilled: an old manual entry for another day stays under the day it was typed in until its start is edited.
 
 ## Merged on 2026-11-26
 
@@ -24,8 +33,7 @@ The first-release workflow (approval, booking lines, CSV hand-off, RDP) is still
 
 ## Still broken until its story lands
 
-- **Editing a tracked activity rewrites its duration** to end minus start, and its title to the app name (A-4). Avoid editing tracked activities until then.
-- A manual entry for another day is filed under today (A-5).
+- A manual entry for another day is filed under today (A-5, in review). Entries made before the fix stay where they are.
 - Stopping from the tray desynchronises tracking; saving a setting restarts it (A-6).
 - Sleep and lock time is probably counted; not yet confirmed by a test (A-7).
 - Storage removes activities under the minimum duration on every save and cuts the list at 10,000 (A-8).
@@ -56,14 +64,14 @@ Recorded in the plan's decisions table, plus those of 2026-11-26:
 
 ## Next (in order)
 
-1. **A-4** editing keeps duration and title. Two tasks, one PR: the handler (refuse edits to the activity being tracked, recompute duration only when a time changed), then the edit dialog (send only changed fields, warn before a time change replaces a tracked duration, local date).
-2. **A-5 to A-9**, then the Epic A retrospective. A-9 (harness smoke test with a seeded tracked activity) may be pulled forward.
+1. **A-5** merge after approval.
+2. **A-6 to A-9**, then the Epic A retrospective. A-9 (harness smoke test with a seeded tracked activity) may be pulled forward.
 3. **B-1 to B-12** without B-5, then the Epic B retrospective.
 4. **LT3-102 (#13)** typed repositories on the LT3-101 schema, then LT3-103 to LT3-105 (#14 to #16), Increment C (#17 to #21), the CSV hand-off (#22, #23), RDP (#26, #27), #31, #33.
 
 ## Working notes
 
-- Gates: `npm run lint`, `npm run typecheck`, `npm run test:ci` (baseline Jest, TS via ts-jest; 177 tests), `npm run build` (into `out/`), `npm run security:audit`, `npm run electron:build:win` (production build and installer), `npm run test:app` (harness, 10 tests, against `dist/win-unpacked`; set `LIGHTTRACK_EXE` to test another build).
+- Gates: `npm run lint`, `npm run typecheck`, `npm run test:ci` (baseline Jest, TS via ts-jest; 185 tests), `npm run build` (into `out/`), `npm run security:audit`, `npm run electron:build:win` (production build and installer), `npm run test:app` (harness, 11 tests, against `dist/win-unpacked`; set `LIGHTTRACK_EXE` to test another build).
 - The harness tests a packaged build, not the source: repackage after every source change. Without touching `dist/`: `npm run build:prod && npx electron-builder --win --dir --publish never --config.directories.output=<scratch dir>`, then `LIGHTTRACK_EXE=<scratch dir>/win-unpacked/LightTrack.exe npm run test:app`.
 - On a busy machine the full harness run can fail in "stores a manual entry" (timeout) and "keeps row actions visible" (it needs that entry). Both pass alone and in CI. Trust CI, and read the error before blaming load.
 - Lockfile: CI installs with npm 10 (Node 22). A lockfile written by npm 11 can fail `npm ci` there. After changing dependencies run `npx npm@10 install --package-lock-only`.
@@ -77,4 +85,4 @@ Recorded in the plan's decisions table, plus those of 2026-11-26:
 
 ## Pickup prompt
 
-> Continue LightTrack v3 in `C:\Projects\Other\LightTrack_v3`. Read `docs/handover/STATUS.md` first, then `docs/handover/stabilisation-backlog.md` ("Rules for every item" and the next open story). Ask me whether my records appeared after installing the new build, and check "Waiting on the owner" for anything else I have answered. Then start the first story under "Next" (A-4): branch from `main`, write the failing test first, implement, keep lint, typecheck, `test:ci`, build, the audit and the packaged-app harness green, open a PR and report CI. One story and one PR at a time. Use `docs/design/first-release` for any UI work. Keep the plain, concise writing style used in the docs. Ask me before merging, and update this file when a story is merged.
+> Continue LightTrack v3 in `C:\Projects\Other\LightTrack_v3`. Read `docs/handover/STATUS.md` first, then `docs/handover/stabilisation-backlog.md` ("Rules for every item" and the next open story). Ask me whether my records appeared after installing the new build, and check "Waiting on the owner" for anything else I have answered. Then start the first open story under "Next": branch from `main`, write the failing test first, implement, keep lint, typecheck, `test:ci`, build, the audit and the packaged-app harness green, open a PR and report CI. One story and one PR at a time. Use `docs/design/first-release` for any UI work. Keep the plain, concise writing style used in the docs. Ask me before merging, and update this file when a story is merged.

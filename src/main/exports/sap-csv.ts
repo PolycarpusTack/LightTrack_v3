@@ -11,6 +11,7 @@
  * The column layout and line endings match the previous export. They will move
  * into versioned export profiles in LT3-302.
  */
+import { localDay } from '../core/local-day';
 
 export const HEADERS = [
   'Employee ID',
@@ -130,13 +131,6 @@ export function validateRequest(options: SapRequestInput, { requireEmployeeId = 
   return { startDate, endDate, employeeId: trimmedId, descriptions };
 }
 
-/** Local calendar date (YYYY-MM-DD), matching how the renderer groups days. */
-function localDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
 
 export function defaultDescription(project: string, activityType: string, jiraKeys: readonly string[]): string {
   const base = `${project} - ${activityType}`;
@@ -175,7 +169,7 @@ export function buildRows(
     const duration = Number(activity.duration);
     if (!Number.isFinite(duration) || duration <= 0) continue;
 
-    const date = localDate(started);
+    const date = localDay(started);
     const project = String(activity.project || 'General');
     const key = `${date}|${project}`;
 
