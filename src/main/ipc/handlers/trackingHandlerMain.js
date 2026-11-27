@@ -1,117 +1,84 @@
-// trackingHandlerMain.js - Tracking IPC Handler for main.js
-// Extracted from main.js to improve modularity without breaking existing functionality
+// trackingHandlerMain.js - Tracking IPC handlers
+//
+// The tracker is the only source of tracking state (A-6). The tray starts and stops
+// the tracker directly, so these handlers read it on every call and keep no copy.
 
 const logger = require('../../logger');
+const { toWireActivity } = require('../wire-activity');
 
-/**
- * Tracking Handler for main.js
- * Registers all tracking-related IPC handlers using the existing pattern
- */
+const DEFAULT_SAMPLING_SECONDS = 5;
+
 class TrackingHandlerMain {
-  constructor(appState, toggleTracking, handleIdleDecision) {
-    logger.debug('TrackingHandlerMain constructor called');
-    logger.debug('appState:', { exists: !!appState, hasTracking: !!(appState && appState.tracking) });
-
-    this.appState = appState;
-    this.toggleTracking = toggleTracking;
+  /**
+   * @param {() => object|null} getTracker - the activity tracker, or null before it exists
+   * @param {() => void} onChanged - called after a handler started or stopped tracking
+   * @param {(wasWorking: boolean) => Promise<void>} handleIdleDecision
+   */
+  constructor(getTracker, onChanged, handleIdleDecision) {
+    this.getTracker = getTracker;
+    this.onChanged = onChanged || (() => {});
     this.handleIdleDecision = handleIdleDecision;
   }
 
-  /**
-   * Register all tracking IPC handlers
-   */
+  /** The tracker, or an error the renderer can show. */
+  tracker() {
+    const tracker = this.getTracker();
+    if (!tracker) throw new Error('Tracker not initialized');
+    return tracker;
+  }
+
+  /** Tracking state as the tracker holds it now. */
+  state() {
+    const tracker = this.getTracker();
+    const isActive = Boolean(tracker?.isTracking);
+    return {
+      isActive,
+      isTracking: isActive,
+      currentActivity: isActive ? toWireActivity(tracker.currentActivity || null) : null,
+      sessionStartTime: isActive ? tracker.sessionStartTime || null : null,
+      lastActivityTime: isActive ? tracker.lastActiveTime || null : null,
+      samplingRate: tracker?.currentCheckInterval ? tracker.currentCheckInterval / 1000 : DEFAULT_SAMPLING_SECONDS
+    };
+  }
+
   registerHandlers(registry) {
     logger.debug('Registering Tracking IPC handlers...');
 
-    // Toggle tracking
     registry.handle('tracking:toggle', async () => {
-      // Ensure appState exists
-      if (!this.appState || !this.appState.tracking) {
-        logger.error('TrackingHandlerMain: appState not properly initialized');
-        return { isActive: false };
+      const tracker = this.tracker();
+      if (tracker.isTracking) {
+        await tracker.stop();
+      } else {
+        await tracker.start();
       }
-
-      const result = await this.toggleTracking();
-      return result || {
-        isActive: this.appState.tracking.isActive,
-        currentActivity: this.appState.tracking.currentActivity
-      };
+      this.onChanged();
+      return this.state();
     });
 
-    // Start tracking (idempotent - no-op if already active)
+    // Idempotent: no-op when the tracker is already running
     registry.handle('tracking:start', async () => {
-      if (!this.appState || !this.appState.tracking) {
-        logger.error('TrackingHandlerMain: appState not properly initialized');
-        return { isActive: false, wasAlreadyActive: false };
+      const tracker = this.tracker();
+      if (tracker.isTracking) {
+        return { ...this.state(), wasAlreadyActive: true };
       }
-
-      // If already tracking, return current state without toggling
-      if (this.appState.tracking.isActive) {
-        return {
-          isActive: true,
-          wasAlreadyActive: true,
-          currentActivity: this.appState.tracking.currentActivity
-        };
-      }
-
-      // Not tracking, so toggle to start
-      const result = await this.toggleTracking();
-      return {
-        ...(result || { isActive: this.appState.tracking.isActive }),
-        wasAlreadyActive: false,
-        currentActivity: this.appState.tracking.currentActivity
-      };
+      await tracker.start();
+      this.onChanged();
+      return { ...this.state(), wasAlreadyActive: false };
     });
 
-    // Stop tracking (idempotent - no-op if already stopped)
+    // Idempotent: no-op when the tracker is already stopped
     registry.handle('tracking:stop', async () => {
-      if (!this.appState || !this.appState.tracking) {
-        logger.error('TrackingHandlerMain: appState not properly initialized');
-        return { isActive: false, wasAlreadyStopped: true };
+      const tracker = this.tracker();
+      if (!tracker.isTracking) {
+        return { ...this.state(), wasAlreadyStopped: true };
       }
-
-      // If not tracking, return current state without toggling
-      if (!this.appState.tracking.isActive) {
-        return {
-          isActive: false,
-          wasAlreadyStopped: true,
-          currentActivity: null
-        };
-      }
-
-      // Currently tracking, so toggle to stop
-      const result = await this.toggleTracking();
-      return {
-        ...(result || { isActive: this.appState.tracking.isActive }),
-        wasAlreadyStopped: false,
-        currentActivity: null
-      };
+      await tracker.stop();
+      this.onChanged();
+      return { ...this.state(), wasAlreadyStopped: false };
     });
 
-    // Get current activity
-    registry.handle('tracking:get-current', () => {
-      // Ensure appState and tracking exist
-      if (!this.appState || !this.appState.tracking) {
-        logger.error('TrackingHandlerMain: appState or appState.tracking is null/undefined');
-        return {
-          isActive: false,
-          currentActivity: null,
-          sessionStartTime: null,
-          lastActivityTime: null,
-          samplingRate: 5
-        };
-      }
+    registry.handle('tracking:get-current', () => this.state());
 
-      return {
-        isActive: this.appState.tracking.isActive || false,
-        currentActivity: this.appState.tracking.currentActivity || null,
-        sessionStartTime: this.appState.tracking.sessionStartTime || null,
-        lastActivityTime: this.appState.tracking.lastActivityTime || null,
-        samplingRate: this.appState.tracking.samplingRate || 5
-      };
-    });
-
-    // Handle idle decision
     registry.handle('handle-idle-decision', async (event, wasWorking) => {
       logger.debug(`Idle decision: wasWorking = ${wasWorking}`);
       if (this.handleIdleDecision) {

@@ -14,12 +14,10 @@ const {
  * Registers all settings-related IPC handlers using the existing pattern
  */
 class SettingsHandlerMain {
-  constructor(store, appState, setupBreakReminders, stopTracking, startTracking) {
+  constructor(store, appState, setupBreakReminders) {
     this.store = store;
     this.appState = appState;
     this.setupBreakReminders = setupBreakReminders;
-    this.stopTracking = stopTracking;
-    this.startTracking = startTracking;
   }
 
   /**
@@ -54,17 +52,8 @@ class SettingsHandlerMain {
         const next = { ...current, ...settings };
         this.store.set('settings', next);
 
-        // Apply settings that need immediate action
-        // Restart tracking only if it was active (to apply new settings)
-        if (this.appState.tracking.isActive) {
-          // Stop tracking and wait for it to complete
-          await this.stopTracking();
-          // Small delay to ensure state settles
-          await new Promise(resolve => setTimeout(resolve, 100));
-          // Restart tracking with new settings
-          await this.startTracking();
-        }
-
+        // No restart: the tracker and idle detector read the settings on every check,
+        // and a restart would end the session and reset idle detection (A-6).
         this.setupBreakReminders();
         return { success: true };
       } catch (error) {

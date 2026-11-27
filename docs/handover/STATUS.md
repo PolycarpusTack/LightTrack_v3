@@ -1,14 +1,14 @@
 # LightTrack v3: status and pickup
 
 **Last updated:** 2026-11-27
-**`main`:** `fb5e8a5`, CI green. Open: the A-5 PR, which carries this status.
-**Next step:** once A-5 is merged, story A-6 of `docs/handover/stabilisation-backlog.md` (the tray and the window agree on tracking), branch `fix/a-6-tray-sync` from `main`.
+**`main`:** `6130c0e`, CI green. Open: the A-6 PR, which carries this status.
+**Next step:** once A-6 is merged, story A-7 of `docs/handover/stabilisation-backlog.md` (sleep and lock time), branch `fix/a-7-sleep-lock` from `main`.
 
 ## Where we are
 
 The owner reported on 2026-11-26 that tracking runs but no records appear. A functional audit found the cause and a set of other defects. `docs/handover/stabilisation-backlog.md` fixes them in order: two epics, 20 stories, one PR each, approved by the owner and checked by an independent validation pass. The backlog sits in front of Increment B; LT3-102 (#13) follows it.
 
-**Done: A-1 to A-4; A-5 waits for approval. Next: A-6 to A-9, then B-1 to B-12 (B-5 is dropped).**
+**Done: A-1 to A-5; A-6 waits for approval. Next: A-7 to A-9, then B-1 to B-12 (B-5 is dropped).**
 
 The first-release workflow (approval, booking lines, CSV hand-off, RDP) is still not built; see plan section 16 and `docs/design/first-release/REVIEW.md`.
 
@@ -18,10 +18,11 @@ The first-release workflow (approval, booking lines, CSV hand-off, RDP) is still
 
 - **#64 A-4** editing keeps duration and title. The edit dialog sends only the fields that changed and never the title; main replaces the duration with end minus start only when a time moves, and refuses edits to the activity being tracked. A time change on a tracked activity asks for confirmation first. The dialog shows the local date.
 - **#63** status after A-1 to A-3.
+- **#65 A-5** an activity is filed on the local day it started. Manual entries had no `date`, so the day filter used the save time and filed an entry for yesterday under today. Main now sets `date` from the local start on save and when the start moves, and both today-total paths use the local day. One helper, `src/main/core/local-day.ts`, replaces the copies of the day formatting in main, including four that used the UTC day. Existing entries are not backfilled: an old manual entry for another day stays under the day it was typed in until its start is edited.
 
 ## In review
 
-- **A-5** an activity is filed on the local day it started. Manual entries had no `date`, so the day filter used the save time and filed an entry for yesterday under today. Main now sets `date` from the local start on save and when the start moves, and both today-total paths use the local day. One helper, `src/main/core/local-day.ts`, replaces the copies of the day formatting in main, including four that used the UTC day. Existing entries are not backfilled: an old manual entry for another day stays under the day it was typed in until its start is edited.
+- **A-6** the tray and the window agree on tracking. The tray started and stopped the tracker directly while the window's handlers kept a copy in `appState.tracking`, so Stop in the window after a tray stop started tracking again. The copy is gone; the tracking handlers read the tracker on every call. Saving any setting no longer stops and restarts the tracker: the tracker and idle detector read the settings on every check, so no setting needs a restart.
 
 ## Merged on 2026-11-26
 
@@ -33,8 +34,8 @@ The first-release workflow (approval, booking lines, CSV hand-off, RDP) is still
 
 ## Still broken until its story lands
 
-- A manual entry for another day is filed under today (A-5, in review). Entries made before the fix stay where they are.
-- Stopping from the tray desynchronises tracking; saving a setting restarts it (A-6).
+- Manual entries made before A-5 for another day stay under the day they were typed in.
+- Stopping from the tray desynchronises tracking; saving a setting restarts it (A-6, in review).
 - Sleep and lock time is probably counted; not yet confirmed by a test (A-7).
 - Storage removes activities under the minimum duration on every save and cuts the list at 10,000 (A-8).
 - Every settings save shows "Failed to save settings" although it saved (B-1). Consolidation and week-start settings do not persist (B-2).
@@ -64,14 +65,14 @@ Recorded in the plan's decisions table, plus those of 2026-11-26:
 
 ## Next (in order)
 
-1. **A-5** merge after approval.
-2. **A-6 to A-9**, then the Epic A retrospective. A-9 (harness smoke test with a seeded tracked activity) may be pulled forward.
+1. **A-6** merge after approval.
+2. **A-7 to A-9**, then the Epic A retrospective. A-9 (harness smoke test with a seeded tracked activity) may be pulled forward.
 3. **B-1 to B-12** without B-5, then the Epic B retrospective.
 4. **LT3-102 (#13)** typed repositories on the LT3-101 schema, then LT3-103 to LT3-105 (#14 to #16), Increment C (#17 to #21), the CSV hand-off (#22, #23), RDP (#26, #27), #31, #33.
 
 ## Working notes
 
-- Gates: `npm run lint`, `npm run typecheck`, `npm run test:ci` (baseline Jest, TS via ts-jest; 185 tests), `npm run build` (into `out/`), `npm run security:audit`, `npm run electron:build:win` (production build and installer), `npm run test:app` (harness, 11 tests, against `dist/win-unpacked`; set `LIGHTTRACK_EXE` to test another build).
+- Gates: `npm run lint`, `npm run typecheck`, `npm run test:ci` (baseline Jest, TS via ts-jest; 190 tests), `npm run build` (into `out/`), `npm run security:audit`, `npm run electron:build:win` (production build and installer), `npm run test:app` (harness, 11 tests, against `dist/win-unpacked`; set `LIGHTTRACK_EXE` to test another build).
 - The harness tests a packaged build, not the source: repackage after every source change. Without touching `dist/`: `npm run build:prod && npx electron-builder --win --dir --publish never --config.directories.output=<scratch dir>`, then `LIGHTTRACK_EXE=<scratch dir>/win-unpacked/LightTrack.exe npm run test:app`.
 - On a busy machine the full harness run can fail in "stores a manual entry" (timeout) and "keeps row actions visible" (it needs that entry). Both pass alone and in CI. Trust CI, and read the error before blaming load.
 - Lockfile: CI installs with npm 10 (Node 22). A lockfile written by npm 11 can fail `npm ci` there. After changing dependencies run `npx npm@10 install --package-lock-only`.
