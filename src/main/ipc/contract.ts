@@ -104,7 +104,10 @@ const Settings = z.object({
   breakReminderInterval: z.number().nullish(),
   idleThreshold: z.number().nullish(),
   minActivityDuration: z.number().nullish(),
-  employeeId: Code.nullish()
+  employeeId: Code.nullish(),
+  consolidateActivities: z.boolean().nullish(),
+  consolidationMode: z.enum(['smart', 'strict', 'relaxed']).nullish(),
+  weekStartDay: z.number().int().min(0).max(6).nullish()
 });
 
 const SapRequest = z.object({

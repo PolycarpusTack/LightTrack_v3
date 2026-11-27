@@ -761,6 +761,20 @@
                             <strong>Relaxed:</strong> Merge all activities in the same project
                         </div>
                     </section>
+                    <section class="card">
+                        <div class="label">Idle and short activities</div>
+                        <div class="meta-line">When tracking pauses for inactivity, and the shortest tracked activity that is saved</div>
+                        <div class="settings-row">
+                            <div class="form-group">
+                                <label for="settings-idle-threshold">Idle after (seconds, 30 to 1800)</label>
+                                <input type="number" id="settings-idle-threshold" min="30" max="1800" step="30" value="180">
+                            </div>
+                            <div class="form-group">
+                                <label for="settings-min-duration">Shortest tracked activity saved (seconds, 10 to 600)</label>
+                                <input type="number" id="settings-min-duration" min="10" max="600" step="10" value="60">
+                            </div>
+                        </div>
+                    </section>
                 </div>
             </details>
 
