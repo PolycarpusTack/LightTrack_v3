@@ -138,9 +138,9 @@ contextBridge.exposeInMainWorld('lightTrackAPI', {
   removeActivityType: call('activityTypes:remove', fail('Failed to remove activity type. Please try again.'), 'remove activity type'),
 
   // Statistics
-  getStats: call('activities:get-stats', { useMainMessage: 'Failed to load statistics.' }, 'get stats'),
+
   getTodayTotal: call('get-today-total', failLoad("today's total"), 'get today total'),
-  getFocusStats: call('get-focus-stats', failLoad('focus statistics'), 'get focus stats'),
+
 
   // Data management and exports
   exportData: call('activities:export', fail('Failed to export data. Please try again.'), 'export data'),

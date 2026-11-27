@@ -34,7 +34,13 @@ class ActivitiesHandlerMain {
     registry.handle('activities:get', async (event, date) => {
       logger.debug('activities:get handler called', { date });
 
-      // If a date is provided, filter activities for that day
+      // A local day as YYYY-MM-DD is used as given: new Date() reads it as UTC midnight,
+      // which is the day before west of UTC (C-5)
+      if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return toWireActivities(await this.storage.getActivities({ startDate: date, endDate: date }));
+      }
+
+      // A timestamp means its local day
       if (date) {
         const targetDate = new Date(date);
         if (!isNaN(targetDate.getTime())) {
@@ -294,45 +300,6 @@ class ActivitiesHandlerMain {
       }
     });
 
-    // Get activity stats
-    registry.handle('activities:get-stats', async () => {
-      try {
-        // Get all activities without filters
-        const activities = await this.storage.getActivities() || [];
-
-        // Ensure activities is an array
-        const activitiesArray = Array.isArray(activities) ? activities : [];
-
-        const today = new Date();
-        const todayStart = new Date(today);
-        todayStart.setHours(0, 0, 0, 0);
-
-        const todayActivities = activitiesArray.filter(a => {
-          if (!a || !a.startTime) return false;
-          const activityDate = new Date(a.startTime);
-          return activityDate >= todayStart;
-        });
-
-        const totalDuration = todayActivities.reduce((sum, a) => sum + (a.actualDuration || a.duration || 0), 0);
-        const averageSessionLength = todayActivities.length > 0 ? totalDuration / todayActivities.length : 0;
-
-        return {
-          total: activitiesArray.length,
-          today: todayActivities.length,
-          totalDuration,
-          averageSessionLength
-        };
-      } catch (error) {
-        logger.error('Error in activities:get-stats:', error);
-        return {
-          total: 0,
-          today: 0,
-          totalDuration: 0,
-          averageSessionLength: 0
-        };
-      }
-    });
-
     // Get today's total activity time
     registry.handle('get-today-total', async () => {
       try {
@@ -348,51 +315,6 @@ class ActivitiesHandlerMain {
       } catch (error) {
         logger.error('Failed to get today total:', error);
         return 0;
-      }
-    });
-
-    // Get focus stats
-    registry.handle('get-focus-stats', async () => {
-      try {
-        const focusSessions = this.store.get('focusSessions') || [];
-        const totalSessions = focusSessions.length;
-        const totalFocusTime = focusSessions.reduce((sum, s) => sum + s.duration, 0);
-
-        const today = new Date();
-        const todayStart = new Date(today);
-        todayStart.setHours(0, 0, 0, 0);
-
-        const todaySessions = focusSessions.filter(s => {
-          const sessionDate = new Date(s.date);
-          return sessionDate >= todayStart;
-        });
-
-        const todayFocusTime = todaySessions.reduce((sum, s) => sum + s.duration, 0);
-
-        const averageSessionLength = totalSessions > 0 ? totalFocusTime / totalSessions : 0;
-        const averageQuality = focusSessions.length > 0 ? focusSessions.reduce((sum, s) => sum + s.quality, 0) / focusSessions.length : 0;
-        const todayQuality = todaySessions.length > 0 ? todaySessions.reduce((sum, s) => sum + s.quality, 0) / todaySessions.length : 0;
-
-        return {
-          totalSessions,
-          todaySessions: todaySessions.length,
-          totalFocusTime,
-          todayFocusTime,
-          averageSessionLength,
-          averageQuality,
-          todayQuality
-        };
-      } catch (error) {
-        logger.error('Failed to get focus stats:', error);
-        return {
-          totalSessions: 0,
-          todaySessions: 0,
-          totalFocusTime: 0,
-          todayFocusTime: 0,
-          averageSessionLength: 0,
-          averageQuality: 0,
-          todayQuality: 0
-        };
       }
     });
 
