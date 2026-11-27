@@ -809,6 +809,67 @@ test.describe('packaged application', () => {
     }
   });
 
+  // B-12: the main flows end to end: change a setting, change a tracked activity's project,
+  // and add a manual entry for yesterday.
+  test('main flows: setting, project change and manual entry for yesterday', async () => {
+    const seeded = fs.mkdtempSync(path.join(os.tmpdir(), 'lighttrack-harness-flows-'));
+    const today = localDateISO();
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const yesterday = localDateISO(yesterdayDate);
+    const at = time => new Date(`${today}T${time}:00`).getTime();
+    fs.writeFileSync(path.join(seeded, 'config.json'), JSON.stringify({
+      activities: [
+        { id: 'tracked-flow', app: 'Word', title: 'Quarterly report', project: 'Seeded', date: today,
+          startTime: at('08:00'), endTime: at('11:00'), duration: 9000, actualDuration: 9000 }
+      ]
+    }));
+    const { app, page, errors } = await launch(seeded);
+    try {
+      const stored = () => page.evaluate(async () => window.lightTrackAPI.getActivities());
+
+      // 1. A setting is saved, and says so
+      await page.locator('.nav-btn[data-view="settings"]').click();
+      await openSettingsGroup(page, 'schedule');
+      await page.locator('#settings-day-end').fill('17:45');
+      await page.locator('#settings-day-end').blur();
+      await expect(page.locator('.notification-toast', { hasText: 'Settings saved' })).toBeVisible();
+      expect((await page.evaluate(() => window.lightTrackAPI.getSettings())).workDayEnd).toBe('17:45');
+
+      // 2. The tracked activity moves to another project and keeps its duration
+      await page.locator('.nav-btn[data-view="timer"]').click();
+      await page.locator('#activity-list .activity[data-id="tracked-flow"]').click();
+      await page.locator('#entry-project').fill('Flow Project');
+      await page.locator('#modal-save').click();
+      await expect(page.locator('.notification-toast', { hasText: 'Entry updated' })).toBeVisible();
+      expect((await stored()).find(a => a.id === 'tracked-flow')).toMatchObject({ project: 'Flow Project', duration: 9000 });
+
+      // 3. A manual entry for yesterday is listed under yesterday, not today
+      await page.locator('#add-manual-entry').click();
+      await page.locator('#entry-project').fill('Yesterday Project');
+      await page.locator('#entry-app').fill('Phone call');
+      await page.locator('#entry-date').fill(yesterday);
+      await page.locator('#entry-start').fill('14:00');
+      await page.locator('#entry-end').fill('15:00');
+      await page.locator('#modal-save').click();
+      await expect.poll(async () => (await stored()).filter(a => a.project === 'Yesterday Project').length).toBe(1);
+      await expect(page.locator('#activity-list .activity', { hasText: 'Yesterday Project' })).toHaveCount(0);
+
+      await page.locator('.nav-btn[data-view="timeline"]').click();
+      await expect(page.locator('#timeline-list .activity', { hasText: 'Yesterday Project' })).toHaveCount(0);
+      await page.locator('#timeline-prev').click();
+      await expect(page.locator('#timeline-list .activity', { hasText: 'Yesterday Project' })).toHaveCount(1);
+      await expect(page.locator('#timeline-list .activity', { hasText: 'Flow Project' })).toHaveCount(0);
+      expect(errors).toEqual([]);
+    } finally {
+      try {
+        await app.close();
+      } finally {
+        fs.rmSync(seeded, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+      }
+    }
+  });
+
   // A-4: an edit sends only what changed, so a tracked activity keeps its duration and title.
   test('edit keeps duration and title of a tracked activity', async () => {
     // A tracked activity cannot be made through IPC; seed it into a fresh profile as a
