@@ -42,6 +42,71 @@
     }
   }
 
+  // ============= Small Form Dialog (B-6) =============
+
+  let closeFormDialog = null;
+
+  /**
+   * Ask for a few values in a dialog with labelled fields, Save and Cancel.
+   * prompt() is not supported in Electron, so every control that asked for text uses this.
+   * @param {{title: string, saveLabel?: string, fields: Array<{name: string, label: string,
+   *   type?: string, value?: string|number, min?: number, hint?: string, disabled?: boolean}>}} options
+   * @returns {Promise<Object<string, string>|null>} the values by field name, or null when cancelled
+   */
+  function openFormDialog({ title, saveLabel = 'Save', fields }) {
+    const overlay = document.getElementById('form-modal-overlay');
+    const form = document.getElementById('form-modal-form');
+    const container = document.getElementById('form-modal-fields');
+    if (!overlay || !form || !container) return Promise.resolve(null);
+    if (closeFormDialog) closeFormDialog(null); // one dialog at a time
+
+    document.getElementById('form-modal-title').textContent = title;
+    document.getElementById('form-modal-save').textContent = saveLabel;
+    container.replaceChildren(...fields.map(field => {
+      const group = document.createElement('div');
+      group.className = 'form-group';
+      const label = document.createElement('label');
+      label.htmlFor = `form-field-${field.name}`;
+      label.textContent = field.label;
+      const input = document.createElement('input');
+      input.id = `form-field-${field.name}`;
+      input.name = field.name;
+      input.type = field.type || 'text';
+      input.value = field.value ?? '';
+      if (field.min !== undefined) input.min = String(field.min);
+      input.disabled = Boolean(field.disabled);
+      group.append(label, input);
+      if (field.hint) {
+        const hint = document.createElement('div');
+        hint.className = 'meta-line text-xs';
+        hint.textContent = field.hint;
+        group.append(hint);
+      }
+      return group;
+    }));
+
+    return new Promise(resolve => {
+      const cancel = document.getElementById('form-modal-cancel');
+      const finish = values => {
+        closeFormDialog = null;
+        removeModalEscHandler('form-modal-overlay');
+        overlay.classList.remove('active');
+        form.onsubmit = null;
+        cancel.onclick = null;
+        resolve(values);
+      };
+      closeFormDialog = finish;
+      form.onsubmit = event => {
+        event.preventDefault();
+        finish(Object.fromEntries(fields.map(f => [f.name, form.elements[f.name].value])));
+      };
+      cancel.onclick = () => finish(null);
+      addModalEscHandler('form-modal-overlay', () => finish(null));
+      overlay.classList.add('active');
+      container.querySelector('input:not([disabled])')?.focus();
+    });
+  }
+
   /**
    * Salesforce case of the entry being edited (#48): offer to remember its project.
    */
@@ -891,25 +956,30 @@
       return;
     }
 
-    // For simplicity, use prompts for editing
-    const newName = project.isSystem ? project.name : prompt('Project name:', project.name);
-    if (newName === null) return; // Cancelled
+    const values = await openFormDialog({
+      title: 'Edit project',
+      fields: [
+        { name: 'name', label: 'Project name', value: project.name, disabled: project.isSystem,
+          hint: project.isSystem ? 'System projects cannot be renamed' : '' },
+        { name: 'sapCode', label: 'SAP code', value: project.sapCode || '' },
+        { name: 'costCenter', label: 'Cost center', value: project.costCenter || '' },
+        { name: 'wbsElement', label: 'WBS element', value: project.wbsElement || '' }
+      ]
+    });
+    if (!values) return; // Cancelled
 
-    const newSap = prompt('SAP Code:', project.sapCode || '');
-    if (newSap === null) return;
-
-    const newCc = prompt('Cost Center:', project.costCenter || '');
-    if (newCc === null) return;
-
-    const newWbs = prompt('WBS Element:', project.wbsElement || '');
-    if (newWbs === null) return;
+    const newName = project.isSystem ? project.name : values.name.trim();
+    if (!newName) {
+      showNotification('Enter a project name', 'warning');
+      return;
+    }
 
     try {
       await window.lightTrackAPI.updateProject(projectId, {
         name: newName,
-        sapCode: newSap,
-        costCenter: newCc,
-        wbsElement: newWbs
+        sapCode: values.sapCode.trim(),
+        costCenter: values.costCenter.trim(),
+        wbsElement: values.wbsElement.trim()
       });
       showNotification('Project updated', 'success');
       await loadProjectManager();
@@ -1121,6 +1191,8 @@
     addCustomProject,
     editProject,
     removeCustomProject,
+    // Small form dialog
+    openFormDialog,
     // Activity type management
     loadActivityTypes,
     loadActivityTypeManager,
@@ -1128,5 +1200,6 @@
     removeCustomActivityType
   };
 
+  window.openFormDialog = openFormDialog;
   window.LightTrack._loaded.modals = true;
 })();

@@ -366,8 +366,11 @@ test.describe('packaged application', () => {
       const dialog = page.locator('#idle-modal-overlay');
       const toast = page.locator('.notification-toast').last();
 
-      await returnFromIdle();
-      await expect(dialog).toHaveClass(/active/);
+      // The window subscribes once it has started; resend until it listens.
+      await expect(async () => {
+        await returnFromIdle();
+        await expect(dialog).toHaveClass(/active/, { timeout: 1000 });
+      }).toPass({ timeout: 15000 });
       await expect(page.locator('#idle-modal-text')).toContainText('No input for 12 min');
       await expect(page.locator('#idle-count')).toHaveText('Count as work');
       await expect(page.locator('#idle-leave-out')).toHaveText('Leave out');
@@ -381,6 +384,88 @@ test.describe('packaged application', () => {
       await page.keyboard.press('Escape');
       await expect(dialog).not.toHaveClass(/active/);
       await expect(toast).toHaveText(/Idle time left out/);
+      expect(errors).toEqual([]);
+    } finally {
+      await app.close();
+    }
+  });
+
+  // B-6: prompt() throws in Electron, so these controls did nothing. Each opens a dialog now.
+  test('no prompt: break, project edit and rule test open a dialog', async () => {
+    const { app, page, errors } = await launch(userData);
+    try {
+      await page.evaluate(() => {
+        window.__prompts = [];
+        window.prompt = message => { window.__prompts.push(message); return null; };
+      });
+      const dialog = page.locator('#form-modal-overlay');
+      const field = name => page.locator(`#form-modal-fields [name="${name}"]`);
+      const toast = page.locator('.notification-toast').last();
+      const expectDialog = async labels => {
+        await expect(dialog).toHaveClass(/active/);
+        for (const label of labels) await expect(page.locator('#form-modal-fields label', { hasText: label })).toBeVisible();
+        await expect(page.locator('#form-modal-cancel')).toBeVisible();
+        await expect(page.locator('#form-modal-save')).toBeVisible();
+      };
+      const breaks = () => page.evaluate(async () =>
+        (await window.lightTrackAPI.getActivities()).filter(a => a.project === 'Break').length);
+
+      // Mark break: Cancel saves nothing, Save logs the break.
+      const before = await breaks();
+      await page.locator('#mark-break').click();
+      await expectDialog(['Break length (minutes)']);
+      await page.locator('#form-modal-cancel').click();
+      await expect(dialog).not.toHaveClass(/active/);
+      expect(await breaks()).toBe(before);
+      await page.locator('#mark-break').click();
+      await field('minutes').fill('10');
+      await page.locator('#form-modal-save').click();
+      await expect(toast).toContainText('Break logged: 10 min');
+      expect(await breaks()).toBe(before + 1);
+
+      // Ctrl+Shift+B acts only while tracking, which the harness keeps off; set the flag.
+      await page.evaluate(() => { AppState.isTracking = true; });
+      await page.keyboard.press('Control+Shift+B');
+      await expectDialog(['Break length (minutes)']);
+      await page.keyboard.press('Escape');
+      await expect(dialog).not.toHaveClass(/active/);
+      await page.evaluate(() => { AppState.isTracking = false; });
+      expect(await breaks()).toBe(before + 1);
+
+      // Settings > Project Edit (custom projects only): Cancel keeps the project, Save stores the fields.
+      const project = name => page.evaluate(async key =>
+        ((await window.lightTrackAPI.getProjects()).custom || []).find(p => p.name === key) || null, name);
+      await page.locator('.nav-btn[data-view="settings"]').click();
+      await openSettingsGroup(page, 'customization');
+      await page.locator('#project-manager #new-project-name').fill('B6 Project');
+      await page.locator('#project-manager [data-action="add-project"]').click();
+      const edit = name => page.locator('#project-manager .project-list-item', { hasText: name })
+        .locator('[data-action="edit-project"]');
+      await edit('B6 Project').click();
+      await expectDialog(['Project name', 'SAP code', 'Cost center', 'WBS element']);
+      await expect(field('name')).toHaveValue('B6 Project');
+      await field('sapCode').fill('SAP-CANCEL');
+      await page.locator('#form-modal-cancel').click();
+      expect((await project('B6 Project')).sapCode || '').toBe('');
+      await edit('B6 Project').click();
+      await field('name').fill('B6 Renamed');
+      await field('sapCode').fill('SAP-B6');
+      await page.locator('#form-modal-save').click();
+      await expect(toast).toContainText('Project updated');
+      expect(await project('B6 Renamed')).toMatchObject({ sapCode: 'SAP-B6' });
+
+      // Rule Test: the sample text is asked in a dialog.
+      await page.locator('.nav-btn[data-view="projects"]').click();
+      // The view wires its buttons once its rules have loaded.
+      await expect(page.locator('#projects-list')).not.toHaveClass(/view-loading/);
+      await page.locator('#mapping-pattern').fill('Code');
+      await page.locator('.btn-test-pattern[data-pattern-input="mapping-pattern"]').click();
+      await expectDialog(['Sample text']);
+      await field('sample').fill('Visual Studio Code');
+      await page.locator('#form-modal-save').click();
+      await expect(toast).toContainText('Pattern matches');
+
+      expect(await page.evaluate(() => window.__prompts)).toEqual([]);
       expect(errors).toEqual([]);
     } finally {
       await app.close();

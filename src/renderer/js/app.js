@@ -1948,11 +1948,14 @@ async function markBreak() {
   const DEFAULT_BREAK_MINUTES = 15;
 
   try {
-    // Prompt for break duration
-    const input = prompt('Break duration in minutes:', DEFAULT_BREAK_MINUTES.toString());
-    if (input === null) return; // Cancelled
+    const values = await window.openFormDialog({
+      title: 'Mark break',
+      fields: [{ name: 'minutes', label: 'Break length (minutes)', type: 'number', min: 1, value: DEFAULT_BREAK_MINUTES,
+        hint: 'The break ends now' }]
+    });
+    if (!values) return; // Cancelled
 
-    const minutes = parseInt(input, 10);
+    const minutes = parseInt(values.minutes, 10);
     if (isNaN(minutes) || minutes <= 0) {
       showNotification('Invalid duration', 'error');
       return;
@@ -2268,7 +2271,8 @@ async function loadProjectsView() {
     });
 
     // Wire up test pattern buttons using event delegation
-    const projectsView = document.querySelector('[data-view="projects"]');
+    // The view, not the nav button that carries the same data-view (B-6)
+    const projectsView = document.querySelector('.view[data-view="projects"]');
     if (projectsView && !projectsView.dataset.testWired) {
       projectsView.dataset.testWired = 'true';
       projectsView.addEventListener('click', (e) => {
@@ -2393,7 +2397,7 @@ async function loadProjectMappings() {
 /**
  * Test a mapping pattern against sample text
  */
-function testMappingPattern(inputId) {
+async function testMappingPattern(inputId) {
   const input = document.getElementById(inputId);
   const pattern = input?.value?.trim();
 
@@ -2402,8 +2406,13 @@ function testMappingPattern(inputId) {
     return;
   }
 
-  const sampleText = prompt('Enter sample text to test against:\n\n(e.g., app name, URL, or meeting subject)');
-  if (sampleText === null) return; // User cancelled
+  const values = await window.openFormDialog({
+    title: 'Test pattern',
+    saveLabel: 'Test',
+    fields: [{ name: 'sample', label: 'Sample text', hint: 'An app name, window title, URL or meeting subject' }]
+  });
+  if (!values) return; // Cancelled
+  const sampleText = values.sample;
 
   try {
     // Check if pattern is a regex (starts and ends with /)
