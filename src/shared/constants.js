@@ -23,6 +23,13 @@ const MAX_SAMPLING_INTERVAL_MS = 60000;
 /** How much to increase sampling interval per stable check */
 const SAMPLING_INCREMENT_MS = 5000;
 
+/**
+ * Longest gap between two samples that is credited in full (5 minutes). A longer gap
+ * means the computer slept or the app was frozen; only one sampling interval is
+ * credited for it (A-7).
+ */
+const MAX_SAMPLE_GAP_MS = 5 * 60 * 1000;
+
 /** Delay between active window retries */
 const ACTIVE_WINDOW_RETRY_DELAY_MS = 100;
 
@@ -128,6 +135,7 @@ module.exports = {
   ACTIVITY_LENIENCY_MS,
   MAX_SAMPLING_INTERVAL_MS,
   SAMPLING_INCREMENT_MS,
+  MAX_SAMPLE_GAP_MS,
   ACTIVE_WINDOW_RETRY_DELAY_MS,
 
   // Timing (seconds)

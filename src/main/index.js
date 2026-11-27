@@ -1,4 +1,4 @@
-const { app, ipcMain, globalShortcut, shell, dialog } = require('electron');
+const { app, ipcMain, globalShortcut, shell, dialog, powerMonitor } = require('electron');
 const { applyHarnessMode, isHarness } = require('./harness-mode');
 
 // Test harness (LT3-005): isolate userData before anything reads it.
@@ -164,6 +164,14 @@ class LightTrackApp {
 
       // Initialize tracker after window creation
       this.tracker = new ActivityTracker(this.storage, this.mainWindow);
+
+      // Sleep and lock time is not counted (A-7)
+      for (const event of ['suspend', 'lock-screen']) {
+        powerMonitor.on(event, () => { this.tracker?.pauseForSystem(event); });
+      }
+      for (const event of ['resume', 'unlock-screen']) {
+        powerMonitor.on(event, () => { this.tracker?.resumeFromSystem(event); });
+      }
 
       // Initialize browser extension server for web browser integration
       // Pairing (LT3-004): the code is shown here, in the desktop app, never sent to the browser.

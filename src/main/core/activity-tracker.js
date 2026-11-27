@@ -11,6 +11,7 @@ const {
   ACTIVITY_LENIENCY_MS,
   MAX_SAMPLING_INTERVAL_MS,
   SAMPLING_INCREMENT_MS,
+  MAX_SAMPLE_GAP_MS,
   ACTIVE_WINDOW_RETRY_DELAY_MS,
   STABLE_ACTIVITY_COUNT_THRESHOLD,
   ACTIVE_WINDOW_RETRY_COUNT,
@@ -41,6 +42,9 @@ class ActivityTracker {
     this._isProcessingTrack = false;
     this._isProcessingStop = false;
     this._pendingStop = false;
+
+    // Paused while the computer sleeps or the screen is locked (A-7)
+    this.pausedForSystem = false;
 
     // Smart sampling from original
     this.currentCheckInterval = TRACKING_INTERVAL_MS;
@@ -98,6 +102,7 @@ class ActivityTracker {
     this._isProcessingTrack = false;
     this._isProcessingStop = false;
     this._pendingStop = false;
+    this.pausedForSystem = false;
 
     this.isTracking = true;
     this.lastActiveTime = Date.now();
@@ -216,11 +221,17 @@ class ActivityTracker {
 
     this._isProcessingTrack = true;
     const now = Date.now();
-    const previousTime = this.lastActiveTime;
+    // A gap longer than MAX_SAMPLE_GAP_MS was not observed (sleep, or a frozen app):
+    // credit one sampling interval for it, never the whole gap (A-7).
+    const gapMs = now - this.lastActiveTime;
+    const previousTime = gapMs > MAX_SAMPLE_GAP_MS ? now - this.currentCheckInterval : this.lastActiveTime;
+    if (gapMs > MAX_SAMPLE_GAP_MS && !this.pausedForSystem) {
+      logger.warn('Tracking gap without a sample; crediting one interval', { gapSeconds: Math.round(gapMs / 1000) });
+    }
 
     try {
-      // Don't track if paused due to idle
-      if (this.idleDetector.isPaused()) {
+      // Don't track while asleep or locked, or paused due to idle
+      if (this.pausedForSystem || this.idleDetector.isPaused()) {
         this.lastActiveTime = now;
         return;
       }
@@ -255,6 +266,16 @@ class ActivityTracker {
 
       // Extract activity information
       const activityData = this.extractActivityInfo(window);
+
+      // After a gap or a resume the credited span can start on a later day than the
+      // current activity: close that activity as it is, so the time goes to today (A-7).
+      if (this.currentActivity) {
+        const activityDay = this.currentActivity.date || getLocalDateString(this.currentActivity.startTime);
+        if (activityDay !== getLocalDateString(previousTime)) {
+          await this.saveActivityToExisting();
+          this.currentActivity = null;
+        }
+      }
 
       // Handle midnight rollover before activity matching
       if (this.currentActivity) {
@@ -336,6 +357,37 @@ class ActivityTracker {
       this._isProcessingTrack = false;
       this.lastActiveTime = now;
     }
+  }
+
+  /**
+   * The computer is going to sleep or the screen was locked: save the current
+   * activity and count nothing until resumeFromSystem (A-7, AS-2: no prompt).
+   * @param {string} reason - the power event, for the log
+   */
+  async pauseForSystem(reason) {
+    if (!this.isTracking || this.pausedForSystem) return;
+    this.pausedForSystem = true;
+    logger.info('Tracking paused', { reason });
+
+    const maxWaitMs = 2000;
+    const startWait = Date.now();
+    while (this._isProcessingTrack && (Date.now() - startWait) < maxWaitMs) {
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    if (this.currentActivity) {
+      await this.saveActivityToExisting();
+    }
+  }
+
+  /**
+   * The computer woke or the screen was unlocked: count from now.
+   * @param {string} reason - the power event, for the log
+   */
+  resumeFromSystem(reason) {
+    if (!this.pausedForSystem) return;
+    this.pausedForSystem = false;
+    this.lastActiveTime = Date.now();
+    logger.info('Tracking resumed', { reason });
   }
 
   // Retry logic from original implementation
