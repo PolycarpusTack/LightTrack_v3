@@ -502,22 +502,25 @@
   // ============= Tag Editor =============
 
   /**
-   * Open tag editor dropdown for an activity
+   * Open tag editor dropdown for an activity, under the row that was clicked (B-7).
+   * The Timer and the Timeline can both show a row for the same activity.
+   * @param {string|number} activityId
+   * @param {Element} [rowEl] - the clicked row; defaults to the row in the view on screen
    */
-  function openTagEditor(activityId) {
+  function openTagEditor(activityId, rowEl) {
     // Close any existing editor
     closeTagEditor();
 
     // Convert to string to handle both string and number IDs
     const id = String(activityId);
-    const activity = AppState.activities.find(a => String(a.id) === id);
+    const activity = activitiesOnScreen().find(a => String(a.id) === id);
     if (!activity) {
       console.error('Activity not found for tags:', activityId);
       showNotification('Activity not found', 'error');
       return;
     }
 
-    const activityEl = document.querySelector(`.activity[data-id="${activityId}"]`);
+    const activityEl = rowEl || document.querySelector(`.view.active .activity[data-id="${CSS.escape(id)}"]`);
     if (!activityEl) return;
 
     // Create tag editor dropdown
@@ -656,7 +659,7 @@
 
       // Update local state
       const id = String(activityId);
-      const activity = AppState.activities.find(a => String(a.id) === id);
+      const activity = activitiesOnScreen().find(a => String(a.id) === id);
       if (activity) {
         activity.tags = selectedTags;
       }
@@ -664,7 +667,8 @@
       invalidateAnalyticsCache(); // Clear cache so analytics refreshes
       closeTagEditor();
       renderTagPills(); // Refresh tag counts
-      applyFilters(); // Re-render activity list
+      if (AppState.currentView === 'timeline') refreshActivityViews();
+      else applyFilters(); // Re-render activity list
       showNotification('Tags updated', 'success');
 
     } catch (error) {

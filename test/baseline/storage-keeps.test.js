@@ -79,3 +79,18 @@ describe('clear old data does not drop more than its preview (A-8)', () => {
     expect((await storage.getActivities()).map(a => a.id).sort()).toEqual(['manual-new', 'tracked-new']);
   });
 });
+
+// B-7: a tag change is read back at once. The write went to the store but left the
+// five-second read cache in place, so a reload straight after showed the old tags.
+describe('tag update is read back', () => {
+  test('tag update is read back at once, not after the cache expires', async () => {
+    const storage = storageWith([{ id: 'tag-1', app: 'Word', project: 'P', startTime: Date.now(), duration: 600 }]);
+    // electron-store returns a fresh copy on every read; this in-memory store must too
+    const read = storage.store.get.bind(storage.store);
+    storage.store.get = (key, fallback) => JSON.parse(JSON.stringify(read(key, fallback) ?? null)) ?? fallback;
+    await storage.getActivities(); // fills the read cache
+    storage.updateActivityTags('tag-1', ['meeting']);
+    const [activity] = await storage.getActivities();
+    expect(activity.tags).toEqual(['meeting']);
+  });
+});

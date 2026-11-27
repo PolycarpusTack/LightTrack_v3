@@ -472,6 +472,64 @@ test.describe('packaged application', () => {
     }
   });
 
+  // B-7: the tag editor opens under the row that was clicked, and ticking a tag edits nothing else.
+  test('tag editor opens on the clicked row', async () => {
+    const seeded = fs.mkdtempSync(path.join(os.tmpdir(), 'lighttrack-harness-tags-'));
+    const today = localDateISO();
+    const past = new Date();
+    past.setDate(past.getDate() - 2);
+    const day = localDateISO(past);
+    const at = (date, time) => new Date(`${date}T${time}:00`).getTime();
+    fs.writeFileSync(path.join(seeded, 'config.json'), JSON.stringify({
+      activities: [
+        { id: 'tags-today', app: 'Word', title: 'Notes', project: 'Tags', date: today,
+          startTime: at(today, '09:00'), endTime: at(today, '10:00'), duration: 3600 },
+        { id: 'tags-past', app: 'Excel', title: 'Sheet', project: 'Tags', date: day,
+          startTime: at(day, '09:00'), endTime: at(day, '10:00'), duration: 3600 }
+      ]
+    }));
+    try {
+      const { app, page, errors } = await launch(seeded);
+      try {
+        const editor = page.locator('#tag-editor');
+        const timelineRow = id => page.locator(`#timeline-list .activity[data-id="${id}"]`);
+
+        // Timeline, today: the editor opens under the Timeline row, not the hidden Timer row.
+        await page.locator('.nav-btn[data-view="timeline"]').click();
+        await timelineRow('tags-today').locator('.btn-tags').click();
+        await expect(timelineRow('tags-today').locator('#tag-editor')).toBeVisible();
+        await editor.locator('.tag-editor-close').click();
+
+        // Timeline, another day: the activity is found.
+        for (let i = 0; i < 2; i++) await page.locator('#timeline-prev').click();
+        await timelineRow('tags-past').locator('.btn-tags').click();
+        await expect(timelineRow('tags-past').locator('#tag-editor')).toBeVisible();
+        const firstTag = editor.locator('.tag-editor-item input').first();
+        const tag = await firstTag.getAttribute('value');
+        await firstTag.check();
+        await editor.locator('.tag-editor-save').click();
+        await expect(page.locator('.notification-toast').last()).toContainText('Tags updated');
+        const tagsOf = id => page.evaluate(async ({ key, date }) =>
+          (await window.lightTrackAPI.getActivities(date)).find(a => a.id === key)?.tags || [], { key: id, date: day });
+        expect(await tagsOf('tags-past')).toEqual([tag]);
+
+        // Timer: ticking a tag does not open the Edit dialog.
+        await page.locator('.nav-btn[data-view="timer"]').click();
+        const timerRow = page.locator('#activity-list .activity[data-id="tags-today"]');
+        await timerRow.locator('.btn-tags').click();
+        await expect(timerRow.locator('#tag-editor')).toBeVisible();
+        await editor.locator('.tag-editor-item input').first().check();
+        await expect(page.locator('#modal-overlay')).not.toHaveClass(/active/);
+        await expect(editor).toBeVisible();
+        expect(errors).toEqual([]);
+      } finally {
+        await app.close();
+      }
+    } finally {
+      fs.rmSync(seeded, { recursive: true, force: true });
+    }
+  });
+
   // #39: merging on the timeline keeps one activity with the summed time.
   test('merges two activities on the timeline', async () => {
     const { app, page, errors } = await launch(userData);
