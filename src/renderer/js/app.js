@@ -2933,7 +2933,7 @@ function loadExportHistory() {
             <span class="export-date">${dateStr} ${timeStr}</span>
             <span class="export-period">${escapeHtml(item.period)}</span>
           </div>
-          <span class="export-records">${item.records} records</span>
+          <span class="export-records">${item.records} ${item.records === 1 ? 'row' : 'rows'}</span>
         </div>
       `;
     }).join('');

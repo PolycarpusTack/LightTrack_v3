@@ -1,14 +1,14 @@
 # LightTrack v3: status and pickup
 
 **Last updated:** 2026-11-27
-**`main`:** `afcb1a1`, CI green. Open: the B-8 PR, which carries this status.
-**Next step:** once B-8 is merged, story B-9 of `docs/handover/stabilisation-backlog.md` (SAP export: employee ID and history), branch from `main`.
+**`main`:** `6d42259`, CI green. Open: the B-9 PR, which carries this status.
+**Next step:** once B-9 is merged, story B-10 of `docs/handover/stabilisation-backlog.md` (backup is complete and the calendar URL can be removed), branch from `main`.
 
 ## Where we are
 
 The owner reported on 2026-11-26 that tracking runs but no records appear. A functional audit found the cause and a set of other defects. `docs/handover/stabilisation-backlog.md` fixes them in order: three epics, 30 stories, one PR each (Epic C added on 2026-11-27 from an outside code review), approved by the owner and checked by an independent validation pass. The backlog sits in front of Increment B; LT3-102 (#13) follows it.
 
-**Done: Epic A (A-1 to A-9) and its retrospective, B-1 to B-4, B-6, B-7, C-1 to C-4; B-8 waits for approval. Next: B-9 to B-12, then C-5 to C-10 (B-5 is dropped).**
+**Done: Epic A (A-1 to A-9) and its retrospective, B-1 to B-4, B-6, B-7, C-1 to C-4, B-8; B-9 waits for approval. Next: B-10 to B-12, then C-5 to C-10 (B-5 is dropped).**
 
 The first-release workflow (approval, booking lines, CSV hand-off, RDP) is still not built; see plan section 16 and `docs/design/first-release/REVIEW.md`.
 
@@ -38,10 +38,11 @@ The first-release workflow (approval, booking lines, CSV hand-off, RDP) is still
 - **#78 C-2** every tracked second is stored. The duplicate-save check remembered app, project, day and duration rounded to 10 s, for any activity and without expiry, so a return of a few seconds to a saved activity, or a second Salesforce case with the same app and project, was not saved. It now skips a save only when the same activity was last saved with the same project, duration and title. Each tick also dropped its fraction of a second (about 0.6 % of tracked time at 30 ms per tick); the next tick now starts where the credited seconds end.
 - **#79 C-3** saving does not merge stored activities (owner's choice (a)). Every save merged neighbouring stored activities with the same app, title and project whose save times were within five minutes. The store is newest first, so the result ran from the later start to the earlier end, and the older id was lost (two Mark breaks in a row, for example). The merge is removed; the tracker already keeps one activity per app, project and day, and the "Consolidate similar activities" setting still controls that. Duplicates on save are now found by id; save time plus title also matched two different entries with the same title (TD-3, resolved). Already stored activities are unchanged.
 - **#80 C-4** my rules win over guesses, and match the way the tester says. The title parser guessed first: any title with "review", "sync" or "call" became "Meetings", and an IDE window took its folder name, and every JIRA, URL and app rule then stopped because a project was set. Guesses are now kept aside and used only when no rule matched. App and meeting rules compiled the raw text as a regular expression, so `/re/i` never fired and `*Outlook*` or `C++` were skipped without notice; one matcher in `src/shared/rule-pattern.ts` now serves tracking, the Test button and the matched-rule note. URL, app and meeting rules also set cost center and WBS element.
+- **#81 B-8** project, tag and activity-type controls act once. The Settings project form used the same field ids as the New project dialog, and Settings comes first in the page, so after a visit to Settings "+ New project" read the empty Settings field and said "Project name is required". The Settings fields now have their own ids. The tag and activity-type managers added a click handler to their container on every load, so after three visits one click added three times and asked three times on removal; they are wired once, as the project manager already was.
 
 ## In review
 
-- **B-8** project, tag and activity-type controls act once. The Settings project form used the same field ids as the New project dialog, and Settings comes first in the page, so after a visit to Settings "+ New project" read the empty Settings field and said "Project name is required". The Settings fields now have their own ids. The tag and activity-type managers added a click handler to their container on every load, so after three visits one click added three times and asked three times on removal; they are wired once, as the project manager already was.
+- **B-9** SAP export uses the employee ID as typed, and the export history fills. The export read the ID only from settings, so a typed but unsaved ID gave "Please enter your Employee ID". It now reads the field at export time (Save still stores it). The history functions in `app.js` were never called; an export now records date, period and row count (no row contents) and the list loads when the view opens.
 
 The owner confirmed on 2026-11-27 that the records since October appear after installing the 2026-11-26 build.
 
@@ -90,8 +91,8 @@ Recorded in the plan's decisions table, plus those of 2026-11-26:
 
 ## Next (in order)
 
-1. **B-8** merge after approval.
-2. **B-9 to B-12**, then the Epic B retrospective:
+1. **B-9** merge after approval.
+2. **B-10 to B-12**, then the Epic B retrospective:
    - B-9 SAP export employee ID and history; B-10 complete backup and removable calendar URL; B-11 tray, toasts and help match the app;
    - B-12 harness smoke test for save, edit and manual entry.
 3. **C-5 to C-10**, then the Epic C retrospective: day west of UTC; CSV formulas; calendar URL and IPv6; recurring meetings; settings checks; start-up guards and clean-up.
@@ -99,7 +100,7 @@ Recorded in the plan's decisions table, plus those of 2026-11-26:
 
 ## Working notes
 
-- Gates: `npm run lint`, `npm run typecheck`, `npm run test:ci` (baseline Jest, TS via ts-jest; 227 tests), `npm run build` (into `out/`), `npm run security:audit`, `npm run electron:build:win` (production build and installer), `npm run test:app` (harness, 20 tests, against `dist/win-unpacked`; set `LIGHTTRACK_EXE` to test another build).
+- Gates: `npm run lint`, `npm run typecheck`, `npm run test:ci` (baseline Jest, TS via ts-jest; 227 tests), `npm run build` (into `out/`), `npm run security:audit`, `npm run electron:build:win` (production build and installer), `npm run test:app` (harness, 21 tests, against `dist/win-unpacked`; set `LIGHTTRACK_EXE` to test another build).
 - The harness tests a packaged build, not the source: repackage after every source change. Without touching `dist/`: `npm run build:prod && npx electron-builder --win --dir --publish never --config.directories.output=<scratch dir>`, then `LIGHTTRACK_EXE=<scratch dir>/win-unpacked/LightTrack.exe npm run test:app`.
 - On a busy machine the full harness run can fail in "stores a manual entry" (timeout) and "keeps row actions visible" (it needs that entry). Both pass alone and in CI. Trust CI, and read the error before blaming load.
 - Lockfile: CI installs with npm 10 (Node 22). A lockfile written by npm 11 can fail `npm ci` there. After changing dependencies run `npx npm@10 install --package-lock-only`.
