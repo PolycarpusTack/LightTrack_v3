@@ -47,6 +47,35 @@ function withoutUrl(message, ...urls) {
   return text;
 }
 
+// A rule such as FREQ=MINUTELY would otherwise list thousands of meetings (C-8)
+const MAX_OCCURRENCES_PER_EVENT = 500;
+const DAY_MS = 86400000;
+// eslint-disable-next-line no-control-regex
+const CONTROL_CHARS = /[\u0000-\u0008\u000b-\u001f\u007f]/g;
+// eslint-disable-next-line no-control-regex
+const LINE_BREAKS = /[\t\n\r]+/g;
+
+/** Offset of a timezone from UTC at an instant, in milliseconds. */
+function zoneOffsetMs(instantMs, timeZone) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  }).formatToParts(new Date(instantMs));
+  const get = type => Number(parts.find(p => p.type === type).value);
+  return Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second')) - instantMs;
+}
+
+/**
+ * rrule returns the wall-clock time of a zoned occurrence labelled as UTC (09:00 Paris
+ * comes back as 09:00Z). Turn it into the real instant in that zone (C-8).
+ */
+function wallClockToInstant(wallClock, timeZone) {
+  const target = wallClock.getTime();
+  let instant = target;
+  for (let i = 0; i < 2; i++) instant = target - zoneOffsetMs(instant, timeZone);
+  return new Date(instant);
+}
+
 // The ICS URL usually embeds a private feed token, so it is stored protected (LT3-008).
 const URL_KEY = 'settings.calendarIcsUrlProtected';
 const LEGACY_URL_KEY = 'settings.calendarIcsUrl';
@@ -101,20 +130,19 @@ class CalendarSyncService {
   }
 
   /**
-   * Sanitize string to prevent XSS
-   * @param {string} str - String to sanitize
+   * Plain text from an ICS field, with control characters removed (C-8). The window
+   * escapes it when it shows it; storing HTML entities made "O'Brien" show as
+   * "O&#x27;Brien" and kept meeting rules from matching.
+   * @param {string} str - Text from the feed
    * @param {number} maxLength - Maximum length
-   * @returns {string} Sanitized string
+   * @param {{multiline?: boolean}} [options] - Keep line breaks (descriptions)
+   * @returns {string} Plain text
    */
-  sanitizeString(str, maxLength = 500) {
+  sanitizeString(str, maxLength = 500, { multiline = false } = {}) {
     if (typeof str !== 'string') return '';
-    return str
-      .slice(0, maxLength)
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#x27;')
-      .replace(/\//g, '&#x2F;');
+    let text = str.replace(CONTROL_CHARS, '');
+    text = multiline ? text.replace(/\r\n?/g, '\n') : text.replace(LINE_BREAKS, ' ');
+    return text.trim().slice(0, maxLength);
   }
 
   /**
@@ -366,55 +394,109 @@ class CalendarSyncService {
   parseEventsToMeetings(events, startRange, endRange) {
     const meetings = [];
 
-    for (const [uid, event] of Object.entries(events)) {
+    for (const [uid, event] of Object.entries(events || {})) {
       // Skip non-event items (like VTIMEZONE)
-      if (event.type !== 'VEVENT') continue;
+      if (!event || event.type !== 'VEVENT') continue;
+      // A moved occurrence is listed through its series (event.recurrences)
+      if (event.recurrenceid && events[event.uid] && events[event.uid] !== event) continue;
 
-      // Get start and end times (handle timezone)
-      const startTime = this.normalizeToUtc(event.start);
-      const endTime = this.normalizeToUtc(event.end);
-
-      // Skip if outside date range
-      if (!startTime || startTime > endRange || endTime < startRange) continue;
-
-      // Skip all-day events that span multiple days (likely holidays/OOO)
-      const isAllDay = event.start && event.start.dateOnly === true;
-
-      // Sanitize all string fields from ICS to prevent XSS
-      const sanitizedSubject = this.sanitizeString(event.summary, 200) || 'No Subject';
-      const sanitizedDescription = this.sanitizeString(event.description, 2000) || '';
-      const sanitizedLocation = this.sanitizeString(event.location, 200) || '';
-
-      // Validate duration calculation
-      const durationMs = endTime - startTime;
-      const duration = (isNaN(durationMs) || durationMs < 0) ? 0 : Math.round(durationMs / (1000 * 60));
-
-      const meeting = {
-        id: this.sanitizeString(uid, 200),
-        subject: sanitizedSubject,
-        description: sanitizedDescription,
-        location: sanitizedLocation,
-        startTime: startTime.toISOString(),
-        endTime: endTime.toISOString(),
-        startTimeLocal: this.formatLocalTime(startTime),
-        endTimeLocal: this.formatLocalTime(endTime),
-        duration: duration, // minutes
-        isAllDay: isAllDay,
-        organizer: this.parseOrganizer(event.organizer),
-        attendees: this.parseAttendees(event.attendee),
-        status: this.sanitizeString(event.status, 50) || 'CONFIRMED',
-        categories: Array.isArray(event.categories) ? event.categories.slice(0, 10).map(c => this.sanitizeString(c, 50)) : [],
-        // For matching with project mappings (use original unsanitized for matching)
-        searchText: `${event.summary || ''} ${event.description || ''} ${event.location || ''}`.toLowerCase()
-      };
-
-      meetings.push(meeting);
+      for (const occurrence of this.occurrencesOf(uid, event, startRange, endRange)) {
+        meetings.push(this.toMeeting(occurrence));
+      }
     }
 
     // Sort by start time
     meetings.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
 
     return meetings;
+  }
+
+  /**
+   * The occurrences of an event that overlap the range. A recurring event is expanded
+   * with its RRULE, skipping EXDATEs and using moved occurrences (RECURRENCE-ID) (C-8).
+   * @returns {Array<{id: string, event: Object, startTime: Date, endTime: Date}>}
+   */
+  occurrencesOf(uid, event, startRange, endRange) {
+    const startTime = this.normalizeToUtc(event.start);
+    const endTime = this.normalizeToUtc(event.end) || startTime;
+    if (!startTime) return [];
+    const inRange = (start, end) => start <= endRange && end >= startRange;
+
+    if (!event.rrule || typeof event.rrule.between !== 'function') {
+      return inRange(startTime, endTime) ? [{ id: uid, event, startTime, endTime }] : [];
+    }
+
+    const lengthMs = Math.max(0, endTime - startTime);
+    const timeZone = event.rrule.options?.tzid || null;
+    const toInstant = date => {
+      if (!timeZone) return date;
+      try {
+        return wallClockToInstant(date, timeZone);
+      } catch {
+        return date; // unknown zone: keep the time as given
+      }
+    };
+    const baseId = this.sanitizeString(String(uid), 170);
+
+    // Widen by a day and the event's length: the wall-clock dates rrule works with can be
+    // up to a day away from the real instants
+    const found = [];
+    event.rrule.between(
+      new Date(startRange.getTime() - lengthMs - DAY_MS), new Date(endRange.getTime() + DAY_MS), true,
+      (date, i) => i < MAX_OCCURRENCES_PER_EVENT && Boolean(found.push(date))
+    );
+
+    const occurrences = [];
+    for (const date of found) {
+      const start = toInstant(date);
+      const key = start.toISOString().slice(0, 10);
+      if (event.exdate && event.exdate[key]) continue;
+
+      const moved = event.recurrences && event.recurrences[key];
+      if (moved) {
+        if (String(moved.status || '').toUpperCase() === 'CANCELLED') continue;
+        const movedStart = this.normalizeToUtc(moved.start) || start;
+        const movedEnd = this.normalizeToUtc(moved.end) || new Date(movedStart.getTime() + lengthMs);
+        if (inRange(movedStart, movedEnd)) {
+          occurrences.push({ id: `${baseId}|${movedStart.toISOString()}`, event: { ...event, ...moved }, startTime: movedStart, endTime: movedEnd });
+        }
+        continue;
+      }
+
+      const end = new Date(start.getTime() + lengthMs);
+      if (inRange(start, end)) occurrences.push({ id: `${baseId}|${start.toISOString()}`, event, startTime: start, endTime: end });
+    }
+    return occurrences;
+  }
+
+  /** One stored meeting. Text fields are plain text; the window escapes them. */
+  toMeeting({ id, event, startTime, endTime }) {
+    const isAllDay = event.start && event.start.dateOnly === true;
+    const subject = this.sanitizeString(event.summary, 200) || 'No Subject';
+    const description = this.sanitizeString(event.description, 2000, { multiline: true });
+    const location = this.sanitizeString(event.location, 200);
+
+    const durationMs = endTime - startTime;
+    const duration = (isNaN(durationMs) || durationMs < 0) ? 0 : Math.round(durationMs / (1000 * 60));
+
+    return {
+      id: this.sanitizeString(String(id), 200),
+      subject,
+      description,
+      location,
+      startTime: startTime.toISOString(),
+      endTime: endTime.toISOString(),
+      startTimeLocal: this.formatLocalTime(startTime),
+      endTimeLocal: this.formatLocalTime(endTime),
+      duration, // minutes
+      isAllDay,
+      organizer: this.parseOrganizer(event.organizer),
+      attendees: this.parseAttendees(event.attendee),
+      status: this.sanitizeString(event.status, 50) || 'CONFIRMED',
+      categories: Array.isArray(event.categories) ? event.categories.slice(0, 10).map(c => this.sanitizeString(c, 50)) : [],
+      // For matching with project mappings
+      searchText: `${subject} ${description} ${location}`.toLowerCase()
+    };
   }
 
   /**
