@@ -1,7 +1,7 @@
 # LightTrack v3: status and pickup
 
 **Last updated:** 2026-11-28
-**`main`:** `3d7de60`, CI green. Open: the IPC reference PR, which carries this status.
+**`main`:** `829dc4c`, CI green. Open: the harness capture PR, which carries this status.
 **Next step:** the remaining follow-ups under "Next", one PR each, then LT3-102 (#13). Branch from `main`.
 
 ## Where we are
@@ -55,10 +55,11 @@ The first-release workflow (approval, booking lines, CSV hand-off, RDP) is still
 - **#92 C-10-T2** the executable description is read once per path, and unused files are gone. Every poll (5 s) read the active program's version resource from disk to name it; the description is now cached per path (at most 256, misses included). Removed, after checking that no code, build or CI step used them: `vendor/` (Chart.js and moment copies), `config/*.json` (never read by the app), and the legacy test suite with its runner (`test/unit`, `test/integration`, `test/e2e`, `test/setup.js`, `test/mocks`, `jest.config.js` and `npm run test:legacy`). All 15 of its suites failed (83 of 95 tests). `test:watch` and `test:coverage` now use the baseline config. CONTRIBUTING and the parts of `docs/LIGHTTRACK_MANUAL.md` that described those files are corrected. Epic C is complete.
 - **#93 Idle default** (follow-up from Epic C; owner chose 180 s on 2026-11-28). The store defaults and the fresh-install defaults wrote 300 s, while the Settings screen and the idle detector fall back to 180 s. Both now use `DEFAULT_IDLE_THRESHOLD_SECONDS` (180 s). Only new installs change: a stored value, such as the 300 s every existing install has, is kept.
 - **#94 jsdom removed.** `jest-environment-jsdom` was used only by the legacy suite removed in #92. It is gone from `package.json`, and the lockfile was rewritten with npm 10, which drops 600 lines.
+- **#95 IPC reference.** `docs/API_DOCUMENTATION.md` described 40 calls (`activities.*`, `health.*`, `rpg.*` and others), and none of them exist. It is replaced by a reference generated from the contract and the preload: the 73 window methods with their channel and description, and the 7 events. `test/baseline/ipc-reference.test.js` fails when the file falls behind; CONTRIBUTING says how to regenerate it.
 
 ## In review
 
-- **IPC reference.** `docs/API_DOCUMENTATION.md` described 40 calls (`activities.*`, `health.*`, `rpg.*` and others), and none of them exist. It is replaced by a reference generated from the contract and the preload: the 73 window methods with their channel and description, and the 7 events. `test/baseline/ipc-reference.test.js` fails when the file falls behind; CONTRIBUTING says how to regenerate it.
+- **Harness failure capture.** A failed packaged-app test now leaves `window.png`, `window.html` and `window.txt` (URL and window errors) in its folder under `test-results/app`. Tests close their app in `finally`, before `afterEach` runs, so `launch()` keeps the window's state just before each close. Checked with a forced failure; a passing test writes nothing. This is for the timeout after `page.reload()` in "load failure shows an error state with Retry".
 
 The owner confirmed on 2026-11-27 that the records since October appear after installing the 2026-11-26 build.
 
@@ -152,7 +153,7 @@ Recorded in the plan's decisions table, plus those of 2026-11-26:
 
 ## Next (in order)
 
-1. **Epic C follow-ups** (owner, 2026-11-28), one PR each: the idle default (#93); remove `jest-environment-jsdom` (#94); `docs/API_DOCUMENTATION.md` generated from the contract (in review); the harness saves a screenshot and the page HTML when a test fails ("load failure shows an error state with Retry" timed out after `page.reload()` twice in about ten full runs, never alone); rewrite `docs/LIGHTTRACK_MANUAL.md` against the code.
+1. **Epic C follow-ups** (owner, 2026-11-28), one PR each: the idle default (#93); remove `jest-environment-jsdom` (#94); `docs/API_DOCUMENTATION.md` generated from the contract (#95); the harness saves a screenshot and the page HTML when a test fails (in review) ("load failure shows an error state with Retry" timed out after `page.reload()` twice in about ten full runs, never alone); rewrite `docs/LIGHTTRACK_MANUAL.md` against the code.
 2. **LT3-102 (#13)** typed repositories on the LT3-101 schema, then LT3-103 to LT3-105 (#14 to #16), Increment C (#17 to #21), the CSV hand-off (#22, #23), RDP (#26, #27), #31, #33.
 
 ## Working notes
@@ -162,6 +163,7 @@ Recorded in the plan's decisions table, plus those of 2026-11-26:
 - On a busy machine the full harness run can fail in "stores a manual entry" (timeout) and "keeps row actions visible" (it needs that entry). Both pass alone and in CI. Trust CI, and read the error before blaming load.
 - Lockfile: CI installs with npm 10 (Node 22). A lockfile written by npm 11 can fail `npm ci` there. After changing dependencies run `npx npm@10 install --package-lock-only`.
 - Do not switch branches while a build or packaging run is in progress; it reads the working tree.
+- A failed harness test leaves `window.png`, `window.html` and `window.txt` in its `test-results/app` folder; look there first.
 - Harness tests share one profile across the file unless they make their own; give a new test its own (`fs.mkdtempSync`) and remove it in `finally`. Toasts stack, so find a toast by its text. If electron-builder fails with `EPERM` renaming `win-unpacked.tmp`, package into a new output folder.
 - IPC: add a channel to `src/main/ipc/contract.ts`, register it with `registry.handle`, map it in `src/preload/index.ts` (see CONTRIBUTING). A handler that returns an activity passes it through `toWireActivity`. Schema changes: append a migration to `src/main/persistence/schema.ts`.
 - The repository stores LF; `core.autocrlf` gives CRLF in some working copies. Git Bash tools hide the `\r`, so check with Node before a scripted edit that matches on newlines.
