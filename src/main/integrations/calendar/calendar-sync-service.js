@@ -66,8 +66,8 @@ function zoneOffsetMs(instantMs, timeZone) {
 }
 
 /**
- * rrule returns the wall-clock time of a zoned occurrence labelled as UTC (09:00 Paris
- * comes back as 09:00Z). Turn it into the real instant in that zone (C-8).
+ * A wall-clock time labelled as UTC (09:00 Paris as 09:00Z) to the real instant in that
+ * zone (C-8).
  */
 function wallClockToInstant(wallClock, timeZone) {
   const target = wallClock.getTime();
@@ -428,6 +428,9 @@ class CalendarSyncService {
 
     const lengthMs = Math.max(0, endTime - startTime);
     const timeZone = event.rrule.options?.tzid || null;
+    // For a zoned series, rrule's own output shifts with the machine's timezone. A copy
+    // without the zone gives plain wall-clock times, which toInstant converts.
+    const rule = timeZone ? new event.rrule.constructor({ ...event.rrule.origOptions, tzid: null }) : event.rrule;
     const toInstant = date => {
       if (!timeZone) return date;
       try {
@@ -441,7 +444,7 @@ class CalendarSyncService {
     // Widen by a day and the event's length: the wall-clock dates rrule works with can be
     // up to a day away from the real instants
     const found = [];
-    event.rrule.between(
+    rule.between(
       new Date(startRange.getTime() - lengthMs - DAY_MS), new Date(endRange.getTime() + DAY_MS), true,
       (date, i) => i < MAX_OCCURRENCES_PER_EVENT && Boolean(found.push(date))
     );
