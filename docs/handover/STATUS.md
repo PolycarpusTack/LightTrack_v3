@@ -1,14 +1,14 @@
 # LightTrack v3: status and pickup
 
 **Last updated:** 2026-11-27
-**`main`:** `46029e0`, CI green. Open: the C-6 PR, which carries this status.
-**Next step:** once C-6 is merged, story C-7 of `docs/handover/stabilisation-backlog.md` (the calendar URL is never logged, and private IPv6 addresses are refused), branch from `main`.
+**`main`:** `b6d9ee6`, CI green. Open: the C-7 PR, which carries this status.
+**Next step:** once C-7 is merged, story C-8 of `docs/handover/stabilisation-backlog.md` (recurring meetings appear, and subjects keep their characters), branch from `main`.
 
 ## Where we are
 
 The owner reported on 2026-11-26 that tracking runs but no records appear. A functional audit found the cause and a set of other defects. `docs/handover/stabilisation-backlog.md` fixes them in order: three epics, 30 stories, one PR each (Epic C added on 2026-11-27 from an outside code review), approved by the owner and checked by an independent validation pass. The backlog sits in front of Increment B; LT3-102 (#13) follows it.
 
-**Done: Epics A and B (B-5 dropped) with their retrospectives, and C-1 to C-5; C-6 waits for approval. Next: C-7 to C-10.**
+**Done: Epics A and B (B-5 dropped) with their retrospectives, and C-1 to C-6; C-7 waits for approval. Next: C-8 to C-10.**
 
 The first-release workflow (approval, booking lines, CSV hand-off, RDP) is still not built; see plan section 16 and `docs/design/first-release/REVIEW.md`.
 
@@ -44,10 +44,11 @@ The first-release workflow (approval, booking lines, CSV hand-off, RDP) is still
 - **#84 B-11** tray, toasts and help match the app. T0: the tray total added "now minus start" for the open activity, and a resumed activity keeps its first start of the day, so it could be hours too high; it now adds only the seconds not yet stored. T1: tray > Settings sent `open-settings`, which nothing listened to; the window now opens Settings, and the tray menu shows "Today: Xh Ym". T2: a new toast removed the previous one and every toast lasted 3 s; toasts now stack (up to four, a repeat restarts its timer) and keep the duration asked for. T3: the help described a floating window, Ctrl+Y, Firefox, macOS and Linux, a delete button in the edit dialog and the employee ID in Settings, none of which an installed build has; it is rewritten against the code, and the unused `help.md` is deleted. T3 waits for the owner to read the help in an installed build.
 - **#85 B-12** smoke test of the main flows in the packaged app: in a seeded profile it saves a setting ("Settings saved"), moves a tracked activity to another project (the duration stays 9,000 s), and adds a manual entry for yesterday, which the Timeline lists under yesterday and not today. The flows were already fixed (B-1, A-4, A-5), so the test passed on its first run; it guards against a repeat. Epic B is complete.
 - **#86 C-5** a day asked for is that day in every timezone. `activities:get` turned "2026-11-27" into `new Date(...)`, which is UTC midnight, and then took its local day, so west of UTC the Timeline asked for the 26th. A `YYYY-MM-DD` argument is now passed through unchanged; a full timestamp still means its local day. The unused `activities:get-stats` and `get-focus-stats` channels are removed (contract, handler and preload). The test runs in America/New_York through a small Jest environment, `test/baseline/tz-new-york-environment.js`, because a test file cannot change its own timezone.
+- **#87 C-6** an exported CSV cannot run a formula. Settings > Export CSV and the analytics export wrote titles as they were, so a window title such as `=HYPERLINK(...)` ran as a formula in Excel; the analytics export did not even escape quotes in the app and project. Both now use the SAP export's text cell, moved to `src/shared/csv.ts`: every text field is quoted and escaped, and a leading `=`, `+`, `-`, `@`, tab or return gets a single quote. Dates are `YYYY-MM-DD` and times `HH:MM`, whatever the system format. The Settings export is built in `src/main/exports/activities-csv.ts`. The SAP column layout is unchanged.
 
 ## In review
 
-- **C-6** an exported CSV cannot run a formula. Settings > Export CSV and the analytics export wrote titles as they were, so a window title such as `=HYPERLINK(...)` ran as a formula in Excel; the analytics export did not even escape quotes in the app and project. Both now use the SAP export's text cell, moved to `src/shared/csv.ts`: every text field is quoted and escaped, and a leading `=`, `+`, `-`, `@`, tab or return gets a single quote. Dates are `YYYY-MM-DD` and times `HH:MM`, whatever the system format. The Settings export is built in `src/main/exports/activities-csv.ts`. The SAP column layout is unchanged.
+- **C-7** the calendar URL is never logged, and private IPv6 addresses are refused. Every sync wrote the full feed URL, token included, to the console ("Syncing calendar from: …"), and a failed sync logged the raw error, which can hold the URL. Both now log the host only (`maskUrl`). The address check only looked at IPv4, and Node keeps IPv6 hosts in brackets, so `[::1]`, `[fe80::1]`, unique-local and `::ffff:`-mapped private addresses were accepted; they are now refused, and public addresses still pass.
 
 The owner confirmed on 2026-11-27 that the records since October appear after installing the 2026-11-26 build.
 
@@ -117,13 +118,13 @@ Recorded in the plan's decisions table, plus those of 2026-11-26:
 
 ## Next (in order)
 
-1. **C-6** merge after approval.
-2. **C-7 to C-10**, then the Epic C retrospective: calendar URL and IPv6; recurring meetings; settings checks; start-up guards and clean-up.
+1. **C-7** merge after approval.
+2. **C-8 to C-10**, then the Epic C retrospective: recurring meetings; settings checks; start-up guards and clean-up.
 3. **LT3-102 (#13)** typed repositories on the LT3-101 schema, then LT3-103 to LT3-105 (#14 to #16), Increment C (#17 to #21), the CSV hand-off (#22, #23), RDP (#26, #27), #31, #33.
 
 ## Working notes
 
-- Gates: `npm run lint`, `npm run typecheck`, `npm run test:ci` (baseline Jest, TS via ts-jest; 237 tests), `npm run build` (into `out/`), `npm run security:audit`, `npm run electron:build:win` (production build and installer), `npm run test:app` (harness, 26 tests, against `dist/win-unpacked`; set `LIGHTTRACK_EXE` to test another build).
+- Gates: `npm run lint`, `npm run typecheck`, `npm run test:ci` (baseline Jest, TS via ts-jest; 247 tests), `npm run build` (into `out/`), `npm run security:audit`, `npm run electron:build:win` (production build and installer), `npm run test:app` (harness, 26 tests, against `dist/win-unpacked`; set `LIGHTTRACK_EXE` to test another build).
 - The harness tests a packaged build, not the source: repackage after every source change. Without touching `dist/`: `npm run build:prod && npx electron-builder --win --dir --publish never --config.directories.output=<scratch dir>`, then `LIGHTTRACK_EXE=<scratch dir>/win-unpacked/LightTrack.exe npm run test:app`.
 - On a busy machine the full harness run can fail in "stores a manual entry" (timeout) and "keeps row actions visible" (it needs that entry). Both pass alone and in CI. Trust CI, and read the error before blaming load.
 - Lockfile: CI installs with npm 10 (Node 22). A lockfile written by npm 11 can fail `npm ci` there. After changing dependencies run `npx npm@10 install --package-lock-only`.

@@ -10,19 +10,42 @@ const {
   FETCH_TIMEOUT_MS
 } = require('../../../shared/constants');
 
-// Private IP ranges to block for SSRF protection
-const PRIVATE_IP_PATTERNS = [
+// Private IPv4 ranges to block for SSRF protection
+const PRIVATE_IPV4_PATTERNS = [
   /^127\./,                      // Loopback
   /^10\./,                       // Class A private
   /^172\.(1[6-9]|2\d|3[01])\./,  // Class B private
   /^192\.168\./,                 // Class C private
   /^169\.254\./,                 // Link-local
-  /^0\./,                        // Current network
-  /^::1$/,                       // IPv6 loopback
-  /^fe80:/i,                     // IPv6 link-local
-  /^fc00:/i,                     // IPv6 unique local
-  /^fd00:/i                     // IPv6 unique local
+  /^0\./                         // Current network
 ];
+
+const isPrivateIPv4 = address => PRIVATE_IPV4_PATTERNS.some(pattern => pattern.test(address));
+
+/**
+ * Loopback, unspecified, link-local (fe80::/10), unique-local (fc00::/7), and IPv4-mapped
+ * private addresses. The URL parser writes a mapped address in hex (::ffff:7f00:1) (C-7).
+ */
+function isPrivateIPv6(address) {
+  const a = address.toLowerCase();
+  if (a === '::' || a === '::1') return true;
+  const dotted = a.match(/^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/);
+  if (dotted) return isPrivateIPv4(dotted[1]);
+  const hex = a.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+  if (hex) {
+    const hi = parseInt(hex[1], 16);
+    const lo = parseInt(hex[2], 16);
+    return isPrivateIPv4(`${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`);
+  }
+  return /^fe[89ab][0-9a-f]:/.test(a) || /^f[cd][0-9a-f]{2}:/.test(a);
+}
+
+/** An error message with the feed URL replaced by its masked form, for logs (C-7). */
+function withoutUrl(message, ...urls) {
+  let text = String(message || '');
+  for (const url of urls) if (url) text = text.split(url).join(maskUrl(url));
+  return text;
+}
 
 // The ICS URL usually embeds a private feed token, so it is stored protected (LT3-008).
 const URL_KEY = 'settings.calendarIcsUrlProtected';
@@ -61,15 +84,11 @@ class CalendarSyncService {
         return { valid: false, error: 'Cannot use localhost or local network addresses.' };
       }
 
-      // Check for IP addresses in hostname
-      const ipv4Match = hostname.match(/^(\d{1,3}\.){3}\d{1,3}$/);
-      if (ipv4Match) {
-        // Check against private IP patterns
-        for (const pattern of PRIVATE_IP_PATTERNS) {
-          if (pattern.test(hostname)) {
-            return { valid: false, error: 'Cannot use private or internal IP addresses.' };
-          }
-        }
+      // An IP address: IPv4 as is, IPv6 without its brackets (C-7)
+      const isIPv4 = /^(\d{1,3}\.){3}\d{1,3}$/.test(hostname);
+      const ipv6 = hostname.startsWith('[') && hostname.endsWith(']') ? hostname.slice(1, -1) : null;
+      if ((isIPv4 && isPrivateIPv4(hostname)) || (ipv6 && isPrivateIPv6(ipv6))) {
+        return { valid: false, error: 'Cannot use private or internal IP addresses.' };
       }
 
       // Convert webcal to https
@@ -268,7 +287,8 @@ class CalendarSyncService {
     }
 
     try {
-      console.log('Syncing calendar from:', validation.sanitizedUrl);
+      // The path carries the feed token: log the host only (C-7)
+      console.log('Syncing calendar from:', maskUrl(validation.sanitizedUrl));
 
       // Fetch and parse ICS with timeout
       const events = await this.fetchIcsEvents(validation.sanitizedUrl);
@@ -294,10 +314,11 @@ class CalendarSyncService {
         lastSync: now.toISOString()
       };
     } catch (error) {
-      console.error('Calendar sync error:', error);
+      const message = withoutUrl(error?.message, url, validation.sanitizedUrl);
+      console.error('Calendar sync error:', message);
       return {
         success: false,
-        error: error.message || 'Failed to sync calendar'
+        error: message || 'Failed to sync calendar'
       };
     }
   }
@@ -320,14 +341,19 @@ class CalendarSyncService {
     });
 
     // Create timeout promise
+    let timer;
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => {
+      timer = setTimeout(() => {
         reject(new Error(`Calendar fetch timed out after ${FETCH_TIMEOUT_MS / 1000} seconds`));
       }, FETCH_TIMEOUT_MS);
     });
 
-    // Race between fetch and timeout
-    return Promise.race([fetchPromise, timeoutPromise]);
+    // Race between fetch and timeout; the timer is cleared either way
+    try {
+      return await Promise.race([fetchPromise, timeoutPromise]);
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   /**
