@@ -1,6 +1,7 @@
 const { BrowserWindow, dialog } = require('electron');
 const path = require('path');
 const logger = require('../logger');
+const { isAllowedNavigation } = require('./app-lifecycle');
 
 /**
  * WindowManager - Handles main window creation and lifecycle
@@ -94,19 +95,18 @@ class WindowManager {
         `);
       });
 
-      // Security: Block navigation away from the app
+      // Security: the page may only navigate to the app's own index.html. A malformed URL
+      // is blocked, not thrown; only the scheme is logged, never the URL (C-10)
       this.mainWindow.webContents.on('will-navigate', (event, navigationUrl) => {
-        const parsedUrl = new URL(navigationUrl);
-        // Only allow file:// protocol (our app) and data: (error pages)
-        if (parsedUrl.protocol !== 'file:' && parsedUrl.protocol !== 'data:') {
+        if (!isAllowedNavigation(navigationUrl, indexPath)) {
           event.preventDefault();
-          logger.warn('Blocked navigation to:', navigationUrl);
+          logger.warn('Blocked navigation:', String(navigationUrl).split(':')[0] || 'unknown');
         }
       });
 
       // Security: Block new window creation (window.open, target=_blank, etc.)
       this.mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-        logger.warn('Blocked window.open for:', url);
+        logger.warn('Blocked window.open:', String(url).split(':')[0] || 'unknown');
         return { action: 'deny' };
       });
 
