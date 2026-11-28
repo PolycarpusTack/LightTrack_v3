@@ -1,7 +1,7 @@
 # LightTrack v3: status and pickup
 
 **Last updated:** 2026-11-28
-**`main`:** `5c06011`, CI green. Open: the jsdom PR, which carries this status.
+**`main`:** `3d7de60`, CI green. Open: the IPC reference PR, which carries this status.
 **Next step:** the remaining follow-ups under "Next", one PR each, then LT3-102 (#13). Branch from `main`.
 
 ## Where we are
@@ -54,10 +54,11 @@ The first-release workflow (approval, booking lines, CSV hand-off, RDP) is still
 - **#91 C-10-T1** start-up, quit and navigation are guarded. The single-instance lock is taken before `init()`, so a second copy quits before it opens the data files or the extension port. The tracker reads the main window through a getter, so it follows a window that is closed and created again. `before-quit` runs its cleanup once, however often quit is asked for (`runOnce` in `src/main/core/app-lifecycle.js`). `will-navigate` allows only the app's own `index.html`; it threw on a malformed URL and allowed any `file:` or `data:` page, and it logged the URL, which now gives the scheme only.
 - **#92 C-10-T2** the executable description is read once per path, and unused files are gone. Every poll (5 s) read the active program's version resource from disk to name it; the description is now cached per path (at most 256, misses included). Removed, after checking that no code, build or CI step used them: `vendor/` (Chart.js and moment copies), `config/*.json` (never read by the app), and the legacy test suite with its runner (`test/unit`, `test/integration`, `test/e2e`, `test/setup.js`, `test/mocks`, `jest.config.js` and `npm run test:legacy`). All 15 of its suites failed (83 of 95 tests). `test:watch` and `test:coverage` now use the baseline config. CONTRIBUTING and the parts of `docs/LIGHTTRACK_MANUAL.md` that described those files are corrected. Epic C is complete.
 - **#93 Idle default** (follow-up from Epic C; owner chose 180 s on 2026-11-28). The store defaults and the fresh-install defaults wrote 300 s, while the Settings screen and the idle detector fall back to 180 s. Both now use `DEFAULT_IDLE_THRESHOLD_SECONDS` (180 s). Only new installs change: a stored value, such as the 300 s every existing install has, is kept.
+- **#94 jsdom removed.** `jest-environment-jsdom` was used only by the legacy suite removed in #92. It is gone from `package.json`, and the lockfile was rewritten with npm 10, which drops 600 lines.
 
 ## In review
 
-- **jsdom removed.** `jest-environment-jsdom` was used only by the legacy suite removed in #92. It is gone from `package.json`, and the lockfile was rewritten with npm 10, which drops 600 lines.
+- **IPC reference.** `docs/API_DOCUMENTATION.md` described 40 calls (`activities.*`, `health.*`, `rpg.*` and others), and none of them exist. It is replaced by a reference generated from the contract and the preload: the 73 window methods with their channel and description, and the 7 events. `test/baseline/ipc-reference.test.js` fails when the file falls behind; CONTRIBUTING says how to regenerate it.
 
 The owner confirmed on 2026-11-27 that the records since October appear after installing the 2026-11-26 build.
 
@@ -151,12 +152,12 @@ Recorded in the plan's decisions table, plus those of 2026-11-26:
 
 ## Next (in order)
 
-1. **Epic C follow-ups** (owner, 2026-11-28), one PR each: the idle default (#93); remove `jest-environment-jsdom` (in review); drop `getStats` from `docs/API_DOCUMENTATION.md`; the harness saves a screenshot and the page HTML when a test fails ("load failure shows an error state with Retry" timed out after `page.reload()` twice in about ten full runs, never alone); rewrite `docs/LIGHTTRACK_MANUAL.md` against the code.
+1. **Epic C follow-ups** (owner, 2026-11-28), one PR each: the idle default (#93); remove `jest-environment-jsdom` (#94); `docs/API_DOCUMENTATION.md` generated from the contract (in review); the harness saves a screenshot and the page HTML when a test fails ("load failure shows an error state with Retry" timed out after `page.reload()` twice in about ten full runs, never alone); rewrite `docs/LIGHTTRACK_MANUAL.md` against the code.
 2. **LT3-102 (#13)** typed repositories on the LT3-101 schema, then LT3-103 to LT3-105 (#14 to #16), Increment C (#17 to #21), the CSV hand-off (#22, #23), RDP (#26, #27), #31, #33.
 
 ## Working notes
 
-- Gates: `npm run lint`, `npm run typecheck`, `npm run test:ci` (baseline Jest, TS via ts-jest; 265 tests), `npm run build` (into `out/`), `npm run security:audit`, `npm run electron:build:win` (production build and installer), `npm run test:app` (harness, 26 tests, against `dist/win-unpacked`; set `LIGHTTRACK_EXE` to test another build).
+- Gates: `npm run lint`, `npm run typecheck`, `npm run test:ci` (baseline Jest, TS via ts-jest; 267 tests), `npm run build` (into `out/`), `npm run security:audit`, `npm run electron:build:win` (production build and installer), `npm run test:app` (harness, 26 tests, against `dist/win-unpacked`; set `LIGHTTRACK_EXE` to test another build).
 - The harness tests a packaged build, not the source: repackage after every source change. Without touching `dist/`: `npm run build:prod && npx electron-builder --win --dir --publish never --config.directories.output=<scratch dir>`, then `LIGHTTRACK_EXE=<scratch dir>/win-unpacked/LightTrack.exe npm run test:app`.
 - On a busy machine the full harness run can fail in "stores a manual entry" (timeout) and "keeps row actions visible" (it needs that entry). Both pass alone and in CI. Trust CI, and read the error before blaming load.
 - Lockfile: CI installs with npm 10 (Node 22). A lockfile written by npm 11 can fail `npm ci` there. After changing dependencies run `npx npm@10 install --package-lock-only`.

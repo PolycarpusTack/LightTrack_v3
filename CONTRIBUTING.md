@@ -30,8 +30,9 @@ The app runs from `out/`, not `src/`. `npm run build` compiles the main process 
 1. Add the channel to `src/main/ipc/contract.ts` with its argument tuple, result schema and a one-line description. Use `z.object` for requests (unknown keys are dropped) and `z.looseObject` for stored records.
 2. Register the handler in main with `registry.handle(channel, handler)`, never `ipcMain.handle`.
 3. Map it in `src/preload/index.ts`.
+4. Regenerate `docs/API_DOCUMENTATION.md`: `UPDATE_IPC_REFERENCE=1 npx jest --config jest.baseline.config.js -t "ipc reference"`.
 
-`test/baseline/ipc-contract.test.js` fails if the three lists differ, and main refuses to start if a contract channel has no handler.
+`test/baseline/ipc-contract.test.js` fails if the three lists differ, `test/baseline/ipc-reference.test.js` fails if the reference is out of date, and main refuses to start if a contract channel has no handler.
 
 ### Changing the database schema
 
