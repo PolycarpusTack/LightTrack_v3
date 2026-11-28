@@ -27,6 +27,7 @@ const UpgradeManager = require('./core/upgrade-manager');
 const { validateAndSanitizeActivity } = require('../shared/sanitize');
 const { IpcRegistry } = require('./ipc/registry');
 const { IpcError } = require('../shared/ipc/errors');
+const { runOnce } = require('./core/app-lifecycle');
 
 
 class LightTrackApp {
@@ -163,7 +164,8 @@ class LightTrackApp {
       this.appState.windows.main = this.mainWindow;
 
       // Initialize tracker after window creation
-      this.tracker = new ActivityTracker(this.storage, this.mainWindow);
+      // A getter, so the tracker follows the window if it is closed and created again (C-10)
+      this.tracker = new ActivityTracker(this.storage, () => this.mainWindow);
 
       // Sleep and lock time is not counted (A-7)
       for (const event of ['suspend', 'lock-screen']) {
@@ -402,9 +404,13 @@ class LightTrackApp {
   }
 }
 
-// Initialize app
+// Take the single-instance lock before anything starts, so a second copy never opens
+// the data files or the extension port (C-10)
+const gotTheLock = app.requestSingleInstanceLock();
 const lightTrackApp = new LightTrackApp();
-lightTrackApp.init();
+if (gotTheLock) {
+  lightTrackApp.init();
+}
 
 // Handle app lifecycle
 app.on('window-all-closed', () => {
@@ -414,11 +420,10 @@ app.on('window-all-closed', () => {
   }
 });
 
-app.on('before-quit', async (event) => {
+// before-quit fires again if quit is asked for while the cleanup is still running; the
+// cleanup runs once and the app exits when it is done (C-10)
+app.on('before-quit', runOnce(async () => {
   lightTrackApp.isQuitting = true;
-
-  // Prevent immediate quit to allow async cleanup
-  event.preventDefault();
 
   try {
     await lightTrackApp.cleanup();
@@ -431,7 +436,7 @@ app.on('before-quit', async (event) => {
 
   // Now actually quit
   app.exit(0);
-});
+}));
 
 app.on('activate', () => {
   // macOS: Re-create window when dock icon is clicked
@@ -441,7 +446,6 @@ app.on('activate', () => {
 });
 
 // Prevent multiple instances
-const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
   logger.warn('Another instance is already running');
   app.quit();

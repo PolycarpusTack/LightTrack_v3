@@ -28,9 +28,14 @@ const { localDay: getLocalDateString } = require('./local-day');
  * Combines the best of original LightTrack with Phase 2 requirements
  */
 class ActivityTracker {
+  /**
+   * @param {Object} storageManager
+   * @param {Function|Object|null} mainWindow - A function returning the current main window
+   *   (the window can be closed and created again), or a fixed window (C-10)
+   */
   constructor(storageManager, mainWindow) {
     this.storage = storageManager;
-    this.mainWindow = mainWindow;
+    this.getMainWindow = typeof mainWindow === 'function' ? mainWindow : () => mainWindow;
     this.isTracking = false;
     this.currentActivity = null;
     this.trackingInterval = null;
@@ -57,7 +62,7 @@ class ActivityTracker {
     // Idle detector for system idle handling
     this.idleDetector = new IdleDetector({
       getStorage: () => this.storage,
-      getMainWindow: () => this.mainWindow,
+      getMainWindow: () => this.getMainWindow(),
       onIdleStart: (idleStartTime) => this.handleIdleStart(idleStartTime),
       onIdleReturn: (idlePeriod) => this.handleIdleReturn(idlePeriod)
     });
@@ -78,6 +83,16 @@ class ActivityTracker {
     // Bind methods
     this.track = this.track.bind(this);
     this.adjustSamplingRate = this.adjustSamplingRate.bind(this);
+  }
+
+  /** The current main window, or null (C-10) */
+  get mainWindow() {
+    return this.getMainWindow() || null;
+  }
+
+  /** Use a fixed window from now on */
+  set mainWindow(window) {
+    this.getMainWindow = () => window;
   }
 
   async start() {
