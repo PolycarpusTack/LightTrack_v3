@@ -13,6 +13,9 @@ const {
  * Settings Handler for main.js
  * Registers all settings-related IPC handlers using the existing pattern
  */
+// 00:00 to 23:59 (C-9)
+const TIME_OF_DAY = /^([01]\d|2[0-3]):[0-5]\d$/;
+
 class SettingsHandlerMain {
   constructor(store, appState, setupBreakReminders) {
     this.store = store;
@@ -42,14 +45,19 @@ class SettingsHandlerMain {
     // Save settings with validation
     registry.handle('settings:save', async (event, settings) => {
       try {
-        // Validate settings
-        const errors = this.validateSettings(settings);
+        // A null or missing value leaves the stored setting as it is (C-9)
+        const sent = Object.fromEntries(
+          Object.entries(settings || {}).filter(([, value]) => value !== null && value !== undefined)
+        );
+        const current = this.store.get('settings', {});
+        const next = { ...current, ...sent };
+
+        // Checked against what will be stored, not only against what was sent (C-9)
+        const errors = this.validateSettings(sent, next);
         if (errors.length > 0) {
           return { success: false, errors };
         }
 
-        const current = this.store.get('settings', {});
-        const next = { ...current, ...settings };
         this.store.set('settings', next);
 
         // No restart: the tracker and idle detector read the settings on every check,
@@ -224,17 +232,36 @@ class SettingsHandlerMain {
   }
 
   /**
-   * Validate settings before saving
+   * Validate settings before saving. Ranges are checked for the values sent, so an old
+   * stored value cannot block an unrelated save; the work day is checked as it will be
+   * stored, so sending only one of its times cannot get round the check (C-9).
+   * @param {Object} settings - The values sent, without null or undefined
+   * @param {Object} [merged] - The stored settings with those values applied
    */
-  validateSettings(settings) {
+  validateSettings(settings, merged = settings) {
     const errors = [];
 
-    // Validate workday times
-    if (settings.workDayStart && settings.workDayEnd) {
-      const start = this.parseTime(settings.workDayStart);
-      const end = this.parseTime(settings.workDayEnd);
-      if (start >= end) {
+    // Validate workday times: HH:MM, and the end after the start
+    const timeErrors = [];
+    if (settings.workDayStart !== undefined && !TIME_OF_DAY.test(String(settings.workDayStart))) {
+      timeErrors.push('Work day start must be a time as HH:MM');
+    }
+    if (settings.workDayEnd !== undefined && !TIME_OF_DAY.test(String(settings.workDayEnd))) {
+      timeErrors.push('Work day end must be a time as HH:MM');
+    }
+    errors.push(...timeErrors);
+    const timeSent = settings.workDayStart !== undefined || settings.workDayEnd !== undefined;
+    if (timeSent && !timeErrors.length && TIME_OF_DAY.test(String(merged.workDayStart)) && TIME_OF_DAY.test(String(merged.workDayEnd))) {
+      if (this.parseTime(merged.workDayStart) >= this.parseTime(merged.workDayEnd)) {
         errors.push('Work day end time must be after start time');
+      }
+    }
+
+    // Validate break reminder interval (5 minutes to 8 hours)
+    if (settings.breakReminderInterval !== undefined) {
+      const interval = Number(settings.breakReminderInterval);
+      if (isNaN(interval) || interval < 5 || interval > 480) {
+        errors.push('Break reminder interval must be between 5 and 480 minutes');
       }
     }
 
