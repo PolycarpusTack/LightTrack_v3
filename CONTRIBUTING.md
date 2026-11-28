@@ -39,7 +39,7 @@ Add a migration to the end of `MIGRATIONS` in `src/main/persistence/schema.ts`, 
 
 New code is TypeScript. When you migrate a JavaScript module, replace it rather than keeping both versions. Renderer modules move into `src/renderer/ts` and are published on `window.LightTrack` from `src/renderer/ts/index.ts` until their legacy callers are migrated too.
 
-`npm run test:legacy` exposes the archived broad test suite. It contains tests for removed modules and is not the supported release gate; do not conceal new failures by adding more tests to that quarantine.
+Unit tests live in `test/baseline` (`npm run test:ci`) and packaged-app tests in `test/app` (`npm run test:app`). The archived legacy suite (`test/unit`, `test/integration`, `test/e2e` and `npm run test:legacy`) was removed in C-10: every one of its suites failed against the current code.
 
 ## Privacy and data handling
 

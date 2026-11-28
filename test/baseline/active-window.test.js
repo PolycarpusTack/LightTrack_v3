@@ -3,7 +3,7 @@
  * Runs against the real API: CI and development are Windows-only.
  */
 const path = require('path');
-const { activeWindow, processInfo, fileDescription } = require('../../src/main/core/active-window');
+const { activeWindow, processInfo, fileDescription, cachedFileDescription, clearFileDescriptionCache } = require('../../src/main/core/active-window');
 
 test('names a process by its file description, as active-win did', () => {
   const info = processInfo(process.pid);
@@ -17,6 +17,18 @@ test('reads the file description of a system executable', () => {
 
 test('falls back to the file name when there is no description', () => {
   expect(fileDescription(path.join(__dirname, 'active-window.test.js'))).toBeUndefined();
+});
+
+// C-10: read once per executable, not on every poll; a missing description is cached too
+test('reads each executable’s description once', () => {
+  clearFileDescriptionCache();
+  const read = jest.fn(p => (p.endsWith('a.exe') ? 'App A' : undefined));
+  for (let i = 0; i < 3; i++) {
+    expect(cachedFileDescription('C:\\x\\a.exe', read)).toBe('App A');
+    expect(cachedFileDescription('C:\\x\\b.exe', read)).toBeUndefined();
+  }
+  expect(read).toHaveBeenCalledTimes(2);
+  clearFileDescriptionCache();
 });
 
 test('returns nothing for a process that does not exist', () => {
