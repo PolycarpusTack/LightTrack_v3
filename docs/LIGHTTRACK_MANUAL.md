@@ -141,7 +141,6 @@ LightTrack/
 │   ├── preload.js           # Security bridge
 │   ├── security/            # Security modules
 │   └── shared/              # Shared utilities
-├── config/                   # Configuration files
 ├── test/                     # Test files
 ├── assets/                   # Icons and images
 ├── browser-extension/        # Browser integration
@@ -342,11 +341,10 @@ npm test -- --watch
 
 **Expected Test Output:**
 ```
-PASS  test/unit/activity-list.test.js
-PASS  test/unit/feature-manager.test.js
+PASS test/baseline/settings-round-trip.test.js
+PASS test/baseline/calendar-recurrence.test.js
 ...
-Test Suites: 12 passed, 12 total
-Tests:       87 passed, 87 total
+Tests:       262 passed, 262 total
 ```
 
 ### 3.6 Building for Production
@@ -650,27 +648,8 @@ The UI runs in a Chromium-based browser environment.
 
 ### 5.3 Configuration System
 
-LightTrack uses a layered configuration system:
+Settings are kept by the app (electron-store) and changed in the Settings view. A setting that was never saved uses its default. Fixed limits and intervals are in `src/shared/constants.js`.
 
-```
-Priority (highest to lowest):
-1. User settings (electron-store)
-2. Environment variables (.env)
-3. Environment-specific config (config/*.development.json)
-4. Base config (config/*.json)
-5. Hardcoded defaults
-```
-
-**Configuration Files:**
-
-| File | Purpose |
-|------|---------|
-| `config/app-config.json` | Application metadata, feature flags |
-| `config/tracking-config.json` | Tracking intervals, thresholds |
-| `config/performance-config.json` | Sampling rates, limits |
-| `config/ui-config.json` | Window dimensions, animations |
-| `config/business-config.json` | Business rules |
-| `config/network-config.json` | Network settings |
 
 ### 5.4 Error Handling Approach
 
@@ -816,9 +795,9 @@ async function detectActivity() {
 
 | Option | Location | Default | Description |
 |--------|----------|---------|-------------|
-| Sampling interval | `config/tracking-config.json` | 5-60s | Adaptive polling rate |
-| Idle threshold | `config/tracking-config.json` | 180s | Seconds before idle detection |
-| Min activity duration | `config/tracking-config.json` | 60s | Minimum recorded duration |
+| Sampling interval | `src/shared/constants.js` | 5-60s | Adaptive polling rate |
+| Idle threshold | Settings | 180s | Seconds before idle detection |
+| Min activity duration | Settings | 60s | Minimum recorded duration |
 | Auto-start tracking | Settings | false | Start on app launch |
 
 ### 6.4 Usage Examples
@@ -1854,7 +1833,7 @@ npm test -- --testPathPattern=security
 
 **Unit Test Example:**
 ```javascript
-// test/unit/title-parser.test.js
+// test/baseline/title-parser.test.js (example; the real title-parser tests are in test/baseline/rules-first.test.js)
 const { parse } = require('../../src/main/core/title-parser');
 
 describe('TitleParser', () => {
@@ -2152,31 +2131,7 @@ window.LightTrack.SAPExport = {
 
 ### Configuration Files
 
-#### `/config/tracking-config.json`
-
-| Property | Value |
-|----------|-------|
-| **Path** | `/config/tracking-config.json` |
-| **Type** | Config |
-| **Format** | JSON |
-
-**Contents:**
-```json
-{
-  "detection": {
-    "baseInterval": 60000,
-    "minInterval": 5000,
-    "maxInterval": 60000
-  },
-  "idle": {
-    "threshold": 180,
-    "checkInterval": 10000
-  },
-  "breakReminder": {
-    "defaultInterval": 3600000
-  }
-}
-```
+There are none. Settings are kept by the app and changed in the Settings view; fixed limits are in `src/shared/constants.js`.
 
 ---
 

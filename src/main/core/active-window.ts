@@ -102,11 +102,32 @@ export function fileDescription(filePath: string): string | undefined {
   return text || undefined;
 }
 
+// The version resource used to be read from disk on every poll (C-10). An executable's
+// description does not change while it runs, so it is read once per path, misses included.
+const MAX_CACHED_DESCRIPTIONS = 256;
+const descriptions = new Map<string, string | undefined>();
+
+/** fileDescription, read once per path. `read` is replaceable for tests. */
+export function cachedFileDescription(filePath: string, read: (p: string) => string | undefined = fileDescription): string | undefined {
+  if (descriptions.has(filePath)) return descriptions.get(filePath);
+  const found = read(filePath);
+  if (descriptions.size >= MAX_CACHED_DESCRIPTIONS) {
+    descriptions.delete(descriptions.keys().next().value as string);
+  }
+  descriptions.set(filePath, found);
+  return found;
+}
+
+/** Forget the cached descriptions (tests). */
+export function clearFileDescriptionCache(): void {
+  descriptions.clear();
+}
+
 /** Name and path of a process, named as active-win named it. */
 export function processInfo(processId: number): { name: string; path: string } | undefined {
   const exePath = processPath(processId);
   if (!exePath) return undefined;
-  return { name: fileDescription(exePath) || path.basename(exePath), path: exePath };
+  return { name: cachedFileDescription(exePath) || path.basename(exePath), path: exePath };
 }
 
 function windowProcessId(hwnd: unknown): number {
