@@ -44,6 +44,46 @@ describe('settings round trip (B-2)', () => {
     expect((await invoke('settings:get-all')).idleThreshold).toBeUndefined();
   });
 
+  // C-9: checked against what is stored, not only against what was sent
+  test('settings round trip: a start time after the stored end time is refused', async () => {
+    const { invoke } = setup();
+    expect(await invoke('settings:save', { workDayStart: '20:00' }))
+      .toEqual({ success: false, errors: ['Work day end time must be after start time'] });
+    expect(await invoke('settings:save', { workDayEnd: '08:00' }))
+      .toEqual({ success: false, errors: ['Work day end time must be after start time'] });
+    expect(await invoke('settings:save', { workDayStart: '08:30' })).toEqual({ success: true });
+    expect((await invoke('settings:get-all')).workDayStart).toBe('08:30');
+  });
+
+  test('settings round trip: times must be HH:MM', async () => {
+    const { invoke } = setup();
+    for (const bad of ['9:00', '25:00', '09:60', 'noon', '']) {
+      expect(await invoke('settings:save', { workDayStart: bad }))
+        .toEqual({ success: false, errors: ['Work day start must be a time as HH:MM'] });
+    }
+    expect(await invoke('settings:save', { workDayEnd: '7pm' }))
+      .toEqual({ success: false, errors: ['Work day end must be a time as HH:MM'] });
+  });
+
+  test('settings round trip: a break reminder interval out of range is refused with the allowed range', async () => {
+    const { invoke } = setup();
+    for (const bad of [0, 4, 481]) {
+      expect(await invoke('settings:save', { breakReminderInterval: bad }))
+        .toEqual({ success: false, errors: ['Break reminder interval must be between 5 and 480 minutes'] });
+    }
+    expect(await invoke('settings:save', { breakReminderInterval: 45 })).toEqual({ success: true });
+  });
+
+  test('settings round trip: a null value does not erase or bypass the stored setting', async () => {
+    const { invoke } = setup();
+    expect(await invoke('settings:save', { workDayEnd: null, idleThreshold: null })).toEqual({ success: true });
+    const stored = await invoke('settings:get-all');
+    expect(stored.workDayEnd).toBe('18:00');
+    expect('idleThreshold' in stored).toBe(false);
+    expect(await invoke('settings:save', { workDayStart: '19:00', workDayEnd: null }))
+      .toEqual({ success: false, errors: ['Work day end time must be after start time'] });
+  });
+
   test('settings round trip: an unknown consolidation mode or week day is refused by the contract', async () => {
     const { invoke } = setup();
     await expect(invoke('settings:save', { consolidationMode: 'loose' })).rejects.toThrow('INVALID_REQUEST');

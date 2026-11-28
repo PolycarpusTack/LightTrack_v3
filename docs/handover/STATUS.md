@@ -1,14 +1,14 @@
 # LightTrack v3: status and pickup
 
 **Last updated:** 2026-11-27
-**`main`:** `8999c10`, CI green. Open: the C-8 PR, which carries this status.
-**Next step:** once C-8 is merged, story C-9 of `docs/handover/stabilisation-backlog.md`, branch from `main`.
+**`main`:** `053fad4`, CI green. Open: the C-9 PR, which carries this status.
+**Next step:** once C-9 is merged, story C-10 of `docs/handover/stabilisation-backlog.md`, branch from `main`.
 
 ## Where we are
 
 The owner reported on 2026-11-26 that tracking runs but no records appear. A functional audit found the cause and a set of other defects. `docs/handover/stabilisation-backlog.md` fixes them in order: three epics, 30 stories, one PR each (Epic C added on 2026-11-27 from an outside code review), approved by the owner and checked by an independent validation pass. The backlog sits in front of Increment B; LT3-102 (#13) follows it.
 
-**Done: Epics A and B (B-5 dropped) with their retrospectives, and C-1 to C-7; C-8 waits for approval. Next: C-9 and C-10.**
+**Done: Epics A and B (B-5 dropped) with their retrospectives, and C-1 to C-8; C-9 waits for approval. Next: C-10.**
 
 The first-release workflow (approval, booking lines, CSV hand-off, RDP) is still not built; see plan section 16 and `docs/design/first-release/REVIEW.md`.
 
@@ -46,10 +46,11 @@ The first-release workflow (approval, booking lines, CSV hand-off, RDP) is still
 - **#86 C-5** a day asked for is that day in every timezone. `activities:get` turned "2026-11-27" into `new Date(...)`, which is UTC midnight, and then took its local day, so west of UTC the Timeline asked for the 26th. A `YYYY-MM-DD` argument is now passed through unchanged; a full timestamp still means its local day. The unused `activities:get-stats` and `get-focus-stats` channels are removed (contract, handler and preload). The test runs in America/New_York through a small Jest environment, `test/baseline/tz-new-york-environment.js`, because a test file cannot change its own timezone.
 - **#87 C-6** an exported CSV cannot run a formula. Settings > Export CSV and the analytics export wrote titles as they were, so a window title such as `=HYPERLINK(...)` ran as a formula in Excel; the analytics export did not even escape quotes in the app and project. Both now use the SAP export's text cell, moved to `src/shared/csv.ts`: every text field is quoted and escaped, and a leading `=`, `+`, `-`, `@`, tab or return gets a single quote. Dates are `YYYY-MM-DD` and times `HH:MM`, whatever the system format. The Settings export is built in `src/main/exports/activities-csv.ts`. The SAP column layout is unchanged.
 - **#88 C-7** the calendar URL is never logged, and private IPv6 addresses are refused. Every sync wrote the full feed URL, token included, to the console ("Syncing calendar from: …"), and a failed sync logged the raw error, which can hold the URL. Both now log the host only (`maskUrl`). The address check only looked at IPv4, and Node keeps IPv6 hosts in brackets, so `[::1]`, `[fe80::1]`, unique-local and `::ffff:`-mapped private addresses were accepted; they are now refused, and public addresses still pass. The 30-second fetch timeout is now cleared after each sync (it kept a timer running; this was also the third goal of C-8).
+- **#89 C-8** recurring meetings appear, and subjects keep their characters. A recurring meeting was listed only on the day it was first held, so a weekly meeting set up two months ago never showed. The series is now expanded within the sync range, skipping cancelled days (EXDATE) and using moved ones (RECURRENCE-ID), capped at 500 per series. `rrule`'s output for a zoned series shifts with the machine's own timezone (CI runs in UTC), so the series is expanded from a copy without the zone, giving wall-clock times, and each occurrence is converted in the event's own zone; a test runs this on a New York machine; `node-ical` maps Windows zone names such as "Romance Standard Time" to IANA. Each occurrence has its own id (`uid|start`). Subjects, locations and descriptions are stored as plain text without control characters: the HTML entities stored before showed as `O&#x27;Brien` and kept meeting rules from matching. Stored meetings are replaced at the next sync; meeting entries already added to the timeline keep their old title.
 
 ## In review
 
-- **C-8** recurring meetings appear, and subjects keep their characters. A recurring meeting was listed only on the day it was first held, so a weekly meeting set up two months ago never showed. The series is now expanded within the sync range, skipping cancelled days (EXDATE) and using moved ones (RECURRENCE-ID), capped at 500 per series. `rrule`'s output for a zoned series shifts with the machine's own timezone (CI runs in UTC), so the series is expanded from a copy without the zone, giving wall-clock times, and each occurrence is converted in the event's own zone; a test runs this on a New York machine; `node-ical` maps Windows zone names such as "Romance Standard Time" to IANA. Each occurrence has its own id (`uid|start`). Subjects, locations and descriptions are stored as plain text without control characters: the HTML entities stored before showed as `O&#x27;Brien` and kept meeting rules from matching. Stored meetings are replaced at the next sync; meeting entries already added to the timeline keep their old title.
+- **C-9** settings are checked against what is stored. The work-day check ran only when both times were sent, so sending just a start of 20:00 against a stored end of 18:00 was saved. The pair is now checked as it will be stored whenever either time is sent; times must be `HH:MM`; the break reminder interval must be 5 to 480 minutes; a `null` value leaves the stored setting alone instead of being written over it. Ranges are still checked only for the values sent, so an old stored value cannot block an unrelated save.
 
 The owner confirmed on 2026-11-27 that the records since October appear after installing the 2026-11-26 build.
 
@@ -119,13 +120,13 @@ Recorded in the plan's decisions table, plus those of 2026-11-26:
 
 ## Next (in order)
 
-1. **C-8** merge after approval.
-2. **C-9 and C-10**, then the Epic C retrospective: settings checks; start-up guards and clean-up.
+1. **C-9** merge after approval.
+2. **C-10**, then the Epic C retrospective: start-up guards and clean-up.
 3. **LT3-102 (#13)** typed repositories on the LT3-101 schema, then LT3-103 to LT3-105 (#14 to #16), Increment C (#17 to #21), the CSV hand-off (#22, #23), RDP (#26, #27), #31, #33.
 
 ## Working notes
 
-- Gates: `npm run lint`, `npm run typecheck`, `npm run test:ci` (baseline Jest, TS via ts-jest; 253 tests), `npm run build` (into `out/`), `npm run security:audit`, `npm run electron:build:win` (production build and installer), `npm run test:app` (harness, 26 tests, against `dist/win-unpacked`; set `LIGHTTRACK_EXE` to test another build).
+- Gates: `npm run lint`, `npm run typecheck`, `npm run test:ci` (baseline Jest, TS via ts-jest; 257 tests), `npm run build` (into `out/`), `npm run security:audit`, `npm run electron:build:win` (production build and installer), `npm run test:app` (harness, 26 tests, against `dist/win-unpacked`; set `LIGHTTRACK_EXE` to test another build).
 - The harness tests a packaged build, not the source: repackage after every source change. Without touching `dist/`: `npm run build:prod && npx electron-builder --win --dir --publish never --config.directories.output=<scratch dir>`, then `LIGHTTRACK_EXE=<scratch dir>/win-unpacked/LightTrack.exe npm run test:app`.
 - On a busy machine the full harness run can fail in "stores a manual entry" (timeout) and "keeps row actions visible" (it needs that entry). Both pass alone and in CI. Trust CI, and read the error before blaming load.
 - Lockfile: CI installs with npm 10 (Node 22). A lockfile written by npm 11 can fail `npm ci` there. After changing dependencies run `npx npm@10 install --package-lock-only`.
