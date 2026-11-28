@@ -30,6 +30,19 @@ async function openSettingsGroup(page, group) {
   await expect(details).toHaveAttribute('open', '');
 }
 
+// What the window showed when it was last closed, or the window still open, so a failed
+// test can attach it. Tests close their app in `finally`, before afterEach runs, so the
+// state is kept just before each close.
+let lastWindow = null;
+
+async function windowState(page, errors) {
+  try {
+    return { html: await page.content(), png: await page.screenshot(), url: page.url(), errors: [...errors] };
+  } catch {
+    return null; // the window is already gone
+  }
+}
+
 async function launch(userData) {
   const app = await electron.launch({
     executablePath: EXE,
@@ -39,9 +52,37 @@ async function launch(userData) {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
+  const open = { page, errors, state: null };
+  lastWindow = open;
+  const close = app.close.bind(app);
+  app.close = async () => {
+    open.state = await windowState(page, errors);
+    return close();
+  };
   await page.locator('.nav-btn[data-view="timer"]').waitFor({ state: 'visible' });
   return { app, page, errors };
 }
+
+// A failed test gets a screenshot, the page HTML and the window's errors
+// Playwright requires the fixture object as the first parameter, even when it is unused
+// eslint-disable-next-line no-empty-pattern
+test.afterEach(async ({}, testInfo) => {
+  const open = lastWindow;
+  lastWindow = null;
+  if (!open || testInfo.status === testInfo.expectedStatus) return;
+  const state = open.state || (await windowState(open.page, open.errors));
+  if (!state) return;
+  const files = {
+    'window.png': [state.png, 'image/png'],
+    'window.html': [state.html, 'text/html'],
+    'window.txt': [`URL: ${state.url}\nErrors:\n${state.errors.join('\n') || '(none)'}\n`, 'text/plain']
+  };
+  for (const [name, [body, contentType]] of Object.entries(files)) {
+    const file = testInfo.outputPath(name);
+    fs.writeFileSync(file, body);
+    await testInfo.attach(name, { path: file, contentType });
+  }
+});
 
 test.describe('packaged application', () => {
   let userData;
