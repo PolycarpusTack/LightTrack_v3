@@ -9,7 +9,8 @@ const { localDay } = require('./local-day');
 const {
   MAX_ACTIVITIES,
   COMPRESSION_THRESHOLD,
-  ACTIVITY_CACHE_TTL_MS
+  ACTIVITY_CACHE_TTL_MS,
+  DEFAULT_IDLE_THRESHOLD_SECONDS
 } = require('../../shared/constants');
 
 /**
@@ -41,7 +42,7 @@ class LightweightStorage {
       defaults: {
         activities: [],
         settings: {
-          idleThreshold: 300,
+          idleThreshold: DEFAULT_IDLE_THRESHOLD_SECONDS,
           autoStart: true,
           showNotifications: true,
           promptOnReturn: true,
