@@ -7,6 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
 const logger = require('../logger');
+const { DEFAULT_IDLE_THRESHOLD_SECONDS } = require('../../shared/constants');
 
 // Version history for migrations
 const MIGRATIONS = {
@@ -236,7 +237,7 @@ class UpgradeManager {
 
     const defaults = {
       'settings.trackingEnabled': true,
-      'settings.idleThreshold': 300,
+      'settings.idleThreshold': DEFAULT_IDLE_THRESHOLD_SECONDS,
       'settings.startWithSystem': false,
       'settings.minimizeToTray': true,
       'settings.showNotifications': true
